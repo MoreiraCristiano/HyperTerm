@@ -1,0 +1,683 @@
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using SuperTerminal.Core.Abstractions.Services;
+using SuperTerminal.Core.Abstractions.Settings;
+using SuperTerminal.Core.Abstractions.Terminal;
+using SuperTerminal.Core.Entities;
+using SuperTerminal.Core.Exceptions;
+using SuperTerminal.Core.Models;
+using SuperTerminal.UI.Services;
+
+namespace SuperTerminal.UI.ViewModels;
+
+public sealed partial class MainWindowViewModel(
+    ISessionService sessionService,
+    ITerminalSessionFactory terminalSessionFactory,
+    IPtySessionFactory ptySessionFactory,
+    ISettingsService settingsService,
+    IThemeService themeService,
+    IExecutableFilePicker executableFilePicker) : ViewModelBase
+{
+    private readonly List<SessionListItemViewModel> allSessions = [];
+    private Guid? editingSessionId;
+    private ApplicationSettings applicationSettings = new();
+    private bool windowStateChanged;
+    private int localTerminalSequence;
+
+    public string Title => "SuperTerminal";
+
+    public IReadOnlyList<string> ThemeOptions { get; } = ["Dark", "Light", "System"];
+
+    public WindowSettings WindowSettings => applicationSettings.Window;
+
+    public ObservableCollection<SessionTreeNodeViewModel> SessionTree { get; } = [];
+
+    public ObservableCollection<TerminalTabViewModel> Tabs { get; } = [];
+
+    [ObservableProperty]
+    private string sessionCountText = "0 sessões";
+
+    [ObservableProperty]
+    private string searchText = string.Empty;
+
+    [ObservableProperty]
+    private SessionListItemViewModel? selectedSession;
+
+    [ObservableProperty]
+    private SessionTreeNodeViewModel? selectedTreeNode;
+
+    [ObservableProperty]
+    private TerminalTabViewModel? selectedTab;
+
+    [ObservableProperty]
+    private bool hasOpenTabs;
+
+    public bool IsTabAreaEmpty => !HasOpenTabs;
+
+    public bool AreTerminalHostsVisible =>
+        HasOpenTabs && !IsEditorOpen && !IsDeleteConfirmationOpen && !IsSettingsOpen;
+
+    [ObservableProperty]
+    private string statusText = "Pronto";
+
+    [ObservableProperty]
+    private string terminalStatusText = "PowerShell";
+
+    [ObservableProperty]
+    private bool isSettingsOpen;
+
+    [ObservableProperty]
+    private string settingsPowerShellPath = "pwsh.exe";
+
+    [ObservableProperty]
+    private string settingsTheme = "Dark";
+
+    [ObservableProperty]
+    private string settingsTerminalFontFamily = "Cascadia Mono";
+
+    [ObservableProperty]
+    private decimal settingsTerminalFontSize = 13;
+
+    [ObservableProperty]
+    private string? settingsError;
+
+    [ObservableProperty]
+    private bool isEditorOpen;
+
+    [ObservableProperty]
+    private bool isDeleteConfirmationOpen;
+
+    [ObservableProperty]
+    private string editorTitle = "Nova sessão";
+
+    [ObservableProperty]
+    private string editorName = string.Empty;
+
+    [ObservableProperty]
+    private string editorHost = string.Empty;
+
+    [ObservableProperty]
+    private decimal editorPort = 22;
+
+    [ObservableProperty]
+    private string editorUsername = string.Empty;
+
+    [ObservableProperty]
+    private string editorPrivateKey = string.Empty;
+
+    [ObservableProperty]
+    private string editorFolder = string.Empty;
+
+    [ObservableProperty]
+    private string editorNotes = string.Empty;
+
+    [ObservableProperty]
+    private string? editorError;
+
+    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            applicationSettings = await settingsService.LoadAsync(cancellationToken);
+            if (string.IsNullOrWhiteSpace(applicationSettings.PowerShellPath) ||
+                applicationSettings.PowerShellPath.Equals(
+                    "powershell.exe",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                applicationSettings = applicationSettings with
+                {
+                    PowerShellPath = "pwsh.exe",
+                };
+                await settingsService.SaveAsync(applicationSettings, cancellationToken);
+            }
+            SettingsPowerShellPath = applicationSettings.PowerShellPath;
+            SettingsTheme = NormalizeTheme(applicationSettings.Theme);
+            SettingsTerminalFontFamily = applicationSettings.TerminalFontFamily;
+            SettingsTerminalFontSize = (decimal)applicationSettings.TerminalFontSize;
+            themeService.Apply(SettingsTheme);
+            UpdateTerminalStatus();
+        }
+        catch (Exception exception) when (exception is IOException or System.Text.Json.JsonException)
+        {
+            SettingsError = $"Falha ao carregar configurações: {exception.Message}";
+            IsSettingsOpen = true;
+        }
+
+        await ReloadSessionsAsync(null, cancellationToken);
+    }
+
+    public async Task ShutdownAsync()
+    {
+        foreach (TerminalTabViewModel tab in Tabs.ToArray())
+        {
+            await CloseTabAsync(tab);
+        }
+
+        if (windowStateChanged)
+        {
+            await settingsService.SaveAsync(applicationSettings);
+            windowStateChanged = false;
+        }
+    }
+
+    public void CaptureWindowState(double width, double height, int x, int y)
+    {
+        applicationSettings = applicationSettings with
+        {
+            Window = new WindowSettings
+            {
+                Width = Math.Max(900, width),
+                Height = Math.Max(600, height),
+                X = x,
+                Y = y,
+            },
+        };
+        windowStateChanged = true;
+    }
+
+    partial void OnSearchTextChanged(string value) => ApplyFilter(SelectedSession?.Id);
+
+    partial void OnSelectedTreeNodeChanged(SessionTreeNodeViewModel? value)
+    {
+        SelectedSession = value?.Session;
+    }
+
+    partial void OnSelectedSessionChanged(SessionListItemViewModel? value)
+    {
+        OpenSelectedSessionCommand.NotifyCanExecuteChanged();
+        EditSessionCommand.NotifyCanExecuteChanged();
+        RequestDeleteSessionCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnSelectedTabChanged(TerminalTabViewModel? value)
+    {
+        foreach (TerminalTabViewModel tab in Tabs)
+        {
+            tab.IsSelected = ReferenceEquals(tab, value);
+        }
+
+        if (value is not null)
+        {
+            StatusText = $"Aba ativa: {value.Title}";
+        }
+
+        CloseSelectedTabCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnHasOpenTabsChanged(bool value) =>
+        NotifyTabVisibilityChanged();
+
+    partial void OnIsEditorOpenChanged(bool value) => NotifyTabVisibilityChanged();
+
+    partial void OnIsDeleteConfirmationOpenChanged(bool value) => NotifyTabVisibilityChanged();
+
+    partial void OnIsSettingsOpenChanged(bool value) => NotifyTabVisibilityChanged();
+
+    [RelayCommand(CanExecute = nameof(HasSelectedSession))]
+    private async Task OpenSelectedSessionAsync()
+    {
+        SessionListItemViewModel session = SelectedSession!;
+        TerminalTabViewModel? existingTab = Tabs.FirstOrDefault(
+            tab => tab.SessionId == session.Id);
+
+        if (existingTab is not null)
+        {
+            SelectedTab = existingTab;
+            StatusText = $"Sessão ‘{session.Name}’ já está aberta";
+            return;
+        }
+
+        try
+        {
+            Session entity = await sessionService.GetByIdAsync(session.Id)
+                ?? throw new KeyNotFoundException($"Sessão ‘{session.Name}’ não encontrada.");
+            TerminalSessionDefinition definition =
+                await terminalSessionFactory.CreateAsync(entity);
+
+            var tab = new TerminalTabViewModel(
+                session,
+                definition,
+                ptySessionFactory,
+                applicationSettings.TerminalFontFamily,
+                applicationSettings.TerminalFontSize,
+                CloseTabAsync);
+            Tabs.Add(tab);
+            SelectedTab = tab;
+            HasOpenTabs = true;
+            StatusText = $"Terminal preparado para ‘{session.Name}’";
+        }
+        catch (TerminalLaunchException exception)
+        {
+            StatusText = exception.Message;
+            SettingsError = exception.Message;
+            OpenSettings();
+        }
+        catch (KeyNotFoundException exception)
+        {
+            StatusText = exception.Message;
+            await ReloadSessionsAsync(null);
+        }
+    }
+
+    [RelayCommand]
+    private async Task OpenLocalTerminalAsync()
+    {
+        try
+        {
+            TerminalSessionDefinition definition =
+                await terminalSessionFactory.CreateLocalAsync();
+            string title = $"PowerShell {++localTerminalSequence}";
+            var tab = new TerminalTabViewModel(
+                title,
+                definition,
+                ptySessionFactory,
+                applicationSettings.TerminalFontFamily,
+                applicationSettings.TerminalFontSize,
+                CloseTabAsync);
+
+            Tabs.Add(tab);
+            SelectedTab = tab;
+            HasOpenTabs = true;
+            StatusText = $"Terminal local ‘{title}’ aberto";
+        }
+        catch (TerminalLaunchException exception)
+        {
+            StatusText = exception.Message;
+            SettingsError = exception.Message;
+            OpenSettings();
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSelectedTab))]
+    private Task CloseSelectedTabAsync() => CloseTabAsync(SelectedTab!);
+
+    [RelayCommand]
+    private void OpenSettings()
+    {
+        SettingsPowerShellPath = applicationSettings.PowerShellPath;
+        SettingsTheme = NormalizeTheme(applicationSettings.Theme);
+        SettingsTerminalFontFamily = applicationSettings.TerminalFontFamily;
+        SettingsTerminalFontSize = (decimal)applicationSettings.TerminalFontSize;
+        SettingsError = null;
+        IsSettingsOpen = true;
+    }
+
+    [RelayCommand]
+    private void CancelSettings()
+    {
+        IsSettingsOpen = false;
+        SettingsError = null;
+    }
+
+    [RelayCommand]
+    private async Task SelectPowerShellAsync()
+    {
+        try
+        {
+            string? selectedPath = await executableFilePicker.PickPowerShellAsync();
+            if (!string.IsNullOrWhiteSpace(selectedPath))
+            {
+                SettingsPowerShellPath = selectedPath;
+                SettingsError = null;
+            }
+        }
+        catch (Exception exception) when (
+            exception is InvalidOperationException or IOException)
+        {
+            SettingsError = $"Não foi possível selecionar o executável: {exception.Message}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task SaveSettingsAsync()
+    {
+        string powerShellPath = SettingsPowerShellPath.Trim().Trim('"');
+        if (powerShellPath.Length == 0)
+        {
+            SettingsError = "Informe pwsh.exe ou o caminho completo do PowerShell 7.";
+            return;
+        }
+
+        if (Path.IsPathRooted(powerShellPath) && !File.Exists(powerShellPath))
+        {
+            SettingsError = "Arquivo informado não existe.";
+            return;
+        }
+
+        try
+        {
+            string theme = NormalizeTheme(SettingsTheme);
+            string fontFamily = string.IsNullOrWhiteSpace(SettingsTerminalFontFamily)
+                ? "Cascadia Mono"
+                : SettingsTerminalFontFamily.Trim();
+            double fontSize = Math.Clamp((double)SettingsTerminalFontSize, 8, 32);
+            applicationSettings = applicationSettings with
+            {
+                PowerShellPath = powerShellPath,
+                Theme = theme,
+                TerminalFontFamily = fontFamily,
+                TerminalFontSize = fontSize,
+            };
+            await settingsService.SaveAsync(applicationSettings);
+            SettingsPowerShellPath = powerShellPath;
+            SettingsTheme = theme;
+            SettingsTerminalFontFamily = fontFamily;
+            SettingsTerminalFontSize = (decimal)fontSize;
+            themeService.Apply(theme);
+            SettingsError = null;
+            IsSettingsOpen = false;
+            UpdateTerminalStatus();
+            StatusText = "Configurações salvas";
+        }
+        catch (IOException exception)
+        {
+            SettingsError = $"Falha ao salvar configurações: {exception.Message}";
+        }
+    }
+
+    [RelayCommand]
+    private void NewSession()
+    {
+        editingSessionId = null;
+        EditorTitle = "Nova sessão";
+        EditorName = string.Empty;
+        EditorHost = string.Empty;
+        EditorPort = 22;
+        EditorUsername = string.Empty;
+        EditorPrivateKey = string.Empty;
+        EditorFolder = string.Empty;
+        EditorNotes = string.Empty;
+        EditorError = null;
+        IsEditorOpen = true;
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSelectedSession))]
+    private void EditSession()
+    {
+        SessionListItemViewModel session = SelectedSession!;
+
+        editingSessionId = session.Id;
+        EditorTitle = "Editar sessão";
+        EditorName = session.Name;
+        EditorHost = session.Host;
+        EditorPort = session.Port;
+        EditorUsername = session.Username;
+        EditorPrivateKey = session.PrivateKey ?? string.Empty;
+        EditorFolder = session.Folder;
+        EditorNotes = session.Notes ?? string.Empty;
+        EditorError = null;
+        IsEditorOpen = true;
+    }
+
+    [RelayCommand]
+    private void CancelEditor()
+    {
+        IsEditorOpen = false;
+        EditorError = null;
+    }
+
+    [RelayCommand]
+    private async Task SaveSessionAsync()
+    {
+        EditorError = null;
+
+        try
+        {
+            var details = new SessionDetails(
+                EditorName,
+                EditorHost,
+                decimal.ToInt32(EditorPort),
+                EditorUsername,
+                EditorPrivateKey,
+                EditorFolder,
+                EditorNotes);
+
+            Session session = editingSessionId is Guid id
+                ? await sessionService.UpdateAsync(id, details)
+                : await sessionService.CreateAsync(details);
+
+            IsEditorOpen = false;
+            StatusText = editingSessionId.HasValue ? "Sessão atualizada" : "Sessão criada";
+            await ReloadSessionsAsync(session.Id);
+        }
+        catch (Exception exception) when (
+            exception is ArgumentException or OverflowException or KeyNotFoundException)
+        {
+            EditorError = exception.Message;
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSelectedSession))]
+    private void RequestDeleteSession()
+    {
+        IsDeleteConfirmationOpen = true;
+    }
+
+    [RelayCommand]
+    private void CancelDeleteSession()
+    {
+        IsDeleteConfirmationOpen = false;
+    }
+
+    [RelayCommand]
+    private async Task ConfirmDeleteSessionAsync()
+    {
+        if (SelectedSession is null)
+        {
+            IsDeleteConfirmationOpen = false;
+            return;
+        }
+
+        Guid id = SelectedSession.Id;
+        string name = SelectedSession.Name;
+
+        try
+        {
+            await sessionService.DeleteAsync(id);
+            IsDeleteConfirmationOpen = false;
+            StatusText = $"Sessão ‘{name}’ excluída";
+            await ReloadSessionsAsync(null);
+        }
+        catch (KeyNotFoundException)
+        {
+            IsDeleteConfirmationOpen = false;
+            StatusText = "Sessão não encontrada";
+            await ReloadSessionsAsync(null);
+        }
+    }
+
+    private bool HasSelectedSession() => SelectedSession is not null;
+
+    private bool HasSelectedTab() => SelectedTab is not null;
+
+    private async Task ReloadSessionsAsync(
+        Guid? sessionToSelect,
+        CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<Session> sessions = await sessionService.GetAllAsync(cancellationToken);
+
+        allSessions.Clear();
+        allSessions.AddRange(sessions.Select(session => new SessionListItemViewModel(session)));
+        await SynchronizeTabsAsync();
+        ApplyFilter(sessionToSelect);
+
+        if (sessions.Count == 0)
+        {
+            StatusText = "Nenhuma sessão cadastrada";
+        }
+    }
+
+    private void ApplyFilter(Guid? sessionToSelect)
+    {
+        string filter = SearchText.Trim();
+        IEnumerable<SessionListItemViewModel> filteredSessions = allSessions;
+
+        if (filter.Length > 0)
+        {
+            filteredSessions = filteredSessions.Where(session =>
+                session.Name.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
+                session.Host.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
+                session.Folder.Contains(filter, StringComparison.OrdinalIgnoreCase));
+        }
+
+        SessionTree.Clear();
+        var foldersByPath = new Dictionary<string, SessionTreeNodeViewModel>(
+            StringComparer.OrdinalIgnoreCase);
+
+        int visibleSessionCount = 0;
+        foreach (SessionListItemViewModel session in filteredSessions)
+        {
+            AddSessionToTree(session, foldersByPath);
+            visibleSessionCount++;
+        }
+
+        SortNodes(SessionTree);
+        SessionCountText = visibleSessionCount == 1
+            ? "1 sessão"
+            : $"{visibleSessionCount} sessões";
+
+        SelectedTreeNode = sessionToSelect.HasValue
+            ? FindSessionNode(SessionTree, sessionToSelect.Value)
+            : null;
+    }
+
+    private void AddSessionToTree(
+        SessionListItemViewModel session,
+        IDictionary<string, SessionTreeNodeViewModel> foldersByPath)
+    {
+        string normalizedFolder = session.Folder.Replace('\\', '/');
+        string[] segments = normalizedFolder.Split(
+            '/',
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        ObservableCollection<SessionTreeNodeViewModel> parentNodes = SessionTree;
+        string currentPath = string.Empty;
+
+        foreach (string segment in segments)
+        {
+            currentPath = currentPath.Length == 0 ? segment : $"{currentPath}/{segment}";
+
+            if (!foldersByPath.TryGetValue(currentPath, out SessionTreeNodeViewModel? folderNode))
+            {
+                folderNode = SessionTreeNodeViewModel.CreateFolder(segment, currentPath);
+                foldersByPath.Add(currentPath, folderNode);
+                parentNodes.Add(folderNode);
+            }
+
+            parentNodes = folderNode.Children;
+        }
+
+        parentNodes.Add(SessionTreeNodeViewModel.CreateSession(session));
+    }
+
+    private static void SortNodes(ObservableCollection<SessionTreeNodeViewModel> nodes)
+    {
+        SessionTreeNodeViewModel[] sortedNodes = nodes
+            .OrderByDescending(node => node.IsFolder)
+            .ThenBy(node => node.Name, StringComparer.CurrentCultureIgnoreCase)
+            .ToArray();
+
+        nodes.Clear();
+        foreach (SessionTreeNodeViewModel node in sortedNodes)
+        {
+            SortNodes(node.Children);
+            nodes.Add(node);
+        }
+    }
+
+    private static SessionTreeNodeViewModel? FindSessionNode(
+        IEnumerable<SessionTreeNodeViewModel> nodes,
+        Guid sessionId)
+    {
+        foreach (SessionTreeNodeViewModel node in nodes)
+        {
+            if (node.Session?.Id == sessionId)
+            {
+                return node;
+            }
+
+            SessionTreeNodeViewModel? match = FindSessionNode(node.Children, sessionId);
+            if (match is not null)
+            {
+                return match;
+            }
+        }
+
+        return null;
+    }
+
+    private async Task CloseTabAsync(TerminalTabViewModel tab)
+    {
+        int closedTabIndex = Tabs.IndexOf(tab);
+        if (closedTabIndex < 0)
+        {
+            return;
+        }
+
+        try
+        {
+            await tab.TerminateAsync();
+            await tab.DisposeAsync();
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or Win32Exception)
+        {
+            StatusText = $"Falha ao encerrar PowerShell: {exception.Message}";
+            return;
+        }
+
+        bool wasSelected = ReferenceEquals(SelectedTab, tab);
+        Tabs.RemoveAt(closedTabIndex);
+
+        if (wasSelected)
+        {
+            int nextTabIndex = Math.Min(closedTabIndex, Tabs.Count - 1);
+            SelectedTab = nextTabIndex >= 0 ? Tabs[nextTabIndex] : null;
+        }
+
+        HasOpenTabs = Tabs.Count > 0;
+        StatusText = $"Aba ‘{tab.Title}’ fechada";
+    }
+
+    private async Task SynchronizeTabsAsync()
+    {
+        foreach (TerminalTabViewModel tab in Tabs.ToArray())
+        {
+            if (tab.IsLocal)
+            {
+                continue;
+            }
+
+            SessionListItemViewModel? session = allSessions.FirstOrDefault(
+                item => item.Id == tab.SessionId);
+
+            if (session is null)
+            {
+                await CloseTabAsync(tab);
+            }
+            else
+            {
+                tab.UpdateSession(session);
+            }
+        }
+    }
+
+    private void UpdateTerminalStatus()
+    {
+        TerminalStatusText = $"PowerShell: {Path.GetFileName(applicationSettings.PowerShellPath)}";
+    }
+
+    private void NotifyTabVisibilityChanged()
+    {
+        OnPropertyChanged(nameof(IsTabAreaEmpty));
+        OnPropertyChanged(nameof(AreTerminalHostsVisible));
+    }
+
+    private static string NormalizeTheme(string? theme) => theme switch
+    {
+        "Light" => "Light",
+        "System" => "System",
+        _ => "Dark",
+    };
+}
