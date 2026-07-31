@@ -11,6 +11,7 @@ public static class DependencyInjection
         ArgumentNullException.ThrowIfNull(services);
 
         services.AddSingleton<ISessionService, SessionService>();
+        services.AddSingleton<ISessionFolderService, SessionFolderService>();
         return services;
     }
 }

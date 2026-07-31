@@ -28,20 +28,41 @@
           IsVisible="{Binding IsSidebarVisible}"
           Padding="12"
           Background="{DynamicResource PanelBackgroundBrush}">
-        <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*">
+        <Grid RowDefinitions="Auto,Auto,Auto,Auto,*">
           <TextBlock
               Grid.Row="0"
               Margin="4,0,0,7"
               FontSize="{DynamicResource FontSizeCaption}"
               FontWeight="SemiBold"
               Text="GENERAL" />
-          <Grid Grid.Row="3" Margin="4,0,0,7" ColumnDefinitions="*,Auto">
+          <Grid Grid.Row="3" Margin="4,0,0,7" ColumnDefinitions="*,Auto,Auto">
             <TextBlock FontSize="{DynamicResource FontSizeCaption}" FontWeight="SemiBold" Text="SESSIONS" />
             <TextBlock
                 Grid.Column="1"
                 FontSize="10"
                 Foreground="{DynamicResource MutedTextBrush}"
                 Text="{Binding SessionCountText}" />
+            <Button
+                Grid.Column="2"
+                Margin="5,0,0,0"
+                Classes="iconButton"
+                Width="24"
+                Height="24"
+                FontFamily="{DynamicResource IconFontFamily}"
+                Content="&#xE712;"
+                ToolTip.Tip="Session actions">
+              <Button.Flyout>
+                <MenuFlyout Placement="BottomEdgeAlignedRight">
+                  <MenuItem Header="New session" Command="{Binding NewSessionCommand}" />
+                  <MenuItem Header="New folder" Command="{Binding OpenFolderEditorCommand}" />
+                  <Separator />
+                  <MenuItem Header="Open" Command="{Binding OpenSelectedSessionCommand}" />
+                  <MenuItem Header="Edit" Command="{Binding EditSessionCommand}" />
+                  <MenuItem Header="Delete session" Command="{Binding RequestDeleteSessionCommand}" />
+                  <MenuItem Header="Delete folder" Command="{Binding RequestDeleteFolderCommand}" />
+                </MenuFlyout>
+              </Button.Flyout>
+            </Button>
           </Grid>
           <StackPanel Grid.Row="1" Spacing="5">
             <StackPanel Orientation="Horizontal" Spacing="6">
@@ -60,30 +81,18 @@
             </StackPanel>
           </StackPanel>
           <Border Grid.Row="2" Height="1" Margin="0,7,0,9" Background="{DynamicResource BorderBrush}" />
-          <StackPanel Grid.Row="4" Margin="0,0,0,10" Orientation="Horizontal" Spacing="6">
-            <Button Classes="iconButton accent" Command="{Binding NewSessionCommand}" ToolTip.Tip="New session">
-              <TextBlock Classes="icon buttonIcon" Text="&#xE710;" />
-            </Button>
-            <Button Classes="iconButton" Command="{Binding OpenSelectedSessionCommand}" ToolTip.Tip="Open session">
-              <TextBlock Classes="icon buttonIcon" Text="&#xE8E5;" />
-            </Button>
-            <Button Classes="iconButton" Command="{Binding EditSessionCommand}" ToolTip.Tip="Edit session">
-              <TextBlock Classes="icon buttonIcon" Text="&#xE70F;" />
-            </Button>
-            <Button Classes="iconButton danger" Command="{Binding RequestDeleteSessionCommand}" ToolTip.Tip="Delete session">
-              <TextBlock Classes="icon buttonIcon" Text="&#xE74D;" />
-            </Button>
-          </StackPanel>
           <TreeView
-              Grid.Row="5"
+              x:Name="SessionsTree"
+              Grid.Row="4"
               Background="Transparent"
               ItemsSource="{Binding SessionTree}"
+              PointerPressed="OnSessionTreePointerPressed"
               SelectedItem="{Binding SelectedTreeNode, Mode=TwoWay}">
             <TreeView.ItemTemplate>
               <TreeDataTemplate
                   x:DataType="viewModels:SessionTreeNodeViewModel"
                   ItemsSource="{Binding Children}">
-                <Grid Margin="2,5">
+                <Grid Margin="2,5" Background="{DynamicResource TransparentBrush}">
                   <StackPanel Spacing="1">
                     <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
                     <TextBlock
@@ -140,7 +149,8 @@
 
           <ItemsControl
               Grid.Row="1"
-              ItemsSource="{Binding Tabs}">
+              ItemsSource="{Binding Tabs}"
+              IsVisible="{Binding AreTerminalHostsVisible}">
             <ItemsControl.ItemsPanel>
               <ItemsPanelTemplate>
                 <Grid />
@@ -234,7 +244,13 @@
           </StackPanel>
           <StackPanel Grid.Row="5" Margin="0,12,0,0">
             <TextBlock Margin="0,0,0,5" Text="Folder" />
-            <TextBox PlaceholderText="Production/Servers" Text="{Binding EditorFolder, Mode=TwoWay}" />
+            <ComboBox
+                HorizontalAlignment="Stretch"
+                IsEditable="True"
+                ItemsSource="{Binding FolderOptions}"
+                PlaceholderText="No folder"
+                SelectedItem="{Binding EditorFolder, Mode=TwoWay}"
+                Text="{Binding EditorFolder, Mode=TwoWay}" />
           </StackPanel>
           <StackPanel Grid.Row="6" Margin="0,12,0,0">
             <TextBlock Margin="0,0,0,5" Text="Notes" />
@@ -354,6 +370,53 @@
             <TextBlock Grid.Row="8" Text="Paste into terminal" /><TextBlock Grid.Row="8" Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+V" />
           </Grid>
           <Button HorizontalAlignment="Right" Command="{Binding CloseShortcutsCommand}" Content="Close" />
+        </StackPanel>
+      </Border>
+    </Panel>
+
+    <Panel Grid.RowSpan="2" IsVisible="{Binding IsFolderEditorOpen}">
+      <Border Background="{DynamicResource OverlayBrush}" />
+      <Border
+          Width="440"
+          Padding="{DynamicResource DialogPadding}"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Center"
+          Background="{DynamicResource PanelBackgroundBrush}"
+          BorderBrush="{DynamicResource BorderBrush}"
+          BorderThickness="1"
+          CornerRadius="{DynamicResource RadiusL}">
+        <StackPanel Spacing="14">
+          <TextBlock FontSize="{DynamicResource FontSizeTitle}" FontWeight="SemiBold" Text="New folder" />
+          <TextBlock Classes="secondary" Text="Use / to create nested folders." />
+          <TextBox PlaceholderText="Production/Linux" Text="{Binding FolderPath, Mode=TwoWay}" />
+          <TextBlock Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap" Text="{Binding FolderError}" />
+          <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+            <Button Command="{Binding CancelFolderEditorCommand}" Content="Cancel" />
+            <Button Classes="accent" Command="{Binding CreateFolderCommand}" Content="Create" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Panel>
+
+    <Panel Grid.RowSpan="2" IsVisible="{Binding IsFolderDeleteConfirmationOpen}">
+      <Border Background="{DynamicResource OverlayBrush}" />
+      <Border
+          Width="440"
+          Padding="{DynamicResource DialogPadding}"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Center"
+          Background="{DynamicResource PanelBackgroundBrush}"
+          BorderBrush="{DynamicResource BorderBrush}"
+          BorderThickness="1"
+          CornerRadius="{DynamicResource RadiusL}">
+        <StackPanel Spacing="14">
+          <TextBlock FontSize="{DynamicResource FontSizeTitle}" FontWeight="SemiBold" Text="Delete folder?" />
+          <TextBlock TextWrapping="Wrap" Text="{Binding FolderToDeletePath, StringFormat='The folder ‘{0}’ and its empty subfolders will be deleted.'}" />
+          <TextBlock Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap" Text="{Binding FolderDeleteError}" />
+          <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+            <Button Command="{Binding CancelDeleteFolderCommand}" Content="Cancel" />
+            <Button Classes="danger" Command="{Binding ConfirmDeleteFolderCommand}" Content="Delete" />
+          </StackPanel>
         </StackPanel>
       </Border>
     </Panel>

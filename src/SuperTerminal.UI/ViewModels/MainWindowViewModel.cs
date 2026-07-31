@@ -14,6 +14,7 @@ namespace SuperTerminal.UI.ViewModels;
 
 public sealed partial class MainWindowViewModel(
     ISessionService sessionService,
+    ISessionFolderService sessionFolderService,
     ITerminalSessionFactory terminalSessionFactory,
     IPtySessionFactory ptySessionFactory,
     ISettingsService settingsService,
@@ -21,6 +22,7 @@ public sealed partial class MainWindowViewModel(
     IExecutableFilePicker executableFilePicker) : ViewModelBase
 {
     private readonly List<SessionListItemViewModel> allSessions = [];
+    private readonly List<SessionFolder> allFolders = [];
     private Guid? editingSessionId;
     private ApplicationSettings applicationSettings = new();
     private bool windowStateChanged;
@@ -35,6 +37,8 @@ public sealed partial class MainWindowViewModel(
     public ObservableCollection<SessionTreeNodeViewModel> SessionTree { get; } = [];
 
     public ObservableCollection<TerminalTabViewModel> Tabs { get; } = [];
+
+    public ObservableCollection<string> FolderOptions { get; } = [];
 
     [ObservableProperty]
     private string sessionCountText = "0 sessions";
@@ -58,7 +62,8 @@ public sealed partial class MainWindowViewModel(
 
     public bool AreTerminalHostsVisible =>
         HasOpenTabs && !IsEditorOpen && !IsDeleteConfirmationOpen &&
-        !IsSettingsOpen && !IsShortcutsOpen;
+        !IsSettingsOpen && !IsShortcutsOpen && !IsFolderEditorOpen &&
+        !IsFolderDeleteConfirmationOpen;
 
     [ObservableProperty]
     private string statusText = "Ready";
@@ -74,6 +79,24 @@ public sealed partial class MainWindowViewModel(
 
     [ObservableProperty]
     private bool isShortcutsOpen;
+
+    [ObservableProperty]
+    private bool isFolderEditorOpen;
+
+    [ObservableProperty]
+    private string folderPath = string.Empty;
+
+    [ObservableProperty]
+    private string? folderError;
+
+    [ObservableProperty]
+    private bool isFolderDeleteConfirmationOpen;
+
+    [ObservableProperty]
+    private string folderToDeletePath = string.Empty;
+
+    [ObservableProperty]
+    private string? folderDeleteError;
 
     [ObservableProperty]
     private bool isSettingsOpen;
@@ -192,6 +215,7 @@ public sealed partial class MainWindowViewModel(
     partial void OnSelectedTreeNodeChanged(SessionTreeNodeViewModel? value)
     {
         SelectedSession = value?.Session;
+        RequestDeleteFolderCommand.NotifyCanExecuteChanged();
     }
 
     partial void OnSelectedSessionChanged(SessionListItemViewModel? value)
@@ -226,6 +250,11 @@ public sealed partial class MainWindowViewModel(
     partial void OnIsSettingsOpenChanged(bool value) => NotifyTabVisibilityChanged();
 
     partial void OnIsShortcutsOpenChanged(bool value) => NotifyTabVisibilityChanged();
+
+    partial void OnIsFolderEditorOpenChanged(bool value) => NotifyTabVisibilityChanged();
+
+    partial void OnIsFolderDeleteConfirmationOpenChanged(bool value) =>
+        NotifyTabVisibilityChanged();
 
     [RelayCommand(CanExecute = nameof(HasSelectedSession))]
     private async Task OpenSelectedSessionAsync()
@@ -331,6 +360,75 @@ public sealed partial class MainWindowViewModel(
     [RelayCommand]
     private void CloseShortcuts() =>
         IsShortcutsOpen = false;
+
+    [RelayCommand]
+    private void OpenFolderEditor()
+    {
+        FolderPath = SelectedTreeNode?.IsFolder == true
+            ? $"{SelectedTreeNode.Path}/"
+            : string.Empty;
+        FolderError = null;
+        IsFolderEditorOpen = true;
+    }
+
+    [RelayCommand]
+    private void CancelFolderEditor()
+    {
+        IsFolderEditorOpen = false;
+        FolderError = null;
+    }
+
+    [RelayCommand]
+    private async Task CreateFolderAsync()
+    {
+        try
+        {
+            SessionFolder folder = await sessionFolderService.CreateAsync(FolderPath);
+            IsFolderEditorOpen = false;
+            FolderError = null;
+            StatusText = $"Folder ‘{folder.Path}’ created";
+            await ReloadSessionsAsync(null);
+        }
+        catch (Exception exception) when (
+            exception is ArgumentException or InvalidOperationException)
+        {
+            FolderError = exception.Message;
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSelectedFolder))]
+    private void RequestDeleteFolder()
+    {
+        FolderToDeletePath = SelectedTreeNode!.Path;
+        FolderDeleteError = null;
+        IsFolderDeleteConfirmationOpen = true;
+    }
+
+    [RelayCommand]
+    private void CancelDeleteFolder()
+    {
+        IsFolderDeleteConfirmationOpen = false;
+        FolderDeleteError = null;
+    }
+
+    [RelayCommand]
+    private async Task ConfirmDeleteFolderAsync()
+    {
+        try
+        {
+            string deletedPath = FolderToDeletePath;
+            await sessionFolderService.DeleteAsync(deletedPath);
+            IsFolderDeleteConfirmationOpen = false;
+            FolderDeleteError = null;
+            StatusText = $"Folder ‘{deletedPath}’ deleted";
+            await ReloadSessionsAsync(null);
+        }
+        catch (Exception exception) when (
+            exception is InvalidOperationException or KeyNotFoundException)
+        {
+            FolderDeleteError = exception.Message;
+        }
+    }
 
     [RelayCommand]
     private void CancelSettings()
@@ -518,6 +616,8 @@ public sealed partial class MainWindowViewModel(
 
     private bool HasSelectedSession() => SelectedSession is not null;
 
+    private bool HasSelectedFolder() => SelectedTreeNode?.IsFolder == true;
+
     private bool HasSelectedTab() => SelectedTab is not null;
 
     private async Task ReloadSessionsAsync(
@@ -525,9 +625,14 @@ public sealed partial class MainWindowViewModel(
         CancellationToken cancellationToken = default)
     {
         IReadOnlyList<Session> sessions = await sessionService.GetAllAsync(cancellationToken);
+        IReadOnlyList<SessionFolder> folders =
+            await sessionFolderService.GetAllAsync(cancellationToken);
 
         allSessions.Clear();
         allSessions.AddRange(sessions.Select(session => new SessionListItemViewModel(session)));
+        allFolders.Clear();
+        allFolders.AddRange(folders);
+        RefreshFolderOptions();
         await SynchronizeTabsAsync();
         ApplyFilter(sessionToSelect);
 
@@ -554,6 +659,11 @@ public sealed partial class MainWindowViewModel(
         var foldersByPath = new Dictionary<string, SessionTreeNodeViewModel>(
             StringComparer.OrdinalIgnoreCase);
 
+        foreach (SessionFolder folder in allFolders)
+        {
+            EnsureFolderPath(folder.Path, foldersByPath);
+        }
+
         int visibleSessionCount = 0;
         foreach (SessionListItemViewModel session in filteredSessions)
         {
@@ -571,11 +681,38 @@ public sealed partial class MainWindowViewModel(
             : null;
     }
 
+    private void RefreshFolderOptions()
+    {
+        string[] paths = allFolders
+            .Select(folder => folder.Path)
+            .Concat(allSessions.Select(session => session.Folder))
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(path => path, StringComparer.CurrentCultureIgnoreCase)
+            .ToArray();
+
+        FolderOptions.Clear();
+        foreach (string path in paths)
+        {
+            FolderOptions.Add(path);
+        }
+    }
+
     private void AddSessionToTree(
         SessionListItemViewModel session,
         IDictionary<string, SessionTreeNodeViewModel> foldersByPath)
     {
-        string normalizedFolder = session.Folder.Replace('\\', '/');
+        ObservableCollection<SessionTreeNodeViewModel> parentNodes =
+            EnsureFolderPath(session.Folder, foldersByPath);
+
+        parentNodes.Add(SessionTreeNodeViewModel.CreateSession(session));
+    }
+
+    private ObservableCollection<SessionTreeNodeViewModel> EnsureFolderPath(
+        string folderPath,
+        IDictionary<string, SessionTreeNodeViewModel> foldersByPath)
+    {
+        string normalizedFolder = folderPath.Replace('\\', '/');
         string[] segments = normalizedFolder.Split(
             '/',
             StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -597,7 +734,7 @@ public sealed partial class MainWindowViewModel(
             parentNodes = folderNode.Children;
         }
 
-        parentNodes.Add(SessionTreeNodeViewModel.CreateSession(session));
+        return parentNodes;
     }
 
     private static void SortNodes(ObservableCollection<SessionTreeNodeViewModel> nodes)

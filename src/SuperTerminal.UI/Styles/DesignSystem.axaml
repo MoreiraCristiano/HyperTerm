@@ -117,4 +117,7 @@
   <Style Selector="TreeViewItem:pointerover /template/ Border#PART_LayoutRoot, ListBoxItem:pointerover /template/ Border#PART_LayoutRoot">
     <Setter Property="Background" Value="{DynamicResource HoverBrush}" />
   </Style>
+  <Style Selector="TreeViewItem:selected:pointerover /template/ Border#PART_LayoutRoot, ListBoxItem:selected:pointerover /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
+  </Style>
 </Styles>

@@ -1,5 +1,8 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Input;
+using Avalonia.VisualTree;
 using SuperTerminal.Core.Models;
 using SuperTerminal.UI.ViewModels;
 
@@ -39,6 +42,32 @@ public sealed partial class MainWindow : Window
         {
             WindowStartupLocation = WindowStartupLocation.Manual;
             Position = savedPosition;
+        }
+    }
+
+    private void OnSessionTreePointerPressed(object? sender, PointerPressedEventArgs eventArgs)
+    {
+        PointerPoint point = eventArgs.GetCurrentPoint(SessionsTree);
+        if (!point.Properties.IsLeftButtonPressed || eventArgs.Source is not Visual source)
+        {
+            return;
+        }
+
+        TreeViewItem? item = source.FindAncestorOfType<TreeViewItem>();
+        if (item is null)
+        {
+            return;
+        }
+
+        item.IsSelected = true;
+
+        bool clickedExpander = source is ToggleButton ||
+            source.FindAncestorOfType<ToggleButton>() is not null;
+        if (!clickedExpander &&
+            item.DataContext is SessionTreeNodeViewModel { IsFolder: true })
+        {
+            item.IsExpanded = !item.IsExpanded;
+            eventArgs.Handled = true;
         }
     }
 }

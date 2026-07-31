@@ -8,6 +8,8 @@ public sealed class SuperTerminalDbContext(DbContextOptions<SuperTerminalDbConte
 {
     public DbSet<Session> Sessions => Set<Session>();
 
+    public DbSet<SessionFolder> SessionFolders => Set<SessionFolder>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
