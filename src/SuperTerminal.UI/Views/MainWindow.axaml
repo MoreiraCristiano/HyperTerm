@@ -28,8 +28,14 @@
           IsVisible="{Binding IsSidebarVisible}"
           Padding="12"
           Background="{DynamicResource PanelBackgroundBrush}">
-        <Grid RowDefinitions="Auto,Auto,Auto,*">
-          <Grid Grid.Row="2" Margin="4,0,0,10" ColumnDefinitions="*,Auto">
+        <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*">
+          <TextBlock
+              Grid.Row="0"
+              Margin="4,0,0,7"
+              FontSize="{DynamicResource FontSizeCaption}"
+              FontWeight="SemiBold"
+              Text="GENERAL" />
+          <Grid Grid.Row="3" Margin="4,0,0,7" ColumnDefinitions="*,Auto">
             <TextBlock FontSize="{DynamicResource FontSizeCaption}" FontWeight="SemiBold" Text="SESSIONS" />
             <TextBlock
                 Grid.Column="1"
@@ -37,7 +43,7 @@
                 Foreground="{DynamicResource MutedTextBrush}"
                 Text="{Binding SessionCountText}" />
           </Grid>
-          <StackPanel Grid.Row="0" Spacing="5">
+          <StackPanel Grid.Row="1" Spacing="5">
             <StackPanel Orientation="Horizontal" Spacing="6">
               <Button Classes="iconButton" Command="{Binding OpenLocalTerminalCommand}" ToolTip.Tip="Local PowerShell">
                 <TextBlock Classes="icon buttonIcon" Text="&#xE756;" />
@@ -52,25 +58,24 @@
                 <TextBlock Classes="icon buttonIcon" Text="&#xE765;" />
               </Button>
             </StackPanel>
-            <Border Height="1" Margin="0,2" Background="{DynamicResource BorderBrush}" />
-            <StackPanel Orientation="Horizontal" Spacing="6">
-              <Button Classes="iconButton accent" Command="{Binding NewSessionCommand}" ToolTip.Tip="New session">
-                <TextBlock Classes="icon buttonIcon" Text="&#xE710;" />
-              </Button>
-              <Button Classes="iconButton" Command="{Binding OpenSelectedSessionCommand}" ToolTip.Tip="Open session">
-                <TextBlock Classes="icon buttonIcon" Text="&#xE8E5;" />
-              </Button>
-              <Button Classes="iconButton" Command="{Binding EditSessionCommand}" ToolTip.Tip="Edit session">
-                <TextBlock Classes="icon buttonIcon" Text="&#xE70F;" />
-              </Button>
-              <Button Classes="iconButton danger" Command="{Binding RequestDeleteSessionCommand}" ToolTip.Tip="Delete session">
-                <TextBlock Classes="icon buttonIcon" Text="&#xE74D;" />
-              </Button>
-            </StackPanel>
           </StackPanel>
-          <Border Grid.Row="1" Height="1" Margin="0,7,0,9" Background="{DynamicResource BorderBrush}" />
+          <Border Grid.Row="2" Height="1" Margin="0,7,0,9" Background="{DynamicResource BorderBrush}" />
+          <StackPanel Grid.Row="4" Margin="0,0,0,10" Orientation="Horizontal" Spacing="6">
+            <Button Classes="iconButton accent" Command="{Binding NewSessionCommand}" ToolTip.Tip="New session">
+              <TextBlock Classes="icon buttonIcon" Text="&#xE710;" />
+            </Button>
+            <Button Classes="iconButton" Command="{Binding OpenSelectedSessionCommand}" ToolTip.Tip="Open session">
+              <TextBlock Classes="icon buttonIcon" Text="&#xE8E5;" />
+            </Button>
+            <Button Classes="iconButton" Command="{Binding EditSessionCommand}" ToolTip.Tip="Edit session">
+              <TextBlock Classes="icon buttonIcon" Text="&#xE70F;" />
+            </Button>
+            <Button Classes="iconButton danger" Command="{Binding RequestDeleteSessionCommand}" ToolTip.Tip="Delete session">
+              <TextBlock Classes="icon buttonIcon" Text="&#xE74D;" />
+            </Button>
+          </StackPanel>
           <TreeView
-              Grid.Row="3"
+              Grid.Row="5"
               Background="Transparent"
               ItemsSource="{Binding SessionTree}"
               SelectedItem="{Binding SelectedTreeNode, Mode=TwoWay}">
