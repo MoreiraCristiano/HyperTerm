@@ -45,6 +45,8 @@ public sealed class WebTerminalControl : NativeWebView
         if (Tab is not null)
         {
             Tab.TerminalOutputReceived += OnTerminalOutputReceived;
+            Tab.FocusRequested += OnFocusRequested;
+            Tab.AppearanceChanged += OnAppearanceChanged;
         }
 
         if (!navigated)
@@ -64,6 +66,8 @@ public sealed class WebTerminalControl : NativeWebView
         if (Tab is not null)
         {
             Tab.TerminalOutputReceived -= OnTerminalOutputReceived;
+            Tab.FocusRequested -= OnFocusRequested;
+            Tab.AppearanceChanged -= OnAppearanceChanged;
         }
 
         base.OnDetachedFromVisualTree(eventArgs);
@@ -94,6 +98,7 @@ public sealed class WebTerminalControl : NativeWebView
             {
                 case "ready":
                     terminalReady = true;
+                    await ApplyAppearanceAsync();
                     await Tab.StartPtyAsync(
                         root.GetProperty("columns").GetInt32(),
                         root.GetProperty("rows").GetInt32());
@@ -121,6 +126,36 @@ public sealed class WebTerminalControl : NativeWebView
     {
         pendingOutput.Enqueue(output);
         ScheduleOutputFlush();
+    }
+
+    private void OnFocusRequested(object? sender, EventArgs eventArgs) =>
+        FocusTerminal();
+
+    private void OnAppearanceChanged(object? sender, EventArgs eventArgs)
+    {
+        if (terminalReady)
+        {
+            Dispatcher.UIThread.Post(
+                async () => await ApplyAppearanceAsync(),
+                DispatcherPriority.Render);
+        }
+    }
+
+    private async Task ApplyAppearanceAsync()
+    {
+        if (!terminalReady || Tab is null)
+        {
+            return;
+        }
+
+        string options = JsonSerializer.Serialize(new
+        {
+            fontFamily = Tab.FontFamily,
+            fontSize = Tab.FontSize,
+            cursorStyle = Tab.CursorStyle.ToLowerInvariant(),
+            cursorBlink = Tab.CursorBlink,
+        });
+        await InvokeScript($"window.terminalConfigure({options})");
     }
 
     private void ScheduleOutputFlush()
@@ -162,13 +197,17 @@ public sealed class WebTerminalControl : NativeWebView
 
     private void FocusTerminal()
     {
-        if (!terminalReady)
+        if (!terminalReady || !IsActive)
         {
             return;
         }
 
         Dispatcher.UIThread.Post(
-            async () => await InvokeScript("window.terminalFocus()"),
+            async () =>
+            {
+                Focus();
+                await InvokeScript("window.terminalFocus()");
+            },
             DispatcherPriority.Input);
     }
 }

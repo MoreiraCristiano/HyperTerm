@@ -63,6 +63,13 @@ window.terminalWriteBase64 = value => {
   terminal.write(new TextDecoder().decode(bytes));
 };
 window.terminalFocus = () => terminal.focus();
+window.terminalConfigure = options => {
+  terminal.options.fontFamily = options.fontFamily;
+  terminal.options.fontSize = options.fontSize;
+  terminal.options.cursorStyle = options.cursorStyle;
+  terminal.options.cursorBlink = options.cursorBlink;
+  fitAndReport();
+};
 
 new ResizeObserver(fitAndReport).observe(document.getElementById('terminal'));
 window.addEventListener('load', () => {

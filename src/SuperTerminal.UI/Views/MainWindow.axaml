@@ -341,15 +341,35 @@
                 Command="{Binding SelectPowerShellCommand}"
                 Content="Browse..." />
           </Grid>
-          <Grid ColumnDefinitions="*,16,140">
+          <Grid ColumnDefinitions="*,16,180">
             <StackPanel>
               <TextBlock Margin="0,0,0,5" Text="Terminal font" />
-              <TextBox Text="{Binding SettingsTerminalFontFamily, Mode=TwoWay}" />
+              <ComboBox
+                  IsEditable="True"
+                  ItemsSource="{Binding SystemFontFamilies}"
+                  SelectedItem="{Binding SettingsTerminalFontFamily, Mode=TwoWay}"
+                  Text="{Binding SettingsTerminalFontFamily, Mode=TwoWay}" />
             </StackPanel>
             <StackPanel Grid.Column="2">
               <TextBlock Margin="0,0,0,5" Text="Size" />
-              <NumericUpDown Minimum="8" Maximum="32" Value="{Binding SettingsTerminalFontSize, Mode=TwoWay}" />
+              <NumericUpDown
+                  Minimum="8"
+                  Maximum="32"
+                  Value="{Binding SettingsTerminalFontSize, Mode=TwoWay}" />
             </StackPanel>
+          </Grid>
+          <Grid ColumnDefinitions="*,16,*">
+            <StackPanel>
+              <TextBlock Margin="0,0,0,5" Text="Cursor style" />
+              <ComboBox
+                  ItemsSource="{Binding TerminalCursorStyles}"
+                  SelectedItem="{Binding SettingsTerminalCursorStyle, Mode=TwoWay}" />
+            </StackPanel>
+            <CheckBox
+                Grid.Column="2"
+                VerticalAlignment="Bottom"
+                IsChecked="{Binding SettingsTerminalCursorBlink, Mode=TwoWay}"
+                Content="Blink cursor" />
           </Grid>
           <TextBlock
               Foreground="{DynamicResource DangerBrush}"

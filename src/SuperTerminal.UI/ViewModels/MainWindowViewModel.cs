@@ -19,7 +19,8 @@ public sealed partial class MainWindowViewModel(
     IPtySessionFactory ptySessionFactory,
     ISettingsService settingsService,
     IThemeService themeService,
-    IExecutableFilePicker executableFilePicker) : ViewModelBase
+    IExecutableFilePicker executableFilePicker,
+    ISystemFontService systemFontService) : ViewModelBase
 {
     private readonly List<SessionListItemViewModel> allSessions = [];
     private readonly List<SessionFolder> allFolders = [];
@@ -40,6 +41,11 @@ public sealed partial class MainWindowViewModel(
     public ObservableCollection<TerminalTabViewModel> Tabs { get; } = [];
 
     public ObservableCollection<string> FolderOptions { get; } = [];
+
+    public ObservableCollection<string> SystemFontFamilies { get; } = [];
+
+    public IReadOnlyList<string> TerminalCursorStyles { get; } =
+        ["Bar", "Block", "Underline"];
 
     [ObservableProperty]
     private string sessionCountText = "0 sessions";
@@ -121,6 +127,12 @@ public sealed partial class MainWindowViewModel(
     private decimal settingsTerminalFontSize = 13;
 
     [ObservableProperty]
+    private string settingsTerminalCursorStyle = "Bar";
+
+    [ObservableProperty]
+    private bool settingsTerminalCursorBlink = true;
+
+    [ObservableProperty]
     private string? settingsError;
 
     [ObservableProperty]
@@ -176,6 +188,9 @@ public sealed partial class MainWindowViewModel(
             SettingsTheme = NormalizeTheme(applicationSettings.Theme);
             SettingsTerminalFontFamily = applicationSettings.TerminalFontFamily;
             SettingsTerminalFontSize = (decimal)applicationSettings.TerminalFontSize;
+            SettingsTerminalCursorStyle = NormalizeCursorStyle(
+                applicationSettings.TerminalCursorStyle);
+            SettingsTerminalCursorBlink = applicationSettings.TerminalCursorBlink;
             themeService.Apply(SettingsTheme);
             UpdateTerminalStatus();
         }
@@ -244,6 +259,7 @@ public sealed partial class MainWindowViewModel(
         if (value is not null)
         {
             StatusText = $"Active tab: {value.Title}";
+            value.RequestFocus();
         }
 
         CloseSelectedTabCommand.NotifyCanExecuteChanged();
@@ -275,6 +291,7 @@ public sealed partial class MainWindowViewModel(
         if (existingTab is not null)
         {
             SelectedTab = existingTab;
+            existingTab.RequestFocus();
             StatusText = $"Session ‘{session.Name}’ is already open";
             return;
         }
@@ -292,6 +309,8 @@ public sealed partial class MainWindowViewModel(
                 ptySessionFactory,
                 applicationSettings.TerminalFontFamily,
                 applicationSettings.TerminalFontSize,
+                applicationSettings.TerminalCursorStyle,
+                applicationSettings.TerminalCursorBlink,
                 CloseTabAsync);
             Tabs.Add(tab);
             SelectedTab = tab;
@@ -325,6 +344,8 @@ public sealed partial class MainWindowViewModel(
                 ptySessionFactory,
                 applicationSettings.TerminalFontFamily,
                 applicationSettings.TerminalFontSize,
+                applicationSettings.TerminalCursorStyle,
+                applicationSettings.TerminalCursorBlink,
                 CloseTabAsync);
 
             Tabs.Add(tab);
@@ -350,6 +371,10 @@ public sealed partial class MainWindowViewModel(
         SettingsTheme = NormalizeTheme(applicationSettings.Theme);
         SettingsTerminalFontFamily = applicationSettings.TerminalFontFamily;
         SettingsTerminalFontSize = (decimal)applicationSettings.TerminalFontSize;
+        SettingsTerminalCursorStyle = NormalizeCursorStyle(
+            applicationSettings.TerminalCursorStyle);
+        SettingsTerminalCursorBlink = applicationSettings.TerminalCursorBlink;
+        LoadSystemFonts();
         SettingsError = null;
         IsSettingsOpen = true;
     }
@@ -515,18 +540,30 @@ public sealed partial class MainWindowViewModel(
                 ? "Cascadia Mono"
                 : SettingsTerminalFontFamily.Trim();
             double fontSize = Math.Clamp((double)SettingsTerminalFontSize, 8, 32);
+            string cursorStyle = NormalizeCursorStyle(SettingsTerminalCursorStyle);
             applicationSettings = applicationSettings with
             {
                 PowerShellPath = powerShellPath,
                 Theme = theme,
                 TerminalFontFamily = fontFamily,
                 TerminalFontSize = fontSize,
+                TerminalCursorStyle = cursorStyle,
+                TerminalCursorBlink = SettingsTerminalCursorBlink,
             };
             await settingsService.SaveAsync(applicationSettings);
             SettingsPowerShellPath = powerShellPath;
             SettingsTheme = theme;
             SettingsTerminalFontFamily = fontFamily;
             SettingsTerminalFontSize = (decimal)fontSize;
+            SettingsTerminalCursorStyle = cursorStyle;
+            foreach (TerminalTabViewModel tab in Tabs)
+            {
+                tab.UpdateAppearance(
+                    fontFamily,
+                    fontSize,
+                    cursorStyle,
+                    SettingsTerminalCursorBlink);
+            }
             themeService.Apply(theme);
             SettingsError = null;
             IsSettingsOpen = false;
@@ -876,4 +913,30 @@ public sealed partial class MainWindowViewModel(
     }
 
     private static string NormalizeTheme(string? theme) => "Dark";
+
+    private void LoadSystemFonts()
+    {
+        if (SystemFontFamilies.Count > 0)
+        {
+            return;
+        }
+
+        foreach (string fontFamily in systemFontService.GetInstalledFontFamilies())
+        {
+            SystemFontFamilies.Add(fontFamily);
+        }
+
+        if (!SystemFontFamilies.Contains(SettingsTerminalFontFamily))
+        {
+            SystemFontFamilies.Insert(0, SettingsTerminalFontFamily);
+        }
+    }
+
+    private static string NormalizeCursorStyle(string? cursorStyle) =>
+        cursorStyle?.Trim().ToLowerInvariant() switch
+        {
+            "block" => "Block",
+            "underline" => "Underline",
+            _ => "Bar",
+        };
 }
