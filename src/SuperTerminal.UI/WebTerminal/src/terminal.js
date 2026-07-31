@@ -12,7 +12,7 @@ const terminal = new Terminal({
   scrollback: 5000,
   allowTransparency: false,
   theme: {
-    background: '#0c0e12',
+    background: '#1e1e1e',
     foreground: '#e6e9ef',
     cursor: '#e6e9ef',
     selectionBackground: '#264f78'

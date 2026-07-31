@@ -5,8 +5,27 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <link rel="stylesheet" href="xterm.css">
   <style>
-    html, body, #terminal { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #0c0e12; }
+    :root {
+      color-scheme: dark;
+      --terminal-background: #1e1e1e;
+      --scrollbar-thumb: #3c3c3c;
+      --scrollbar-hover: #555555;
+    }
+    html, body, #terminal { width: 100%; height: 100%; margin: 0; overflow: hidden; background: var(--terminal-background); }
     .xterm { padding: 6px 8px; }
+    * {
+      scrollbar-color: var(--scrollbar-thumb) var(--terminal-background);
+      scrollbar-width: thin;
+    }
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: var(--terminal-background); }
+    ::-webkit-scrollbar-thumb {
+      background: var(--scrollbar-thumb);
+      border: 2px solid var(--terminal-background);
+      border-radius: 6px;
+    }
+    ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-hover); }
+    ::-webkit-scrollbar-corner { background: var(--terminal-background); }
   </style>
 </head>
 <body>

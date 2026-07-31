@@ -31,7 +31,7 @@ public sealed partial class TerminalTabViewModel : ViewModelBase
         string fontFamily,
         double fontSize,
         Func<TerminalTabViewModel, Task> closeAction)
-        : this(null, title, "Terminal local", string.Empty, definition, ptySessionFactory, fontFamily, fontSize, closeAction)
+        : this(null, title, "Local terminal", string.Empty, definition, ptySessionFactory, fontFamily, fontSize, closeAction)
     {
     }
 
@@ -86,7 +86,7 @@ public sealed partial class TerminalTabViewModel : ViewModelBase
     private string folder = string.Empty;
 
     [ObservableProperty]
-    private string connectionStatus = "Preparando PowerShell";
+    private string connectionStatus = "Preparing PowerShell";
 
     [ObservableProperty]
     private bool isSelected;
@@ -129,7 +129,7 @@ public sealed partial class TerminalTabViewModel : ViewModelBase
                 return;
             }
 
-            ConnectionStatus = "Iniciando ConPTY";
+            ConnectionStatus = "Starting ConPTY";
             ptySession = await ptySessionFactory.CreateAsync(Definition, columns, rows);
             ptySession.OutputReceived += OnPtyOutputReceived;
             ptySession.Exited += OnPtyExited;
@@ -179,28 +179,28 @@ public sealed partial class TerminalTabViewModel : ViewModelBase
 
     internal void ReportWaitingForTerminal()
     {
-        ConnectionStatus = "Aguardando ConPTY";
+        ConnectionStatus = "Waiting for ConPTY";
     }
 
     internal void ReportTextCopied(int characterCount)
     {
-        ConnectionStatus = $"Copiado: {characterCount} caracteres";
+        ConnectionStatus = $"Copied: {characterCount} characters";
     }
 
     internal void ReportCopyFailed(string reason)
     {
-        ConnectionStatus = $"Falha ao copiar: {reason}";
+        ConnectionStatus = $"Copy failed: {reason}";
     }
 
     internal void ReportProcessExited(int exitCode)
     {
         killProcess = null;
-        ConnectionStatus = $"PowerShell encerrado — código {exitCode}";
+        ConnectionStatus = $"PowerShell exited — code {exitCode}";
     }
 
     internal void ReportLaunchFailed(string message)
     {
         killProcess = null;
-        ConnectionStatus = $"Falha ao iniciar: {message}";
+        ConnectionStatus = $"Launch failed: {message}";
     }
 }

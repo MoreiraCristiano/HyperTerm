@@ -12,11 +12,6 @@ internal sealed class AvaloniaThemeService : IThemeService
             return;
         }
 
-        Application.Current.RequestedThemeVariant = theme switch
-        {
-            "Light" => ThemeVariant.Light,
-            "System" => ThemeVariant.Default,
-            _ => ThemeVariant.Dark,
-        };
+        Application.Current.RequestedThemeVariant = ThemeVariant.Dark;
     }
 }

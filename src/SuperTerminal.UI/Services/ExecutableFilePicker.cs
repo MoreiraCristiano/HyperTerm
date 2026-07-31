@@ -15,22 +15,22 @@ internal sealed class ExecutableFilePicker : IExecutableFilePicker
             IClassicDesktopStyleApplicationLifetime desktop ||
             desktop.MainWindow is null)
         {
-            throw new InvalidOperationException("Janela principal não está disponível.");
+            throw new InvalidOperationException("The main window is not available.");
         }
 
         IReadOnlyList<IStorageFile> files = await desktop.MainWindow.StorageProvider
             .OpenFilePickerAsync(new FilePickerOpenOptions
             {
-                Title = "Selecionar PowerShell 7 (pwsh.exe)",
+                Title = "Select PowerShell 7 (pwsh.exe)",
                 AllowMultiple = false,
                 FileTypeFilter =
                 [
-                    new FilePickerFileType("Executável PowerShell")
+                    new FilePickerFileType("PowerShell executable")
                     {
                         Patterns = ["pwsh.exe"],
                         MimeTypes = ["application/x-msdownload"],
                     },
-                    new FilePickerFileType("Executáveis")
+                    new FilePickerFileType("Executables")
                     {
                         Patterns = ["*.exe"],
                         MimeTypes = ["application/x-msdownload"],

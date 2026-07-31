@@ -16,57 +16,61 @@
     <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenSelectedSessionCommand}" />
     <KeyBinding Gesture="Ctrl+W" Command="{Binding CloseSelectedTabCommand}" />
     <KeyBinding Gesture="Ctrl+," Command="{Binding OpenSettingsCommand}" />
+    <KeyBinding Gesture="Ctrl+B" Command="{Binding ToggleSidebarCommand}" />
+    <KeyBinding Gesture="F1" Command="{Binding OpenShortcutsCommand}" />
     <KeyBinding Gesture="F2" Command="{Binding EditSessionCommand}" />
   </Window.KeyBindings>
-  <Grid RowDefinitions="48,*,28">
-    <Border
-        Grid.Row="0"
-        Padding="18,0"
-        Background="{DynamicResource HeaderBackgroundBrush}"
-        BorderBrush="{DynamicResource BorderBrush}"
-        BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="Auto,*,Auto">
-        <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-          <Border Width="24" Height="24" CornerRadius="5" Background="{DynamicResource AccentBrush}">
-            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" Text="S" />
-          </Border>
-          <TextBlock VerticalAlignment="Center" FontSize="15" FontWeight="SemiBold" Text="SuperTerminal" />
-        </StackPanel>
-        <TextBlock
-            Grid.Column="1"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Center"
-            Foreground="{DynamicResource MutedTextBrush}"
-            Text="Gerenciador de sessões SSH" />
-        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
-          <Button Command="{Binding OpenSettingsCommand}" Content="Configurações" />
-          <Button Command="{Binding OpenLocalTerminalCommand}" Content="PowerShell local" />
-          <Button Command="{Binding NewSessionCommand}" Content="+ Nova sessão" />
-        </StackPanel>
-      </Grid>
-    </Border>
-
-    <Grid Grid.Row="1" ColumnDefinitions="280,1,*">
+  <Grid RowDefinitions="*,Auto">
+    <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*">
       <Border
           Grid.Column="0"
+          Width="240"
+          IsVisible="{Binding IsSidebarVisible}"
           Padding="12"
           Background="{DynamicResource PanelBackgroundBrush}">
-        <Grid RowDefinitions="Auto,Auto,*,Auto">
-          <Grid Margin="4,0,0,10" ColumnDefinitions="*,Auto">
-            <TextBlock FontSize="11" FontWeight="Bold" Text="SESSÕES" />
+        <Grid RowDefinitions="Auto,Auto,Auto,*">
+          <Grid Grid.Row="2" Margin="4,0,0,10" ColumnDefinitions="*,Auto">
+            <TextBlock FontSize="{DynamicResource FontSizeCaption}" FontWeight="SemiBold" Text="SESSIONS" />
             <TextBlock
                 Grid.Column="1"
                 FontSize="10"
                 Foreground="{DynamicResource MutedTextBrush}"
                 Text="{Binding SessionCountText}" />
           </Grid>
-          <TextBox
-              Grid.Row="1"
-              Margin="0,0,0,10"
-              PlaceholderText="Pesquisar sessões"
-              Text="{Binding SearchText, Mode=TwoWay}" />
+          <StackPanel Grid.Row="0" Spacing="5">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Button Classes="iconButton" Command="{Binding OpenLocalTerminalCommand}" ToolTip.Tip="Local PowerShell">
+                <TextBlock Classes="icon buttonIcon" Text="&#xE756;" />
+              </Button>
+              <Button Classes="iconButton" Command="{Binding OpenSettingsCommand}" ToolTip.Tip="Settings">
+                <TextBlock Classes="icon buttonIcon" Text="&#xE713;" />
+              </Button>
+              <Button Classes="iconButton" Command="{Binding ToggleStatusBarCommand}" ToolTip.Tip="Toggle status bar">
+                <TextBlock Classes="icon buttonIcon" Text="&#xE9D9;" />
+              </Button>
+              <Button Classes="iconButton" Command="{Binding OpenShortcutsCommand}" ToolTip.Tip="Keyboard shortcuts">
+                <TextBlock Classes="icon buttonIcon" Text="&#xE765;" />
+              </Button>
+            </StackPanel>
+            <Border Height="1" Margin="0,2" Background="{DynamicResource BorderBrush}" />
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Button Classes="iconButton accent" Command="{Binding NewSessionCommand}" ToolTip.Tip="New session">
+                <TextBlock Classes="icon buttonIcon" Text="&#xE710;" />
+              </Button>
+              <Button Classes="iconButton" Command="{Binding OpenSelectedSessionCommand}" ToolTip.Tip="Open session">
+                <TextBlock Classes="icon buttonIcon" Text="&#xE8E5;" />
+              </Button>
+              <Button Classes="iconButton" Command="{Binding EditSessionCommand}" ToolTip.Tip="Edit session">
+                <TextBlock Classes="icon buttonIcon" Text="&#xE70F;" />
+              </Button>
+              <Button Classes="iconButton danger" Command="{Binding RequestDeleteSessionCommand}" ToolTip.Tip="Delete session">
+                <TextBlock Classes="icon buttonIcon" Text="&#xE74D;" />
+              </Button>
+            </StackPanel>
+          </StackPanel>
+          <Border Grid.Row="1" Height="1" Margin="0,7,0,9" Background="{DynamicResource BorderBrush}" />
           <TreeView
-              Grid.Row="2"
+              Grid.Row="3"
               Background="Transparent"
               ItemsSource="{Binding SessionTree}"
               SelectedItem="{Binding SelectedTreeNode, Mode=TwoWay}">
@@ -74,16 +78,8 @@
               <TreeDataTemplate
                   x:DataType="viewModels:SessionTreeNodeViewModel"
                   ItemsSource="{Binding Children}">
-                <Grid Margin="2,5" ColumnDefinitions="18,*">
-                  <TextBlock
-                      IsVisible="{Binding IsFolder}"
-                      Foreground="{DynamicResource AccentBrush}"
-                      Text="▰" />
-                  <TextBlock
-                      IsVisible="{Binding IsSession}"
-                      Foreground="#62C073"
-                      Text="●" />
-                  <StackPanel Grid.Column="1" Spacing="1">
+                <Grid Margin="2,5">
+                  <StackPanel Spacing="1">
                     <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
                     <TextBlock
                         IsVisible="{Binding IsSession}"
@@ -95,29 +91,10 @@
               </TreeDataTemplate>
             </TreeView.ItemTemplate>
           </TreeView>
-          <Grid Grid.Row="3" Margin="0,10,0,0" ColumnDefinitions="*,*,*">
-            <Button
-                Margin="0,0,4,0"
-                HorizontalAlignment="Stretch"
-                Command="{Binding OpenSelectedSessionCommand}"
-                Content="Abrir" />
-            <Button
-                Grid.Column="1"
-                Margin="4,0,4,0"
-                HorizontalAlignment="Stretch"
-                Command="{Binding EditSessionCommand}"
-                Content="Editar" />
-            <Button
-                Grid.Column="2"
-                Margin="4,0,0,0"
-                HorizontalAlignment="Stretch"
-                Command="{Binding RequestDeleteSessionCommand}"
-                Content="Excluir" />
-          </Grid>
         </Grid>
       </Border>
 
-      <Border Grid.Column="1" Background="{DynamicResource BorderBrush}" />
+      <Border Grid.Column="1" Width="1" IsVisible="{Binding IsSidebarVisible}" Background="{DynamicResource BorderBrush}" />
 
       <Grid Grid.Column="2">
         <Grid RowDefinitions="42,*">
@@ -149,7 +126,8 @@
                       VerticalAlignment="Center"
                       Background="Transparent"
                       Command="{Binding CloseCommand}"
-                      Content="×" />
+                      FontFamily="{DynamicResource IconFontFamily}"
+                      Content="&#xE711;" />
                 </Grid>
               </DataTemplate>
             </ListBox.ItemTemplate>
@@ -165,7 +143,7 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="viewModels:TerminalTabViewModel">
-                <Grid IsVisible="{Binding IsSelected}" Background="#101216">
+                <Grid IsVisible="{Binding IsSelected}" Background="{DynamicResource AppBackgroundBrush}">
                   <controls:WebTerminalControl
                       Tab="{Binding}"
                       IsActive="{Binding IsSelected}" />
@@ -183,20 +161,25 @@
           <TextBlock HorizontalAlignment="Center" FontSize="28" FontWeight="Light" Text="SuperTerminal" />
           <TextBlock
               Foreground="{DynamicResource MutedTextBrush}"
-              Text="Selecione uma sessão ou crie uma nova conexão." />
+              Text="Select a session or create a new connection." />
           <Button
               Margin="0,10,0,0"
               HorizontalAlignment="Center"
               Command="{Binding NewSessionCommand}"
-              Content="Criar primeira sessão" />
+              Classes="accent"
+              Content="Create first session" />
         </StackPanel>
       </Grid>
     </Grid>
 
     <Border
-        Grid.Row="2"
+        Grid.Row="1"
+        IsVisible="{Binding IsStatusBarVisible}"
         Padding="12,0"
-        Background="{DynamicResource AccentBrush}">
+        MinHeight="28"
+        Background="{DynamicResource SecondaryBackgroundBrush}"
+        BorderBrush="{DynamicResource BorderBrush}"
+        BorderThickness="0,1,0,0">
       <Grid ColumnDefinitions="*,Auto,Auto">
         <TextBlock VerticalAlignment="Center" FontSize="11" Text="{Binding StatusText}" />
         <TextBlock
@@ -209,8 +192,8 @@
       </Grid>
     </Border>
 
-    <Panel Grid.RowSpan="3" IsVisible="{Binding IsEditorOpen}">
-      <Border Background="#99000000" />
+    <Panel Grid.RowSpan="2" IsVisible="{Binding IsEditorOpen}">
+      <Border Background="{DynamicResource OverlayBrush}" />
       <Border
           Width="560"
           Padding="24"
@@ -224,11 +207,11 @@
           <TextBlock FontSize="20" FontWeight="SemiBold" Text="{Binding EditorTitle}" />
           <Grid Grid.Row="1" Margin="0,20,0,0" ColumnDefinitions="*,16,160">
             <StackPanel>
-              <TextBlock Margin="0,0,0,5" Text="Nome" />
+              <TextBlock Margin="0,0,0,5" Text="Name" />
               <TextBox Text="{Binding EditorName, Mode=TwoWay}" />
             </StackPanel>
             <StackPanel Grid.Column="2">
-              <TextBlock Margin="0,0,0,5" Text="Porta" />
+              <TextBlock Margin="0,0,0,5" Text="Port" />
               <NumericUpDown Minimum="1" Maximum="65535" Value="{Binding EditorPort, Mode=TwoWay}" />
             </StackPanel>
           </Grid>
@@ -237,19 +220,19 @@
             <TextBox Text="{Binding EditorHost, Mode=TwoWay}" />
           </StackPanel>
           <StackPanel Grid.Row="3" Margin="0,12,0,0">
-            <TextBlock Margin="0,0,0,5" Text="Usuário" />
+            <TextBlock Margin="0,0,0,5" Text="Username" />
             <TextBox Text="{Binding EditorUsername, Mode=TwoWay}" />
           </StackPanel>
           <StackPanel Grid.Row="4" Margin="0,12,0,0">
-            <TextBlock Margin="0,0,0,5" Text="Chave privada (opcional)" />
-            <TextBox PlaceholderText="C:\caminho\chave.ppk" Text="{Binding EditorPrivateKey, Mode=TwoWay}" />
+            <TextBlock Margin="0,0,0,5" Text="Private key (optional)" />
+            <TextBox PlaceholderText="C:\path\private-key.ppk" Text="{Binding EditorPrivateKey, Mode=TwoWay}" />
           </StackPanel>
           <StackPanel Grid.Row="5" Margin="0,12,0,0">
-            <TextBlock Margin="0,0,0,5" Text="Pasta" />
-            <TextBox PlaceholderText="Produção/Servidores" Text="{Binding EditorFolder, Mode=TwoWay}" />
+            <TextBlock Margin="0,0,0,5" Text="Folder" />
+            <TextBox PlaceholderText="Production/Servers" Text="{Binding EditorFolder, Mode=TwoWay}" />
           </StackPanel>
           <StackPanel Grid.Row="6" Margin="0,12,0,0">
-            <TextBlock Margin="0,0,0,5" Text="Observações" />
+            <TextBlock Margin="0,0,0,5" Text="Notes" />
             <TextBox
                 MinHeight="72"
                 AcceptsReturn="True"
@@ -263,15 +246,15 @@
               TextWrapping="Wrap"
               Text="{Binding EditorError}" />
           <StackPanel Grid.Row="8" Margin="0,20,0,0" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
-            <Button Command="{Binding CancelEditorCommand}" Content="Cancelar" />
-            <Button Command="{Binding SaveSessionCommand}" Content="Salvar" />
+            <Button Command="{Binding CancelEditorCommand}" Content="Cancel" />
+            <Button Classes="accent" Command="{Binding SaveSessionCommand}" Content="Save" />
           </StackPanel>
         </Grid>
       </Border>
     </Panel>
 
-    <Panel Grid.RowSpan="3" IsVisible="{Binding IsDeleteConfirmationOpen}">
-      <Border Background="#99000000" />
+    <Panel Grid.RowSpan="2" IsVisible="{Binding IsDeleteConfirmationOpen}">
+      <Border Background="{DynamicResource OverlayBrush}" />
       <Border
           Width="420"
           Padding="24"
@@ -282,18 +265,18 @@
           BorderThickness="1"
           CornerRadius="8">
         <StackPanel Spacing="16">
-          <TextBlock FontSize="19" FontWeight="SemiBold" Text="Excluir sessão?" />
-          <TextBlock TextWrapping="Wrap" Text="Esta sessão será removida permanentemente do banco local." />
+          <TextBlock FontSize="19" FontWeight="SemiBold" Text="Delete session?" />
+          <TextBlock TextWrapping="Wrap" Text="This session will be permanently removed from the local database." />
           <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
-            <Button Command="{Binding CancelDeleteSessionCommand}" Content="Cancelar" />
-            <Button Command="{Binding ConfirmDeleteSessionCommand}" Content="Excluir" />
+            <Button Command="{Binding CancelDeleteSessionCommand}" Content="Cancel" />
+            <Button Classes="danger" Command="{Binding ConfirmDeleteSessionCommand}" Content="Delete" />
           </StackPanel>
         </StackPanel>
       </Border>
     </Panel>
 
-    <Panel Grid.RowSpan="3" IsVisible="{Binding IsSettingsOpen}">
-      <Border Background="#99000000" />
+    <Panel Grid.RowSpan="2" IsVisible="{Binding IsSettingsOpen}">
+      <Border Background="{DynamicResource OverlayBrush}" />
       <Border
           Width="620"
           Padding="24"
@@ -304,11 +287,11 @@
           BorderThickness="1"
           CornerRadius="8">
         <StackPanel Spacing="14">
-          <TextBlock FontSize="20" FontWeight="SemiBold" Text="Configurações" />
+          <TextBlock FontSize="20" FontWeight="SemiBold" Text="Settings" />
           <TextBlock
               Foreground="{DynamicResource MutedTextBrush}"
-              Text="PowerShell executará ssh.exe automaticamente em cada aba." />
-          <TextBlock Margin="0,4,0,-8" Text="Executável PowerShell 7" />
+              Text="PowerShell runs ssh.exe automatically for each remote tab." />
+          <TextBlock Margin="0,4,0,-8" Text="PowerShell 7 executable" />
           <Grid ColumnDefinitions="*,Auto">
             <TextBox
                 IsReadOnly="True"
@@ -317,20 +300,15 @@
                 Grid.Column="1"
                 Margin="8,0,0,0"
                 Command="{Binding SelectPowerShellCommand}"
-                Content="Selecionar..." />
+                Content="Browse..." />
           </Grid>
-          <TextBlock Margin="0,4,0,-8" Text="Tema" />
-          <ComboBox
-              HorizontalAlignment="Stretch"
-              ItemsSource="{Binding ThemeOptions}"
-              SelectedItem="{Binding SettingsTheme, Mode=TwoWay}" />
           <Grid ColumnDefinitions="*,16,140">
             <StackPanel>
-              <TextBlock Margin="0,0,0,5" Text="Fonte do terminal" />
+              <TextBlock Margin="0,0,0,5" Text="Terminal font" />
               <TextBox Text="{Binding SettingsTerminalFontFamily, Mode=TwoWay}" />
             </StackPanel>
             <StackPanel Grid.Column="2">
-              <TextBlock Margin="0,0,0,5" Text="Tamanho" />
+              <TextBlock Margin="0,0,0,5" Text="Size" />
               <NumericUpDown Minimum="8" Maximum="32" Value="{Binding SettingsTerminalFontSize, Mode=TwoWay}" />
             </StackPanel>
           </Grid>
@@ -339,9 +317,38 @@
               TextWrapping="Wrap"
               Text="{Binding SettingsError}" />
           <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
-            <Button Command="{Binding CancelSettingsCommand}" Content="Cancelar" />
-            <Button Command="{Binding SaveSettingsCommand}" Content="Salvar" />
+            <Button Command="{Binding CancelSettingsCommand}" Content="Cancel" />
+            <Button Classes="accent" Command="{Binding SaveSettingsCommand}" Content="Save" />
           </StackPanel>
+        </StackPanel>
+      </Border>
+    </Panel>
+
+    <Panel Grid.RowSpan="2" IsVisible="{Binding IsShortcutsOpen}">
+      <Border Background="{DynamicResource OverlayBrush}" />
+      <Border
+          Width="500"
+          Padding="{DynamicResource DialogPadding}"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Center"
+          Background="{DynamicResource PanelBackgroundBrush}"
+          BorderBrush="{DynamicResource BorderBrush}"
+          BorderThickness="1"
+          CornerRadius="{DynamicResource RadiusL}">
+        <StackPanel Spacing="16">
+          <TextBlock FontSize="{DynamicResource FontSizeTitle}" FontWeight="SemiBold" Text="Keyboard shortcuts" />
+          <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+            <TextBlock Text="Toggle sidebar" /><TextBlock Grid.Column="1" Classes="secondary" Text="Ctrl+B" />
+            <TextBlock Grid.Row="1" Text="New session" /><TextBlock Grid.Row="1" Grid.Column="1" Classes="secondary" Text="Ctrl+N" />
+            <TextBlock Grid.Row="2" Text="Open selected session" /><TextBlock Grid.Row="2" Grid.Column="1" Classes="secondary" Text="Ctrl+O" />
+            <TextBlock Grid.Row="3" Text="Edit selected session" /><TextBlock Grid.Row="3" Grid.Column="1" Classes="secondary" Text="F2" />
+            <TextBlock Grid.Row="4" Text="Close active tab" /><TextBlock Grid.Row="4" Grid.Column="1" Classes="secondary" Text="Ctrl+W" />
+            <TextBlock Grid.Row="5" Text="Open settings" /><TextBlock Grid.Row="5" Grid.Column="1" Classes="secondary" Text="Ctrl+," />
+            <TextBlock Grid.Row="6" Text="Show shortcuts" /><TextBlock Grid.Row="6" Grid.Column="1" Classes="secondary" Text="F1" />
+            <TextBlock Grid.Row="7" Text="Copy terminal selection" /><TextBlock Grid.Row="7" Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+C" />
+            <TextBlock Grid.Row="8" Text="Paste into terminal" /><TextBlock Grid.Row="8" Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+V" />
+          </Grid>
+          <Button HorizontalAlignment="Right" Command="{Binding CloseShortcutsCommand}" Content="Close" />
         </StackPanel>
       </Border>
     </Panel>

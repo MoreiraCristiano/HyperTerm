@@ -83,7 +83,7 @@ internal sealed class PowerShellSessionFactory(ISettingsService settingsService)
                 return candidate;
             }
 
-            throw new TerminalLaunchException($"Executável não encontrado em ‘{candidate}’.");
+            throw new TerminalLaunchException($"Executable was not found at ‘{candidate}’.");
         }
 
         string? pathEnvironment = Environment.GetEnvironmentVariable("PATH");
@@ -119,6 +119,6 @@ internal sealed class PowerShellSessionFactory(ISettingsService settingsService)
             }
         }
 
-        throw new TerminalLaunchException($"‘{candidate}’ não foi encontrado no PATH do Windows.");
+        throw new TerminalLaunchException($"‘{candidate}’ was not found in the Windows PATH.");
     }
 }

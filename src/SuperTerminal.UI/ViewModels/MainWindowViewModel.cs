@@ -28,7 +28,7 @@ public sealed partial class MainWindowViewModel(
 
     public string Title => "SuperTerminal";
 
-    public IReadOnlyList<string> ThemeOptions { get; } = ["Dark", "Light", "System"];
+    public IReadOnlyList<string> ThemeOptions { get; } = ["Dark"];
 
     public WindowSettings WindowSettings => applicationSettings.Window;
 
@@ -37,7 +37,7 @@ public sealed partial class MainWindowViewModel(
     public ObservableCollection<TerminalTabViewModel> Tabs { get; } = [];
 
     [ObservableProperty]
-    private string sessionCountText = "0 sessões";
+    private string sessionCountText = "0 sessions";
 
     [ObservableProperty]
     private string searchText = string.Empty;
@@ -57,13 +57,23 @@ public sealed partial class MainWindowViewModel(
     public bool IsTabAreaEmpty => !HasOpenTabs;
 
     public bool AreTerminalHostsVisible =>
-        HasOpenTabs && !IsEditorOpen && !IsDeleteConfirmationOpen && !IsSettingsOpen;
+        HasOpenTabs && !IsEditorOpen && !IsDeleteConfirmationOpen &&
+        !IsSettingsOpen && !IsShortcutsOpen;
 
     [ObservableProperty]
-    private string statusText = "Pronto";
+    private string statusText = "Ready";
 
     [ObservableProperty]
     private string terminalStatusText = "PowerShell";
+
+    [ObservableProperty]
+    private bool isStatusBarVisible;
+
+    [ObservableProperty]
+    private bool isSidebarVisible = true;
+
+    [ObservableProperty]
+    private bool isShortcutsOpen;
 
     [ObservableProperty]
     private bool isSettingsOpen;
@@ -90,7 +100,7 @@ public sealed partial class MainWindowViewModel(
     private bool isDeleteConfirmationOpen;
 
     [ObservableProperty]
-    private string editorTitle = "Nova sessão";
+    private string editorTitle = "New session";
 
     [ObservableProperty]
     private string editorName = string.Empty;
@@ -141,7 +151,7 @@ public sealed partial class MainWindowViewModel(
         }
         catch (Exception exception) when (exception is IOException or System.Text.Json.JsonException)
         {
-            SettingsError = $"Falha ao carregar configurações: {exception.Message}";
+            SettingsError = $"Failed to load settings: {exception.Message}";
             IsSettingsOpen = true;
         }
 
@@ -200,7 +210,7 @@ public sealed partial class MainWindowViewModel(
 
         if (value is not null)
         {
-            StatusText = $"Aba ativa: {value.Title}";
+            StatusText = $"Active tab: {value.Title}";
         }
 
         CloseSelectedTabCommand.NotifyCanExecuteChanged();
@@ -215,6 +225,8 @@ public sealed partial class MainWindowViewModel(
 
     partial void OnIsSettingsOpenChanged(bool value) => NotifyTabVisibilityChanged();
 
+    partial void OnIsShortcutsOpenChanged(bool value) => NotifyTabVisibilityChanged();
+
     [RelayCommand(CanExecute = nameof(HasSelectedSession))]
     private async Task OpenSelectedSessionAsync()
     {
@@ -225,14 +237,14 @@ public sealed partial class MainWindowViewModel(
         if (existingTab is not null)
         {
             SelectedTab = existingTab;
-            StatusText = $"Sessão ‘{session.Name}’ já está aberta";
+            StatusText = $"Session ‘{session.Name}’ is already open";
             return;
         }
 
         try
         {
             Session entity = await sessionService.GetByIdAsync(session.Id)
-                ?? throw new KeyNotFoundException($"Sessão ‘{session.Name}’ não encontrada.");
+                ?? throw new KeyNotFoundException($"Session ‘{session.Name}’ was not found.");
             TerminalSessionDefinition definition =
                 await terminalSessionFactory.CreateAsync(entity);
 
@@ -246,7 +258,7 @@ public sealed partial class MainWindowViewModel(
             Tabs.Add(tab);
             SelectedTab = tab;
             HasOpenTabs = true;
-            StatusText = $"Terminal preparado para ‘{session.Name}’";
+            StatusText = $"Terminal prepared for ‘{session.Name}’";
         }
         catch (TerminalLaunchException exception)
         {
@@ -280,7 +292,7 @@ public sealed partial class MainWindowViewModel(
             Tabs.Add(tab);
             SelectedTab = tab;
             HasOpenTabs = true;
-            StatusText = $"Terminal local ‘{title}’ aberto";
+            StatusText = $"Local terminal ‘{title}’ opened";
         }
         catch (TerminalLaunchException exception)
         {
@@ -305,6 +317,22 @@ public sealed partial class MainWindowViewModel(
     }
 
     [RelayCommand]
+    private void ToggleStatusBar() =>
+        IsStatusBarVisible = !IsStatusBarVisible;
+
+    [RelayCommand]
+    private void ToggleSidebar() =>
+        IsSidebarVisible = !IsSidebarVisible;
+
+    [RelayCommand]
+    private void OpenShortcuts() =>
+        IsShortcutsOpen = true;
+
+    [RelayCommand]
+    private void CloseShortcuts() =>
+        IsShortcutsOpen = false;
+
+    [RelayCommand]
     private void CancelSettings()
     {
         IsSettingsOpen = false;
@@ -326,7 +354,7 @@ public sealed partial class MainWindowViewModel(
         catch (Exception exception) when (
             exception is InvalidOperationException or IOException)
         {
-            SettingsError = $"Não foi possível selecionar o executável: {exception.Message}";
+            SettingsError = $"Could not select the executable: {exception.Message}";
         }
     }
 
@@ -336,13 +364,13 @@ public sealed partial class MainWindowViewModel(
         string powerShellPath = SettingsPowerShellPath.Trim().Trim('"');
         if (powerShellPath.Length == 0)
         {
-            SettingsError = "Informe pwsh.exe ou o caminho completo do PowerShell 7.";
+            SettingsError = "Select pwsh.exe or provide the full PowerShell 7 path.";
             return;
         }
 
         if (Path.IsPathRooted(powerShellPath) && !File.Exists(powerShellPath))
         {
-            SettingsError = "Arquivo informado não existe.";
+            SettingsError = "The selected file does not exist.";
             return;
         }
 
@@ -369,11 +397,11 @@ public sealed partial class MainWindowViewModel(
             SettingsError = null;
             IsSettingsOpen = false;
             UpdateTerminalStatus();
-            StatusText = "Configurações salvas";
+            StatusText = "Settings saved";
         }
         catch (IOException exception)
         {
-            SettingsError = $"Falha ao salvar configurações: {exception.Message}";
+            SettingsError = $"Failed to save settings: {exception.Message}";
         }
     }
 
@@ -381,7 +409,7 @@ public sealed partial class MainWindowViewModel(
     private void NewSession()
     {
         editingSessionId = null;
-        EditorTitle = "Nova sessão";
+        EditorTitle = "New session";
         EditorName = string.Empty;
         EditorHost = string.Empty;
         EditorPort = 22;
@@ -399,7 +427,7 @@ public sealed partial class MainWindowViewModel(
         SessionListItemViewModel session = SelectedSession!;
 
         editingSessionId = session.Id;
-        EditorTitle = "Editar sessão";
+        EditorTitle = "Edit session";
         EditorName = session.Name;
         EditorHost = session.Host;
         EditorPort = session.Port;
@@ -439,7 +467,7 @@ public sealed partial class MainWindowViewModel(
                 : await sessionService.CreateAsync(details);
 
             IsEditorOpen = false;
-            StatusText = editingSessionId.HasValue ? "Sessão atualizada" : "Sessão criada";
+            StatusText = editingSessionId.HasValue ? "Session updated" : "Session created";
             await ReloadSessionsAsync(session.Id);
         }
         catch (Exception exception) when (
@@ -477,13 +505,13 @@ public sealed partial class MainWindowViewModel(
         {
             await sessionService.DeleteAsync(id);
             IsDeleteConfirmationOpen = false;
-            StatusText = $"Sessão ‘{name}’ excluída";
+            StatusText = $"Session ‘{name}’ deleted";
             await ReloadSessionsAsync(null);
         }
         catch (KeyNotFoundException)
         {
             IsDeleteConfirmationOpen = false;
-            StatusText = "Sessão não encontrada";
+            StatusText = "Session not found";
             await ReloadSessionsAsync(null);
         }
     }
@@ -505,7 +533,7 @@ public sealed partial class MainWindowViewModel(
 
         if (sessions.Count == 0)
         {
-            StatusText = "Nenhuma sessão cadastrada";
+            StatusText = "No sessions available";
         }
     }
 
@@ -535,8 +563,8 @@ public sealed partial class MainWindowViewModel(
 
         SortNodes(SessionTree);
         SessionCountText = visibleSessionCount == 1
-            ? "1 sessão"
-            : $"{visibleSessionCount} sessões";
+            ? "1 session"
+            : $"{visibleSessionCount} sessions";
 
         SelectedTreeNode = sessionToSelect.HasValue
             ? FindSessionNode(SessionTree, sessionToSelect.Value)
@@ -623,7 +651,7 @@ public sealed partial class MainWindowViewModel(
         }
         catch (Exception exception) when (exception is InvalidOperationException or Win32Exception)
         {
-            StatusText = $"Falha ao encerrar PowerShell: {exception.Message}";
+            StatusText = $"Failed to stop PowerShell: {exception.Message}";
             return;
         }
 
@@ -637,7 +665,7 @@ public sealed partial class MainWindowViewModel(
         }
 
         HasOpenTabs = Tabs.Count > 0;
-        StatusText = $"Aba ‘{tab.Title}’ fechada";
+        StatusText = $"Tab ‘{tab.Title}’ closed";
     }
 
     private async Task SynchronizeTabsAsync()
@@ -674,10 +702,5 @@ public sealed partial class MainWindowViewModel(
         OnPropertyChanged(nameof(AreTerminalHostsVisible));
     }
 
-    private static string NormalizeTheme(string? theme) => theme switch
-    {
-        "Light" => "Light",
-        "System" => "System",
-        _ => "Dark",
-    };
+    private static string NormalizeTheme(string? theme) => "Dark";
 }

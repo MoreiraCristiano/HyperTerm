@@ -1,0 +1,120 @@
+<Styles
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Styles.Resources>
+    <Color x:Key="ColorBackground">#1E1E1E</Color>
+    <Color x:Key="ColorBackgroundSecondary">#252526</Color>
+    <Color x:Key="ColorPanel">#2D2D30</Color>
+    <Color x:Key="ColorBorder">#3C3C3C</Color>
+    <Color x:Key="ColorAccent">#007ACC</Color>
+    <Color x:Key="ColorHover">#2A2D2E</Color>
+    <Color x:Key="ColorSelection">#094771</Color>
+    <Color x:Key="ColorTextPrimary">#D4D4D4</Color>
+    <Color x:Key="ColorTextSecondary">#9D9D9D</Color>
+    <Color x:Key="ColorError">#F14C4C</Color>
+    <Color x:Key="ColorWarning">#CCA700</Color>
+    <Color x:Key="ColorSuccess">#4EC9B0</Color>
+    <Color x:Key="ColorOverlay">#B3000000</Color>
+
+    <SolidColorBrush x:Key="AppBackgroundBrush" Color="{StaticResource ColorBackground}" />
+    <SolidColorBrush x:Key="SecondaryBackgroundBrush" Color="{StaticResource ColorBackgroundSecondary}" />
+    <SolidColorBrush x:Key="PanelBackgroundBrush" Color="{StaticResource ColorPanel}" />
+    <SolidColorBrush x:Key="HeaderBackgroundBrush" Color="{StaticResource ColorBackgroundSecondary}" />
+    <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource ColorBorder}" />
+    <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource ColorAccent}" />
+    <SolidColorBrush x:Key="HoverBrush" Color="{StaticResource ColorHover}" />
+    <SolidColorBrush x:Key="SelectionBrush" Color="{StaticResource ColorSelection}" />
+    <SolidColorBrush x:Key="PrimaryTextBrush" Color="{StaticResource ColorTextPrimary}" />
+    <SolidColorBrush x:Key="MutedTextBrush" Color="{StaticResource ColorTextSecondary}" />
+    <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource ColorError}" />
+    <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource ColorWarning}" />
+    <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource ColorSuccess}" />
+    <SolidColorBrush x:Key="OverlayBrush" Color="{StaticResource ColorOverlay}" />
+    <SolidColorBrush x:Key="TransparentBrush" Color="Transparent" />
+
+    <FontFamily x:Key="AppFontFamily">Segoe UI, Inter</FontFamily>
+    <FontFamily x:Key="IconFontFamily">Segoe Fluent Icons</FontFamily>
+    <x:Double x:Key="FontSizeCaption">11</x:Double>
+    <x:Double x:Key="FontSizeBody">13</x:Double>
+    <x:Double x:Key="FontSizeTitle">20</x:Double>
+    <x:Double x:Key="FontSizeHero">28</x:Double>
+
+    <Thickness x:Key="SpaceXS">4</Thickness>
+    <Thickness x:Key="SpaceS">8</Thickness>
+    <Thickness x:Key="SpaceM">12</Thickness>
+    <Thickness x:Key="SpaceL">16</Thickness>
+    <Thickness x:Key="SpaceXL">24</Thickness>
+    <Thickness x:Key="ControlPadding">12,7</Thickness>
+    <Thickness x:Key="CompactControlPadding">8,5</Thickness>
+    <Thickness x:Key="DialogPadding">24</Thickness>
+    <CornerRadius x:Key="RadiusS">3</CornerRadius>
+    <CornerRadius x:Key="RadiusM">6</CornerRadius>
+    <CornerRadius x:Key="RadiusL">8</CornerRadius>
+  </Styles.Resources>
+
+  <Style Selector="Window">
+    <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}" />
+    <Setter Property="FontSize" Value="{DynamicResource FontSizeBody}" />
+    <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+    <Setter Property="Background" Value="{DynamicResource AppBackgroundBrush}" />
+  </Style>
+  <Style Selector="TextBlock.secondary">
+    <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
+  </Style>
+  <Style Selector="TextBlock.icon">
+    <Setter Property="FontFamily" Value="{DynamicResource IconFontFamily}" />
+    <Setter Property="FontSize" Value="{DynamicResource FontSizeBody}" />
+    <Setter Property="Width" Value="16" />
+    <Setter Property="Height" Value="16" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="TextAlignment" Value="Center" />
+  </Style>
+  <Style Selector="TextBlock.buttonIcon">
+    <Setter Property="RenderTransform">
+      <TranslateTransform Y="2" />
+    </Setter>
+  </Style>
+  <Style Selector="Button TextBlock">
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button">
+    <Setter Property="Padding" Value="{DynamicResource ControlPadding}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusS}" />
+    <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+  <Style Selector="Button:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource HoverBrush}" />
+  </Style>
+  <Style Selector="Button.accent">
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+  </Style>
+  <Style Selector="Button.danger">
+    <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+  </Style>
+  <Style Selector="Button.iconButton">
+    <Setter Property="Width" Value="30" />
+    <Setter Property="Height" Value="28" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="TextBox, NumericUpDown, ComboBox">
+    <Setter Property="Background" Value="{DynamicResource AppBackgroundBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusS}" />
+  </Style>
+  <Style Selector="TextBox:focus /template/ Border, NumericUpDown:focus /template/ Border, ComboBox:focus /template/ Border">
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+  </Style>
+  <Style Selector="TreeViewItem:selected /template/ Border#PART_LayoutRoot, ListBoxItem:selected /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
+  </Style>
+  <Style Selector="TreeViewItem:pointerover /template/ Border#PART_LayoutRoot, ListBoxItem:pointerover /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource HoverBrush}" />
+  </Style>
+</Styles>
