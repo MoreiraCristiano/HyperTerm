@@ -35,7 +35,7 @@
               FontSize="{DynamicResource FontSizeCaption}"
               FontWeight="SemiBold"
               Text="GENERAL" />
-          <Grid Grid.Row="3" Margin="4,0,0,7" ColumnDefinitions="*,Auto,Auto">
+          <Grid Grid.Row="3" Margin="4,0,0,7" ColumnDefinitions="*,Auto,Auto,Auto">
             <TextBlock FontSize="{DynamicResource FontSizeCaption}" FontWeight="SemiBold" Text="SESSIONS" />
             <TextBlock
                 Grid.Column="1"
@@ -48,21 +48,19 @@
                 Classes="iconButton"
                 Width="24"
                 Height="24"
+                Command="{Binding NewSessionCommand}"
                 FontFamily="{DynamicResource IconFontFamily}"
-                Content="&#xE712;"
-                ToolTip.Tip="Session actions">
-              <Button.Flyout>
-                <MenuFlyout Placement="BottomEdgeAlignedRight">
-                  <MenuItem Header="New session" Command="{Binding NewSessionCommand}" />
-                  <MenuItem Header="New folder" Command="{Binding OpenFolderEditorCommand}" />
-                  <Separator />
-                  <MenuItem Header="Open" Command="{Binding OpenSelectedSessionCommand}" />
-                  <MenuItem Header="Edit" Command="{Binding EditSessionCommand}" />
-                  <MenuItem Header="Delete session" Command="{Binding RequestDeleteSessionCommand}" />
-                  <MenuItem Header="Delete folder" Command="{Binding RequestDeleteFolderCommand}" />
-                </MenuFlyout>
-              </Button.Flyout>
-            </Button>
+                Content="&#xE710;"
+                ToolTip.Tip="Create session" />
+            <Button
+                Grid.Column="3"
+                Classes="iconButton"
+                Width="24"
+                Height="24"
+                Command="{Binding OpenFolderEditorCommand}"
+                FontFamily="{DynamicResource IconFontFamily}"
+                Content="&#xE8F4;"
+                ToolTip.Tip="Create folder" />
           </Grid>
           <StackPanel Grid.Row="1" Spacing="5">
             <StackPanel Orientation="Horizontal" Spacing="6">
@@ -85,6 +83,7 @@
               x:Name="SessionsTree"
               Grid.Row="4"
               Background="Transparent"
+              DoubleTapped="OnSessionTreeDoubleTapped"
               ItemsSource="{Binding SessionTree}"
               PointerPressed="OnSessionTreePointerPressed"
               SelectedItem="{Binding SelectedTreeNode, Mode=TwoWay}">
@@ -92,15 +91,49 @@
               <TreeDataTemplate
                   x:DataType="viewModels:SessionTreeNodeViewModel"
                   ItemsSource="{Binding Children}">
-                <Grid Margin="2,5" Background="{DynamicResource TransparentBrush}">
-                  <StackPanel Spacing="1">
-                    <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
-                    <TextBlock
-                        IsVisible="{Binding IsSession}"
-                        FontSize="10"
-                        Foreground="{DynamicResource MutedTextBrush}"
-                        Text="{Binding Endpoint}" />
-                  </StackPanel>
+                <Grid
+                    Margin="{DynamicResource TreeItemContentMargin}"
+                    ColumnDefinitions="*,Auto"
+                    Background="{DynamicResource TransparentBrush}">
+                  <Grid.ContextFlyout>
+                    <MenuFlyout>
+                      <MenuItem
+                          Header="Edit folder"
+                          IsVisible="{Binding IsFolder}"
+                          Command="{Binding DataContext.EditFolderCommand, ElementName=SessionsTree}" />
+                      <MenuItem
+                          Header="Delete folder"
+                          IsVisible="{Binding IsFolder}"
+                          Command="{Binding DataContext.RequestDeleteFolderCommand, ElementName=SessionsTree}" />
+                      <MenuItem
+                          Header="Edit session"
+                          IsVisible="{Binding IsSession}"
+                          Command="{Binding DataContext.EditSessionCommand, ElementName=SessionsTree}" />
+                      <MenuItem
+                          Header="Delete session"
+                          IsVisible="{Binding IsSession}"
+                          Command="{Binding DataContext.RequestDeleteSessionCommand, ElementName=SessionsTree}" />
+                    </MenuFlyout>
+                  </Grid.ContextFlyout>
+                  <TextBlock
+                      Classes="sessionTreeFolder"
+                      IsVisible="{Binding IsFolder}"
+                      Text="{Binding Name}"
+                      TextTrimming="CharacterEllipsis"
+                      VerticalAlignment="Center" />
+                  <TextBlock
+                      IsVisible="{Binding IsSession}"
+                      Text="{Binding Name}"
+                      TextTrimming="CharacterEllipsis"
+                      VerticalAlignment="Center" />
+                  <TextBlock
+                      Grid.Column="1"
+                      Margin="{DynamicResource TreeItemEndpointMargin}"
+                      Classes="sessionTreeEndpoint"
+                      IsVisible="{Binding IsSession}"
+                      Text="{Binding Endpoint}"
+                      TextTrimming="CharacterEllipsis"
+                      VerticalAlignment="Center" />
                 </Grid>
               </TreeDataTemplate>
             </TreeView.ItemTemplate>
@@ -168,22 +201,6 @@
           </ItemsControl>
         </Grid>
 
-        <StackPanel
-            HorizontalAlignment="Center"
-            VerticalAlignment="Center"
-            IsVisible="{Binding IsTabAreaEmpty}"
-            Spacing="10">
-          <TextBlock HorizontalAlignment="Center" FontSize="28" FontWeight="Light" Text="SuperTerminal" />
-          <TextBlock
-              Foreground="{DynamicResource MutedTextBrush}"
-              Text="Select a session or create a new connection." />
-          <Button
-              Margin="0,10,0,0"
-              HorizontalAlignment="Center"
-              Command="{Binding NewSessionCommand}"
-              Classes="accent"
-              Content="Create first session" />
-        </StackPanel>
       </Grid>
     </Grid>
 
@@ -386,13 +403,13 @@
           BorderThickness="1"
           CornerRadius="{DynamicResource RadiusL}">
         <StackPanel Spacing="14">
-          <TextBlock FontSize="{DynamicResource FontSizeTitle}" FontWeight="SemiBold" Text="New folder" />
+          <TextBlock FontSize="{DynamicResource FontSizeTitle}" FontWeight="SemiBold" Text="{Binding FolderEditorTitle}" />
           <TextBlock Classes="secondary" Text="Use / to create nested folders." />
           <TextBox PlaceholderText="Production/Linux" Text="{Binding FolderPath, Mode=TwoWay}" />
           <TextBlock Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap" Text="{Binding FolderError}" />
           <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
             <Button Command="{Binding CancelFolderEditorCommand}" Content="Cancel" />
-            <Button Classes="accent" Command="{Binding CreateFolderCommand}" Content="Create" />
+            <Button Classes="accent" Command="{Binding CreateFolderCommand}" Content="{Binding FolderEditorAction}" />
           </StackPanel>
         </StackPanel>
       </Border>

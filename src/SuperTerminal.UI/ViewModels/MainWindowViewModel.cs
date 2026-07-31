@@ -24,6 +24,7 @@ public sealed partial class MainWindowViewModel(
     private readonly List<SessionListItemViewModel> allSessions = [];
     private readonly List<SessionFolder> allFolders = [];
     private Guid? editingSessionId;
+    private string? editingFolderPath;
     private ApplicationSettings applicationSettings = new();
     private bool windowStateChanged;
     private int localTerminalSequence;
@@ -85,6 +86,12 @@ public sealed partial class MainWindowViewModel(
 
     [ObservableProperty]
     private string folderPath = string.Empty;
+
+    [ObservableProperty]
+    private string folderEditorTitle = "New folder";
+
+    [ObservableProperty]
+    private string folderEditorAction = "Create";
 
     [ObservableProperty]
     private string? folderError;
@@ -179,6 +186,7 @@ public sealed partial class MainWindowViewModel(
         }
 
         await ReloadSessionsAsync(null, cancellationToken);
+        await OpenLocalTerminalAsync();
     }
 
     public async Task ShutdownAsync()
@@ -215,6 +223,7 @@ public sealed partial class MainWindowViewModel(
     partial void OnSelectedTreeNodeChanged(SessionTreeNodeViewModel? value)
     {
         SelectedSession = value?.Session;
+        EditFolderCommand.NotifyCanExecuteChanged();
         RequestDeleteFolderCommand.NotifyCanExecuteChanged();
     }
 
@@ -364,9 +373,23 @@ public sealed partial class MainWindowViewModel(
     [RelayCommand]
     private void OpenFolderEditor()
     {
+        editingFolderPath = null;
+        FolderEditorTitle = "New folder";
+        FolderEditorAction = "Create";
         FolderPath = SelectedTreeNode?.IsFolder == true
             ? $"{SelectedTreeNode.Path}/"
             : string.Empty;
+        FolderError = null;
+        IsFolderEditorOpen = true;
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSelectedFolder))]
+    private void EditFolder()
+    {
+        editingFolderPath = SelectedTreeNode!.Path;
+        FolderEditorTitle = "Edit folder";
+        FolderEditorAction = "Save";
+        FolderPath = editingFolderPath;
         FolderError = null;
         IsFolderEditorOpen = true;
     }
@@ -383,14 +406,27 @@ public sealed partial class MainWindowViewModel(
     {
         try
         {
-            SessionFolder folder = await sessionFolderService.CreateAsync(FolderPath);
+            string resultingPath;
+            if (editingFolderPath is null)
+            {
+                SessionFolder folder = await sessionFolderService.CreateAsync(FolderPath);
+                resultingPath = folder.Path;
+                StatusText = $"Folder ‘{resultingPath}’ created";
+            }
+            else
+            {
+                await sessionFolderService.RenameAsync(editingFolderPath, FolderPath);
+                resultingPath = FolderPath.Trim().Replace('\\', '/').Trim('/');
+                StatusText = $"Folder renamed to ‘{resultingPath}’";
+            }
+
             IsFolderEditorOpen = false;
             FolderError = null;
-            StatusText = $"Folder ‘{folder.Path}’ created";
+            editingFolderPath = null;
             await ReloadSessionsAsync(null);
         }
         catch (Exception exception) when (
-            exception is ArgumentException or InvalidOperationException)
+            exception is ArgumentException or InvalidOperationException or KeyNotFoundException)
         {
             FolderError = exception.Message;
         }

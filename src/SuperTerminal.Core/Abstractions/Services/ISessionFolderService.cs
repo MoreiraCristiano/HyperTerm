@@ -8,5 +8,10 @@ public interface ISessionFolderService
 
     Task<SessionFolder> CreateAsync(string path, CancellationToken cancellationToken = default);
 
+    Task RenameAsync(
+        string currentPath,
+        string newPath,
+        CancellationToken cancellationToken = default);
+
     Task DeleteAsync(string path, CancellationToken cancellationToken = default);
 }

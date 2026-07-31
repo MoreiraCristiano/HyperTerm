@@ -54,6 +54,35 @@ internal sealed class SessionFolderService(
         }
     }
 
+    public async Task RenameAsync(
+        string currentPath,
+        string newPath,
+        CancellationToken cancellationToken = default)
+    {
+        string normalizedCurrentPath = NormalizePath(currentPath);
+        string normalizedNewPath = NormalizePath(newPath);
+        if (normalizedCurrentPath.Equals(normalizedNewPath, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (normalizedNewPath.StartsWith(
+                $"{normalizedCurrentPath}/",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("A folder cannot be moved inside itself.");
+        }
+
+        bool renamed = await repository.RenameTreeAsync(
+            normalizedCurrentPath,
+            normalizedNewPath,
+            cancellationToken);
+        if (!renamed)
+        {
+            throw new KeyNotFoundException($"Folder ‘{normalizedCurrentPath}’ was not found.");
+        }
+    }
+
     private static string NormalizePath(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);

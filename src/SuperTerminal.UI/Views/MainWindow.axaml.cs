@@ -48,7 +48,9 @@ public sealed partial class MainWindow : Window
     private void OnSessionTreePointerPressed(object? sender, PointerPressedEventArgs eventArgs)
     {
         PointerPoint point = eventArgs.GetCurrentPoint(SessionsTree);
-        if (!point.Properties.IsLeftButtonPressed || eventArgs.Source is not Visual source)
+        bool isLeftClick = point.Properties.IsLeftButtonPressed;
+        bool isRightClick = point.Properties.IsRightButtonPressed;
+        if ((!isLeftClick && !isRightClick) || eventArgs.Source is not Visual source)
         {
             return;
         }
@@ -63,10 +65,27 @@ public sealed partial class MainWindow : Window
 
         bool clickedExpander = source is ToggleButton ||
             source.FindAncestorOfType<ToggleButton>() is not null;
-        if (!clickedExpander &&
+        if (isLeftClick && !clickedExpander &&
             item.DataContext is SessionTreeNodeViewModel { IsFolder: true })
         {
             item.IsExpanded = !item.IsExpanded;
+            eventArgs.Handled = true;
+        }
+    }
+
+    private void OnSessionTreeDoubleTapped(object? sender, TappedEventArgs eventArgs)
+    {
+        if (eventArgs.Source is not Visual source ||
+            source.FindAncestorOfType<TreeViewItem>()?.DataContext is not
+                SessionTreeNodeViewModel { IsSession: true })
+        {
+            return;
+        }
+
+        if (DataContext is MainWindowViewModel viewModel &&
+            viewModel.OpenSelectedSessionCommand.CanExecute(null))
+        {
+            viewModel.OpenSelectedSessionCommand.Execute(null);
             eventArgs.Handled = true;
         }
     }

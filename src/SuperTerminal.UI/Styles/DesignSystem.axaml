@@ -47,6 +47,10 @@
     <Thickness x:Key="ControlPadding">12,7</Thickness>
     <Thickness x:Key="CompactControlPadding">8,5</Thickness>
     <Thickness x:Key="DialogPadding">24</Thickness>
+    <Thickness x:Key="TreeItemPadding">4,2</Thickness>
+    <Thickness x:Key="TreeItemContentMargin">2,0,6,0</Thickness>
+    <Thickness x:Key="TreeItemEndpointMargin">8,0,0,0</Thickness>
+    <x:Double x:Key="TreeItemMinHeight">28</x:Double>
     <CornerRadius x:Key="RadiusS">3</CornerRadius>
     <CornerRadius x:Key="RadiusM">6</CornerRadius>
     <CornerRadius x:Key="RadiusL">8</CornerRadius>
@@ -113,6 +117,17 @@
   </Style>
   <Style Selector="TreeViewItem:selected /template/ Border#PART_LayoutRoot, ListBoxItem:selected /template/ Border#PART_LayoutRoot">
     <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
+  </Style>
+  <Style Selector="TreeViewItem">
+    <Setter Property="MinHeight" Value="{DynamicResource TreeItemMinHeight}" />
+    <Setter Property="Padding" Value="{DynamicResource TreeItemPadding}" />
+  </Style>
+  <Style Selector="TextBlock.sessionTreeFolder">
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="TextBlock.sessionTreeEndpoint">
+    <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
+    <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
   </Style>
   <Style Selector="TreeViewItem:pointerover /template/ Border#PART_LayoutRoot, ListBoxItem:pointerover /template/ Border#PART_LayoutRoot">
     <Setter Property="Background" Value="{DynamicResource HoverBrush}" />

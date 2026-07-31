@@ -10,5 +10,10 @@ public interface ISessionFolderRepository
 
     Task AddAsync(SessionFolder folder, CancellationToken cancellationToken = default);
 
+    Task<bool> RenameTreeAsync(
+        string currentPath,
+        string newPath,
+        CancellationToken cancellationToken = default);
+
     Task<int> DeleteTreeAsync(string path, CancellationToken cancellationToken = default);
 }
