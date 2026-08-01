@@ -305,9 +305,7 @@ public sealed partial class MainWindowViewModel(
         }
 
         SetFolderDeletionSelection(node, !node.IsSelectedForDeletion);
-        SelectedTreeNode = node.IsSelectedForDeletion
-            ? node
-            : selectedFolderNodes.LastOrDefault();
+        SelectedTreeNode = null;
     }
 
     private void SetFolderDeletionSelection(SessionTreeNodeViewModel node, bool selected)
