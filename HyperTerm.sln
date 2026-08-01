@@ -10,6 +10,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HyperTerm.Infrastructure", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HyperTerm.Shared", "src\HyperTerm.Shared\HyperTerm.Shared.csproj", "{9CA52E84-A91E-47CE-92AB-0BA73BC44958}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HyperTerm.Tests", "tests\HyperTerm.Tests\HyperTerm.Tests.csproj", "{D7C99422-6A89-4E38-BB50-C4A729FA4E4B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,5 +34,9 @@ Global
 		{9CA52E84-A91E-47CE-92AB-0BA73BC44958}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9CA52E84-A91E-47CE-92AB-0BA73BC44958}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9CA52E84-A91E-47CE-92AB-0BA73BC44958}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D7C99422-6A89-4E38-BB50-C4A729FA4E4B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D7C99422-6A89-4E38-BB50-C4A729FA4E4B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D7C99422-6A89-4E38-BB50-C4A729FA4E4B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D7C99422-6A89-4E38-BB50-C4A729FA4E4B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

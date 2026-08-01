@@ -147,19 +147,25 @@ public sealed partial class MainWindow : Window
     {
         DataContext = viewModel;
         viewModel.CloseWindowRequested += (_, _) => Close();
-        viewModel.PropertyChanged += (_, eventArgs) =>
+        viewModel.SessionEditor.PropertyChanged += (_, eventArgs) =>
         {
-            if (eventArgs.PropertyName == nameof(MainWindowViewModel.IsEditorOpen) &&
-                viewModel.IsEditorOpen)
+            if (eventArgs.PropertyName == nameof(SessionEditorViewModel.IsEditorOpen) &&
+                viewModel.SessionEditor.IsEditorOpen)
             {
                 FocusEditor(SessionNameEditor);
             }
-            else if (eventArgs.PropertyName == nameof(MainWindowViewModel.IsFolderEditorOpen) &&
-                     viewModel.IsFolderEditorOpen)
+        };
+        viewModel.FolderEditor.PropertyChanged += (_, eventArgs) =>
+        {
+            if (eventArgs.PropertyName == nameof(FolderEditorViewModel.IsFolderEditorOpen) &&
+                viewModel.FolderEditor.IsFolderEditorOpen)
             {
                 FocusEditor(FolderPathEditor);
             }
-            else if (eventArgs.PropertyName == nameof(MainWindowViewModel.IsSidebarVisible))
+        };
+        viewModel.PropertyChanged += (_, eventArgs) =>
+        {
+            if (eventArgs.PropertyName == nameof(MainWindowViewModel.IsSidebarVisible))
             {
                 UpdateSidebarVisibility(viewModel.IsSidebarVisible);
             }
@@ -265,12 +271,12 @@ public sealed partial class MainWindow : Window
 
         if (controlPressed && node.IsFolder)
         {
-            viewModel.ToggleFolderDeletionSelection(node);
+            viewModel.Explorer.ToggleFolderDeletionSelection(node);
             eventArgs.Handled = true;
         }
         else
         {
-            viewModel.SelectSingleTreeNode(node);
+            viewModel.Explorer.SelectSingleTreeNode(node);
             SelectOnly(item);
         }
 
@@ -310,16 +316,14 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        if (DataContext is MainWindowViewModel
-            {
-                HasMultipleFoldersSelected: true,
-            } viewModel)
+        if (DataContext is MainWindowViewModel viewModel &&
+            viewModel.Explorer.HasMultipleFoldersSelected)
         {
             var multipleSelectionFlyout = new MenuFlyout();
             multipleSelectionFlyout.Items.Add(new MenuItem
             {
                 Header = "Delete folders",
-                Command = viewModel.RequestDeleteSelectedFoldersCommand,
+                Command = viewModel.Explorer.RequestDeleteSelectedFoldersCommand,
             });
             multipleSelectionFlyout.ShowAt(target, showAtPointer: true);
             eventArgs.Handled = true;
@@ -410,7 +414,7 @@ public sealed partial class MainWindow : Window
         string destinationFolder = targetNode?.Path ?? string.Empty;
         if (DataContext is MainWindowViewModel viewModel)
         {
-            await viewModel.MoveSessionAsync(sessionId, destinationFolder);
+            await viewModel.Explorer.MoveSessionAsync(sessionId, destinationFolder);
             eventArgs.DragEffects = DragDropEffects.Move;
             eventArgs.Handled = true;
         }
@@ -456,9 +460,9 @@ public sealed partial class MainWindow : Window
         }
 
         if (DataContext is MainWindowViewModel viewModel &&
-            viewModel.OpenSelectedSessionCommand.CanExecute(null))
+            viewModel.Explorer.OpenSelectedSessionCommand.CanExecute(null))
         {
-            viewModel.OpenSelectedSessionCommand.Execute(null);
+            viewModel.Explorer.OpenSelectedSessionCommand.Execute(null);
             eventArgs.Handled = true;
         }
     }

@@ -24,7 +24,8 @@ public sealed partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             MainWindowViewModel viewModel = Services.GetRequiredService<MainWindowViewModel>();
-            Services.GetRequiredService<IThemeService>().Apply(viewModel.SettingsTheme);
+            Services.GetRequiredService<IThemeService>().Apply(
+                viewModel.Settings.SettingsTheme);
             desktop.MainWindow = Services.GetRequiredService<MainWindow>();
         }
 

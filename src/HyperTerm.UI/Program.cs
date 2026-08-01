@@ -57,6 +57,11 @@ internal static class Program
                 services.AddSingleton<IExecutableFilePicker, ExecutableFilePicker>();
                 services.AddSingleton<ISessionArchiveFilePicker, SessionArchiveFilePicker>();
                 services.AddSingleton<ISystemFontService, AvaloniaSystemFontService>();
+                services.AddSingleton<SessionExplorerViewModel>();
+                services.AddSingleton<TerminalWorkspaceViewModel>();
+                services.AddSingleton<SettingsViewModel>();
+                services.AddSingleton<SessionEditorViewModel>();
+                services.AddSingleton<FolderEditorViewModel>();
                 services.AddSingleton<MainWindowViewModel>();
                 services.AddSingleton<MainWindow>();
             })
