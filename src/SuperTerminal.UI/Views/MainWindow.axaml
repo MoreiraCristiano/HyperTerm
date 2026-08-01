@@ -365,7 +365,11 @@
               Text="{Binding EditorError}" />
           <StackPanel Grid.Row="8" Margin="0,20,0,0" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
             <Button Command="{Binding CancelEditorCommand}" Content="Cancel" />
-            <Button Classes="accent" Command="{Binding SaveSessionCommand}" Content="Save" />
+            <Button
+                Classes="accent"
+                Command="{Binding SaveSessionCommand}"
+                Content="Save"
+                IsDefault="{Binding IsEditorOpen}" />
           </StackPanel>
         </Grid>
       </Border>
@@ -387,7 +391,11 @@
           <TextBlock TextWrapping="Wrap" Text="This session will be permanently removed from the local database." />
           <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
             <Button Command="{Binding CancelDeleteSessionCommand}" Content="Cancel" />
-            <Button Classes="danger" Command="{Binding ConfirmDeleteSessionCommand}" Content="Delete" />
+            <Button
+                Classes="danger"
+                Command="{Binding ConfirmDeleteSessionCommand}"
+                Content="Delete"
+                IsDefault="{Binding IsDeleteConfirmationOpen}" />
           </StackPanel>
         </StackPanel>
       </Border>
@@ -541,7 +549,11 @@
               BorderThickness="0,1,0,0">
             <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
               <Button Command="{Binding CancelSettingsCommand}" Content="Cancel" />
-              <Button Classes="accent" Command="{Binding SaveSettingsCommand}" Content="Save" />
+              <Button
+                  Classes="accent"
+                  Command="{Binding SaveSettingsCommand}"
+                  Content="Save"
+                  IsDefault="{Binding IsSettingsOpen}" />
             </StackPanel>
           </Border>
         </Grid>
@@ -599,7 +611,11 @@
           <TextBlock Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap" Text="{Binding FolderError}" />
           <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
             <Button Command="{Binding CancelFolderEditorCommand}" Content="Cancel" />
-            <Button Classes="accent" Command="{Binding CreateFolderCommand}" Content="{Binding FolderEditorAction}" />
+            <Button
+                Classes="accent"
+                Command="{Binding CreateFolderCommand}"
+                Content="{Binding FolderEditorAction}"
+                IsDefault="{Binding IsFolderEditorOpen}" />
           </StackPanel>
         </StackPanel>
       </Border>
@@ -629,7 +645,11 @@
           <TextBlock Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap" Text="{Binding FolderDeleteError}" />
           <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
             <Button Command="{Binding CancelDeleteFolderCommand}" Content="Cancel" />
-            <Button Classes="danger" Command="{Binding ConfirmDeleteFolderCommand}" Content="Delete" />
+            <Button
+                Classes="danger"
+                Command="{Binding ConfirmDeleteFolderCommand}"
+                Content="Delete"
+                IsDefault="{Binding IsFolderDeleteConfirmationOpen}" />
           </StackPanel>
         </StackPanel>
       </Border>
