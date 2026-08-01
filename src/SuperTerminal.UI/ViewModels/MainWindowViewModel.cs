@@ -28,7 +28,6 @@ public sealed partial class MainWindowViewModel(
     private string? editingFolderPath;
     private ApplicationSettings applicationSettings = new();
     private bool windowStateChanged;
-    private int localTerminalSequence;
     private bool rootFoldersDescending;
 
     public string Title => "HyperTerm";
@@ -364,7 +363,7 @@ public sealed partial class MainWindowViewModel(
         {
             TerminalSessionDefinition definition =
                 await terminalSessionFactory.CreateLocalAsync();
-            string title = $"PowerShell {++localTerminalSequence}";
+            const string title = "PowerShell";
             var tab = new TerminalTabViewModel(
                 title,
                 definition,

@@ -203,10 +203,13 @@
         <Grid RowDefinitions="42,*">
           <ListBox
               Grid.Row="0"
+              Classes="terminalTabs"
               Background="{DynamicResource HeaderBackgroundBrush}"
               BorderBrush="{DynamicResource BorderBrush}"
               BorderThickness="0,0,0,1"
               ItemsSource="{Binding Tabs}"
+              ScrollViewer.HorizontalScrollBarVisibility="Auto"
+              ScrollViewer.VerticalScrollBarVisibility="Disabled"
               SelectedItem="{Binding SelectedTab, Mode=TwoWay}">
             <ListBox.ItemsPanel>
               <ItemsPanelTemplate>
