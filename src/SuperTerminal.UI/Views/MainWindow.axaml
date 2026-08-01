@@ -99,6 +99,15 @@
                   <Grid.ContextFlyout>
                     <MenuFlyout>
                       <MenuItem
+                          Header="New session"
+                          IsVisible="{Binding IsFolder}"
+                          Command="{Binding DataContext.NewSessionInSelectedFolderCommand, ElementName=SessionsTree}" />
+                      <MenuItem
+                          Header="New folder"
+                          IsVisible="{Binding IsFolder}"
+                          Command="{Binding DataContext.OpenFolderEditorCommand, ElementName=SessionsTree}" />
+                      <Separator IsVisible="{Binding IsFolder}" />
+                      <MenuItem
                           Header="Edit folder"
                           IsVisible="{Binding IsFolder}"
                           Command="{Binding DataContext.EditFolderCommand, ElementName=SessionsTree}" />

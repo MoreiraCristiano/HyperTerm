@@ -239,6 +239,7 @@ public sealed partial class MainWindowViewModel(
     {
         SelectedSession = value?.Session;
         EditFolderCommand.NotifyCanExecuteChanged();
+        NewSessionInSelectedFolderCommand.NotifyCanExecuteChanged();
         RequestDeleteFolderCommand.NotifyCanExecuteChanged();
     }
 
@@ -577,7 +578,14 @@ public sealed partial class MainWindowViewModel(
     }
 
     [RelayCommand]
-    private void NewSession()
+    private void NewSession() =>
+        PrepareNewSession(string.Empty);
+
+    [RelayCommand(CanExecute = nameof(HasSelectedFolder))]
+    private void NewSessionInSelectedFolder() =>
+        PrepareNewSession(SelectedTreeNode!.Path);
+
+    private void PrepareNewSession(string folder)
     {
         editingSessionId = null;
         EditorTitle = "New session";
@@ -586,7 +594,7 @@ public sealed partial class MainWindowViewModel(
         EditorPort = 22;
         EditorUsername = string.Empty;
         EditorPrivateKey = string.Empty;
-        EditorFolder = string.Empty;
+        EditorFolder = folder;
         EditorNotes = string.Empty;
         EditorError = null;
         IsEditorOpen = true;
