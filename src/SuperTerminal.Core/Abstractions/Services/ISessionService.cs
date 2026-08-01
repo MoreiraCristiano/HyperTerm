@@ -18,5 +18,10 @@ public interface ISessionService
         SessionDetails details,
         CancellationToken cancellationToken = default);
 
+    Task<Session> MoveAsync(
+        Guid id,
+        string folder,
+        CancellationToken cancellationToken = default);
+
     Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 }

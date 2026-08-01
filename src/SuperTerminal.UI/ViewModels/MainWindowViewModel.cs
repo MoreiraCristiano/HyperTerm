@@ -30,7 +30,7 @@ public sealed partial class MainWindowViewModel(
     private bool windowStateChanged;
     private int localTerminalSequence;
 
-    public string Title => "SuperTerminal";
+    public string Title => "hyperTerms";
 
     public IReadOnlyList<string> ThemeOptions { get; } = ["Dark"];
 
@@ -692,6 +692,23 @@ public sealed partial class MainWindowViewModel(
     private bool HasSelectedFolder() => SelectedTreeNode?.IsFolder == true;
 
     private bool HasSelectedTab() => SelectedTab is not null;
+
+    public async Task MoveSessionAsync(Guid sessionId, string destinationFolder)
+    {
+        try
+        {
+            Session session = await sessionService.MoveAsync(sessionId, destinationFolder);
+            StatusText = string.IsNullOrWhiteSpace(session.Folder)
+                ? $"Session ‘{session.Name}’ moved to root"
+                : $"Session ‘{session.Name}’ moved to ‘{session.Folder}’";
+            await ReloadSessionsAsync(session.Id);
+        }
+        catch (KeyNotFoundException exception)
+        {
+            StatusText = exception.Message;
+            await ReloadSessionsAsync(null);
+        }
+    }
 
     private async Task ReloadSessionsAsync(
         Guid? sessionToSelect,

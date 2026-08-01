@@ -2,6 +2,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using SuperTerminal.Core.Models;
 using SuperTerminal.UI.ViewModels;
@@ -10,9 +12,36 @@ namespace SuperTerminal.UI.Views;
 
 public sealed partial class MainWindow : Window
 {
+    private static readonly DataFormat<string> SessionDragFormat =
+        DataFormat.CreateInProcessFormat<string>("hyperTerms.SessionId");
+
+    private PointerPressedEventArgs? sessionDragStartEvent;
+    private Point sessionDragStartPoint;
+    private SessionTreeNodeViewModel? draggedSessionNode;
+    private TreeViewItem? currentDropTarget;
+
     public MainWindow()
     {
         InitializeComponent();
+        SessionsTree.AddHandler(
+            InputElement.PointerPressedEvent,
+            OnSessionTreePointerPressed,
+            RoutingStrategies.Tunnel,
+            handledEventsToo: true);
+        SessionsTree.AddHandler(
+            InputElement.PointerMovedEvent,
+            OnSessionTreePointerMoved,
+            RoutingStrategies.Tunnel,
+            handledEventsToo: true);
+        SessionsTree.AddHandler(
+            InputElement.PointerReleasedEvent,
+            OnSessionTreePointerReleased,
+            RoutingStrategies.Tunnel,
+            handledEventsToo: true);
+        DragDrop.SetAllowDrop(SessionsTree, true);
+        DragDrop.AddDragOverHandler(SessionsTree, OnSessionTreeDragOver);
+        DragDrop.AddDragLeaveHandler(SessionsTree, OnSessionTreeDragLeave);
+        DragDrop.AddDropHandler(SessionsTree, OnSessionTreeDrop);
     }
 
     public MainWindow(MainWindowViewModel viewModel)
@@ -61,7 +90,18 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        item.IsSelected = true;
+        SessionsTree.SelectedItem = item.DataContext;
+
+        if (isLeftClick && item.DataContext is SessionTreeNodeViewModel { IsSession: true } sessionNode)
+        {
+            sessionDragStartEvent = eventArgs;
+            sessionDragStartPoint = eventArgs.GetPosition(SessionsTree);
+            draggedSessionNode = sessionNode;
+        }
+        else
+        {
+            ClearDragStart();
+        }
 
         bool clickedExpander = source is ToggleButton ||
             source.FindAncestorOfType<ToggleButton>() is not null;
@@ -71,6 +111,116 @@ public sealed partial class MainWindow : Window
             item.IsExpanded = !item.IsExpanded;
             eventArgs.Handled = true;
         }
+    }
+
+    private async void OnSessionTreePointerMoved(object? sender, PointerEventArgs eventArgs)
+    {
+        if (sessionDragStartEvent is null || draggedSessionNode?.Session is null ||
+            !eventArgs.GetCurrentPoint(SessionsTree).Properties.IsLeftButtonPressed)
+        {
+            return;
+        }
+
+        Point currentPoint = eventArgs.GetPosition(SessionsTree);
+        if (Math.Abs(currentPoint.X - sessionDragStartPoint.X) < 5 &&
+            Math.Abs(currentPoint.Y - sessionDragStartPoint.Y) < 5)
+        {
+            return;
+        }
+
+        PointerPressedEventArgs dragEvent = sessionDragStartEvent;
+        Guid sessionId = draggedSessionNode.Session.Id;
+        ClearDragStart();
+        dragEvent.PreventGestureRecognition();
+        dragEvent.Pointer.Capture(null);
+
+        var data = new DataTransfer();
+        data.Add(DataTransferItem.Create(SessionDragFormat, sessionId.ToString("D")));
+        await DragDrop.DoDragDropAsync(dragEvent, data, DragDropEffects.Move);
+        ClearDropTarget();
+    }
+
+    private void OnSessionTreePointerReleased(object? sender, PointerReleasedEventArgs eventArgs) =>
+        ClearDragStart();
+
+    private void OnSessionTreeDragOver(object? sender, DragEventArgs eventArgs)
+    {
+        if (!eventArgs.DataTransfer.Contains(SessionDragFormat))
+        {
+            eventArgs.DragEffects = DragDropEffects.None;
+            return;
+        }
+
+        SessionTreeNodeViewModel? targetNode = GetTreeNode(eventArgs.Source);
+        bool canDrop = targetNode is null || targetNode.IsFolder;
+        eventArgs.DragEffects = canDrop ? DragDropEffects.Move : DragDropEffects.None;
+        SetDropTarget(canDrop && targetNode?.IsFolder == true
+            ? GetTreeItem(eventArgs.Source)
+            : null);
+        eventArgs.Handled = true;
+    }
+
+    private void OnSessionTreeDragLeave(object? sender, DragEventArgs eventArgs) =>
+        ClearDropTarget();
+
+    private async void OnSessionTreeDrop(object? sender, DragEventArgs eventArgs)
+    {
+        ClearDropTarget();
+        if (!eventArgs.DataTransfer.Contains(SessionDragFormat))
+        {
+            return;
+        }
+
+        SessionTreeNodeViewModel? targetNode = GetTreeNode(eventArgs.Source);
+        if (targetNode?.IsSession == true)
+        {
+            eventArgs.DragEffects = DragDropEffects.None;
+            return;
+        }
+
+        string? sessionIdValue = eventArgs.DataTransfer.TryGetValue(SessionDragFormat);
+        if (!Guid.TryParse(sessionIdValue, out Guid sessionId))
+        {
+            eventArgs.DragEffects = DragDropEffects.None;
+            return;
+        }
+        string destinationFolder = targetNode?.Path ?? string.Empty;
+        if (DataContext is MainWindowViewModel viewModel)
+        {
+            await viewModel.MoveSessionAsync(sessionId, destinationFolder);
+            eventArgs.DragEffects = DragDropEffects.Move;
+            eventArgs.Handled = true;
+        }
+    }
+
+    private static TreeViewItem? GetTreeItem(object? source) =>
+        source as TreeViewItem ?? (source as Visual)?.FindAncestorOfType<TreeViewItem>();
+
+    private static SessionTreeNodeViewModel? GetTreeNode(object? source) =>
+        GetTreeItem(source)?.DataContext as SessionTreeNodeViewModel;
+
+    private void SetDropTarget(TreeViewItem? target)
+    {
+        if (ReferenceEquals(currentDropTarget, target))
+        {
+            return;
+        }
+
+        ClearDropTarget();
+        currentDropTarget = target;
+        currentDropTarget?.Classes.Add("dropTarget");
+    }
+
+    private void ClearDropTarget()
+    {
+        currentDropTarget?.Classes.Remove("dropTarget");
+        currentDropTarget = null;
+    }
+
+    private void ClearDragStart()
+    {
+        sessionDragStartEvent = null;
+        draggedSessionNode = null;
     }
 
     private void OnSessionTreeDoubleTapped(object? sender, TappedEventArgs eventArgs)
@@ -87,6 +237,61 @@ public sealed partial class MainWindow : Window
         {
             viewModel.OpenSelectedSessionCommand.Execute(null);
             eventArgs.Handled = true;
+        }
+    }
+
+    private void OnTerminalTabDoubleTapped(object? sender, TappedEventArgs eventArgs)
+    {
+        if (eventArgs.Source is Visual source &&
+            (source is Button || source.FindAncestorOfType<Button>() is not null))
+        {
+            return;
+        }
+
+        if (sender is not Control { DataContext: TerminalTabViewModel tab })
+        {
+            return;
+        }
+
+        tab.BeginRename();
+        Dispatcher.UIThread.Post(
+            () =>
+            {
+                TextBox? editor = (sender as Visual)?
+                    .GetVisualDescendants()
+                    .OfType<TextBox>()
+                    .FirstOrDefault(control => control.Name == "TabTitleEditor");
+                editor?.Focus();
+                editor?.SelectAll();
+            },
+            DispatcherPriority.Input);
+        eventArgs.Handled = true;
+    }
+
+    private void OnTabTitleEditorKeyDown(object? sender, KeyEventArgs eventArgs)
+    {
+        if (sender is not TextBox { DataContext: TerminalTabViewModel tab })
+        {
+            return;
+        }
+
+        if (eventArgs.Key == Key.Enter)
+        {
+            tab.CommitRename();
+            eventArgs.Handled = true;
+        }
+        else if (eventArgs.Key == Key.Escape)
+        {
+            tab.CancelRename();
+            eventArgs.Handled = true;
+        }
+    }
+
+    private void OnTabTitleEditorLostFocus(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is TextBox { DataContext: TerminalTabViewModel tab } && tab.IsRenaming)
+        {
+            tab.CommitRename();
         }
     }
 }

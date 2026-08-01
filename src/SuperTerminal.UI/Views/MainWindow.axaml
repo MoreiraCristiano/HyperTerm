@@ -83,10 +83,10 @@
           <TreeView
               x:Name="SessionsTree"
               Grid.Row="4"
+              Margin="{DynamicResource SessionTreeMargin}"
               Background="Transparent"
               DoubleTapped="OnSessionTreeDoubleTapped"
               ItemsSource="{Binding SessionTree}"
-              PointerPressed="OnSessionTreePointerPressed"
               SelectedItem="{Binding SelectedTreeNode, Mode=TwoWay}">
             <TreeView.ItemTemplate>
               <TreeDataTemplate
@@ -94,7 +94,7 @@
                   ItemsSource="{Binding Children}">
                 <Grid
                     Margin="{DynamicResource TreeItemContentMargin}"
-                    ColumnDefinitions="*,Auto"
+                    ColumnDefinitions="Auto,*,Auto"
                     Background="{DynamicResource TransparentBrush}">
                   <Grid.ContextFlyout>
                     <MenuFlyout>
@@ -117,18 +117,28 @@
                     </MenuFlyout>
                   </Grid.ContextFlyout>
                   <TextBlock
+                      Classes="sessionTreeIcon"
+                      IsVisible="{Binding IsFolder}"
+                      Text="&#xE8B7;" />
+                  <TextBlock
+                      Classes="sessionTreeIcon"
+                      IsVisible="{Binding IsSession}"
+                      Text="&#xE756;" />
+                  <TextBlock
+                      Grid.Column="1"
                       Classes="sessionTreeFolder"
                       IsVisible="{Binding IsFolder}"
                       Text="{Binding Name}"
                       TextTrimming="CharacterEllipsis"
                       VerticalAlignment="Center" />
                   <TextBlock
+                      Grid.Column="1"
                       IsVisible="{Binding IsSession}"
                       Text="{Binding Name}"
                       TextTrimming="CharacterEllipsis"
                       VerticalAlignment="Center" />
                   <TextBlock
-                      Grid.Column="1"
+                      Grid.Column="2"
                       Margin="{DynamicResource TreeItemEndpointMargin}"
                       Classes="sessionTreeEndpoint"
                       IsVisible="{Binding IsSession}"
@@ -160,9 +170,23 @@
             </ListBox.ItemsPanel>
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="viewModels:TerminalTabViewModel">
-                <Grid MinWidth="150" ColumnDefinitions="*,Auto">
+                <Grid
+                    MinWidth="150"
+                    ColumnDefinitions="*,Auto"
+                    DoubleTapped="OnTerminalTabDoubleTapped">
                   <StackPanel Margin="8,0" VerticalAlignment="Center">
-                    <TextBlock FontWeight="SemiBold" Text="{Binding Title}" />
+                    <TextBlock
+                        IsVisible="{Binding !IsRenaming}"
+                        FontWeight="SemiBold"
+                        Text="{Binding Title}" />
+                    <TextBox
+                        x:Name="TabTitleEditor"
+                        MinWidth="100"
+                        Padding="3,0"
+                        IsVisible="{Binding IsRenaming}"
+                        KeyDown="OnTabTitleEditorKeyDown"
+                        LostFocus="OnTabTitleEditorLostFocus"
+                        Text="{Binding EditableTitle, Mode=TwoWay}" />
                     <TextBlock
                         FontSize="9"
                         Foreground="{DynamicResource MutedTextBrush}"

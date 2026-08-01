@@ -62,6 +62,7 @@ public sealed partial class TerminalTabViewModel : ViewModelBase
         this.closeAction = closeAction;
         this.ptySessionFactory = ptySessionFactory;
         Title = title;
+        EditableTitle = title;
         Endpoint = endpoint;
         Folder = folder;
         FontFamily = string.IsNullOrWhiteSpace(fontFamily) ? "Cascadia Mono" : fontFamily;
@@ -96,6 +97,12 @@ public sealed partial class TerminalTabViewModel : ViewModelBase
     private string title = string.Empty;
 
     [ObservableProperty]
+    private string editableTitle = string.Empty;
+
+    [ObservableProperty]
+    private bool isRenaming;
+
+    [ObservableProperty]
     private string endpoint = string.Empty;
 
     [ObservableProperty]
@@ -109,6 +116,30 @@ public sealed partial class TerminalTabViewModel : ViewModelBase
 
     [RelayCommand]
     private Task CloseAsync() => closeAction(this);
+
+    public void BeginRename()
+    {
+        EditableTitle = Title;
+        IsRenaming = true;
+    }
+
+    public void CommitRename()
+    {
+        string newTitle = EditableTitle.Trim();
+        if (newTitle.Length > 0)
+        {
+            Title = newTitle;
+        }
+
+        EditableTitle = Title;
+        IsRenaming = false;
+    }
+
+    public void CancelRename()
+    {
+        EditableTitle = Title;
+        IsRenaming = false;
+    }
 
     public async Task TerminateAsync(CancellationToken cancellationToken = default)
     {

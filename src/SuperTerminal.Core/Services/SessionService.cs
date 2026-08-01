@@ -78,6 +78,29 @@ internal sealed class SessionService(ISessionRepository repository) : ISessionSe
         }
     }
 
+    public async Task<Session> MoveAsync(
+        Guid id,
+        string folder,
+        CancellationToken cancellationToken = default)
+    {
+        EnsureValidId(id);
+        Session session = await repository.GetByIdAsync(id, cancellationToken)
+            ?? throw new KeyNotFoundException($"Session '{id}' was not found.");
+
+        session.Update(
+            session.Name,
+            session.Host,
+            session.Port,
+            session.Username,
+            session.PrivateKey,
+            NormalizeFolder(folder),
+            session.Notes,
+            DateTime.UtcNow);
+
+        await repository.UpdateAsync(session, cancellationToken);
+        return session;
+    }
+
     private static string? NormalizeOptional(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
