@@ -62,13 +62,13 @@ terminal.attachCustomKeyEventHandler(event => {
   if (event.type === 'keydown' && event.ctrlKey && event.shiftKey && event.code === 'KeyC') {
     const selected = terminal.getSelection();
     if (selected) {
-      navigator.clipboard.writeText(selected);
+      send({ type: 'copy', data: selected });
       terminal.clearSelection();
     }
     return false;
   }
   if (event.type === 'keydown' && event.ctrlKey && event.shiftKey && event.code === 'KeyV') {
-    navigator.clipboard.readText().then(text => text && send({ type: 'input', data: text }));
+    send({ type: 'paste' });
     return false;
   }
   return true;
@@ -82,6 +82,10 @@ window.terminalFocus = () => terminal.focus();
 window.terminalConfigure = options => {
   terminal.options.fontFamily = options.fontFamily;
   terminal.options.fontSize = options.fontSize;
+  terminal.options.theme = {
+    ...terminal.options.theme,
+    selectionBackground: options.selectionBackground
+  };
   terminal.options.cursorStyle = options.cursorStyle;
   terminal.options.cursorBlink = options.cursorBlink;
   fitAndReport();

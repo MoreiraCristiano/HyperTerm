@@ -19,10 +19,11 @@ public sealed partial class TerminalTabViewModel : ViewModelBase
         IPtySessionFactory ptySessionFactory,
         string fontFamily,
         double fontSize,
+        string selectionColor,
         string cursorStyle,
         bool cursorBlink,
         Func<TerminalTabViewModel, Task> closeAction)
-        : this(session.Id, session.Name, session.Endpoint, session.Folder, definition, ptySessionFactory, fontFamily, fontSize, cursorStyle, cursorBlink, closeAction)
+        : this(session.Id, session.Name, session.Endpoint, session.Folder, definition, ptySessionFactory, fontFamily, fontSize, selectionColor, cursorStyle, cursorBlink, closeAction)
     {
     }
 
@@ -32,10 +33,11 @@ public sealed partial class TerminalTabViewModel : ViewModelBase
         IPtySessionFactory ptySessionFactory,
         string fontFamily,
         double fontSize,
+        string selectionColor,
         string cursorStyle,
         bool cursorBlink,
         Func<TerminalTabViewModel, Task> closeAction)
-        : this(null, title, "Local terminal", string.Empty, definition, ptySessionFactory, fontFamily, fontSize, cursorStyle, cursorBlink, closeAction)
+        : this(null, title, "Local terminal", string.Empty, definition, ptySessionFactory, fontFamily, fontSize, selectionColor, cursorStyle, cursorBlink, closeAction)
     {
     }
 
@@ -48,6 +50,7 @@ public sealed partial class TerminalTabViewModel : ViewModelBase
         IPtySessionFactory ptySessionFactory,
         string fontFamily,
         double fontSize,
+        string selectionColor,
         string cursorStyle,
         bool cursorBlink,
         Func<TerminalTabViewModel, Task> closeAction)
@@ -67,6 +70,7 @@ public sealed partial class TerminalTabViewModel : ViewModelBase
         Folder = folder;
         FontFamily = string.IsNullOrWhiteSpace(fontFamily) ? "Cascadia Mono" : fontFamily;
         FontSize = Math.Clamp(fontSize, 8, 32);
+        SelectionColor = selectionColor;
         CursorStyle = cursorStyle;
         CursorBlink = cursorBlink;
     }
@@ -82,6 +86,8 @@ public sealed partial class TerminalTabViewModel : ViewModelBase
     public string FontFamily { get; private set; }
 
     public double FontSize { get; private set; }
+
+    public string SelectionColor { get; private set; }
 
     public string CursorStyle { get; private set; }
 
@@ -209,11 +215,13 @@ public sealed partial class TerminalTabViewModel : ViewModelBase
     public void UpdateAppearance(
         string fontFamily,
         double fontSize,
+        string selectionColor,
         string cursorStyle,
         bool cursorBlink)
     {
         FontFamily = fontFamily;
         FontSize = Math.Clamp(fontSize, 8, 32);
+        SelectionColor = selectionColor;
         CursorStyle = cursorStyle;
         CursorBlink = cursorBlink;
         AppearanceChanged?.Invoke(this, EventArgs.Empty);
@@ -258,6 +266,11 @@ public sealed partial class TerminalTabViewModel : ViewModelBase
     internal void ReportCopyFailed(string reason)
     {
         ConnectionStatus = $"Copy failed: {reason}";
+    }
+
+    internal void ReportPasteFailed(string reason)
+    {
+        ConnectionStatus = $"Paste failed: {reason}";
     }
 
     internal void ReportProcessExited(int exitCode)

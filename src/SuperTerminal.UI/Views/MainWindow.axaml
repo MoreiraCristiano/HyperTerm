@@ -216,7 +216,7 @@
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="viewModels:TerminalTabViewModel">
                 <Grid
-                    MinWidth="150"
+                    MinWidth="{DynamicResource TerminalTabMinWidth}"
                     ColumnDefinitions="*,Auto"
                     DoubleTapped="OnTerminalTabDoubleTapped">
                   <StackPanel Margin="8,0" VerticalAlignment="Center">
@@ -426,7 +426,7 @@
                   <TextBlock Classes="settingsSectionTitle" Text="Terminal appearance" />
                   <TextBlock
                       Classes="settingsSectionDescription"
-                      Text="Select an installed font and adjust its size." />
+                      Text="Select an installed font, adjust its size, and customize text selection." />
                   <Grid ColumnDefinitions="*,16,180">
                     <StackPanel>
                       <TextBlock Classes="settingsLabel" Text="Font family" />
@@ -444,6 +444,29 @@
                           Value="{Binding SettingsTerminalFontSize, Mode=TwoWay}" />
                     </StackPanel>
                   </Grid>
+                  <StackPanel Margin="{DynamicResource SettingsNestedFieldMargin}">
+                    <TextBlock Classes="settingsLabel" Text="Selection color" />
+                    <ComboBox
+                        Width="{DynamicResource SettingsColorPickerWidth}"
+                        HorizontalAlignment="Left"
+                        ItemsSource="{Binding TerminalSelectionColors}"
+                        SelectedItem="{Binding SettingsTerminalSelectionColor, Mode=TwoWay}">
+                      <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="viewModels:TerminalSelectionColorOption">
+                          <StackPanel Orientation="Horizontal">
+                            <Border
+                                Width="{DynamicResource ColorSwatchSize}"
+                                Height="{DynamicResource ColorSwatchSize}"
+                                Margin="{DynamicResource ColorSwatchMargin}"
+                                VerticalAlignment="Center"
+                                Background="{Binding PreviewBrush}"
+                                CornerRadius="{DynamicResource RadiusS}" />
+                            <TextBlock VerticalAlignment="Center" Text="{Binding Name}" />
+                          </StackPanel>
+                        </DataTemplate>
+                      </ComboBox.ItemTemplate>
+                    </ComboBox>
+                  </StackPanel>
                 </StackPanel>
               </Border>
 

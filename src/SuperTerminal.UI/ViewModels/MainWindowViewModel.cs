@@ -54,6 +54,16 @@ public sealed partial class MainWindowViewModel(
     public IReadOnlyList<string> TerminalCursorStyles { get; } =
         ["Bar", "Block", "Underline"];
 
+    public IReadOnlyList<TerminalSelectionColorOption> TerminalSelectionColors { get; } =
+    [
+        new("Blue", "#264F78"),
+        new("Green", "#275D4E"),
+        new("Purple", "#5A3D73"),
+        new("Orange", "#754C24"),
+        new("Red", "#6E3940"),
+        new("Silver", "#5B6068"),
+    ];
+
     [ObservableProperty]
     private string sessionCountText = "0 sessions";
 
@@ -134,6 +144,10 @@ public sealed partial class MainWindowViewModel(
     private decimal settingsTerminalFontSize = 13;
 
     [ObservableProperty]
+    private TerminalSelectionColorOption settingsTerminalSelectionColor =
+        new("Blue", "#264F78");
+
+    [ObservableProperty]
     private string settingsTerminalCursorStyle = "Bar";
 
     [ObservableProperty]
@@ -195,6 +209,8 @@ public sealed partial class MainWindowViewModel(
             SettingsTheme = NormalizeTheme(applicationSettings.Theme);
             SettingsTerminalFontFamily = applicationSettings.TerminalFontFamily;
             SettingsTerminalFontSize = (decimal)applicationSettings.TerminalFontSize;
+            SettingsTerminalSelectionColor = FindSelectionColorOption(
+                applicationSettings.TerminalSelectionColor);
             SettingsTerminalCursorStyle = NormalizeCursorStyle(
                 applicationSettings.TerminalCursorStyle);
             SettingsTerminalCursorBlink = applicationSettings.TerminalCursorBlink;
@@ -318,6 +334,7 @@ public sealed partial class MainWindowViewModel(
                 ptySessionFactory,
                 applicationSettings.TerminalFontFamily,
                 applicationSettings.TerminalFontSize,
+                applicationSettings.TerminalSelectionColor,
                 applicationSettings.TerminalCursorStyle,
                 applicationSettings.TerminalCursorBlink,
                 CloseTabAsync);
@@ -354,6 +371,7 @@ public sealed partial class MainWindowViewModel(
                 ptySessionFactory,
                 applicationSettings.TerminalFontFamily,
                 applicationSettings.TerminalFontSize,
+                applicationSettings.TerminalSelectionColor,
                 applicationSettings.TerminalCursorStyle,
                 applicationSettings.TerminalCursorBlink,
                 CloseTabAsync);
@@ -382,6 +400,8 @@ public sealed partial class MainWindowViewModel(
         SettingsTheme = NormalizeTheme(applicationSettings.Theme);
         SettingsTerminalFontFamily = applicationSettings.TerminalFontFamily;
         SettingsTerminalFontSize = (decimal)applicationSettings.TerminalFontSize;
+        SettingsTerminalSelectionColor = FindSelectionColorOption(
+            applicationSettings.TerminalSelectionColor);
         SettingsTerminalCursorStyle = NormalizeCursorStyle(
             applicationSettings.TerminalCursorStyle);
         SettingsTerminalCursorBlink = applicationSettings.TerminalCursorBlink;
@@ -598,6 +618,8 @@ public sealed partial class MainWindowViewModel(
                 ? "Cascadia Mono"
                 : SettingsTerminalFontFamily.Trim();
             double fontSize = Math.Clamp((double)SettingsTerminalFontSize, 8, 32);
+            TerminalSelectionColorOption selectionColor =
+                FindSelectionColorOption(SettingsTerminalSelectionColor.Value);
             string cursorStyle = NormalizeCursorStyle(SettingsTerminalCursorStyle);
             applicationSettings = applicationSettings with
             {
@@ -605,6 +627,7 @@ public sealed partial class MainWindowViewModel(
                 Theme = theme,
                 TerminalFontFamily = fontFamily,
                 TerminalFontSize = fontSize,
+                TerminalSelectionColor = selectionColor.Value,
                 TerminalCursorStyle = cursorStyle,
                 TerminalCursorBlink = SettingsTerminalCursorBlink,
             };
@@ -613,12 +636,14 @@ public sealed partial class MainWindowViewModel(
             SettingsTheme = theme;
             SettingsTerminalFontFamily = fontFamily;
             SettingsTerminalFontSize = (decimal)fontSize;
+            SettingsTerminalSelectionColor = selectionColor;
             SettingsTerminalCursorStyle = cursorStyle;
             foreach (TerminalTabViewModel tab in Tabs)
             {
                 tab.UpdateAppearance(
                     fontFamily,
                     fontSize,
+                    selectionColor.Value,
                     cursorStyle,
                     SettingsTerminalCursorBlink);
             }
@@ -1059,4 +1084,9 @@ public sealed partial class MainWindowViewModel(
             "underline" => "Underline",
             _ => "Bar",
         };
+
+    private TerminalSelectionColorOption FindSelectionColorOption(string? value) =>
+        TerminalSelectionColors.FirstOrDefault(option =>
+            option.Value.Equals(value, StringComparison.OrdinalIgnoreCase))
+        ?? TerminalSelectionColors[0];
 }

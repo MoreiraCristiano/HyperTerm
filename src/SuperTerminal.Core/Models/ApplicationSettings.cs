@@ -10,6 +10,8 @@ public sealed record ApplicationSettings
 
     public double TerminalFontSize { get; init; } = 13;
 
+    public string TerminalSelectionColor { get; init; } = "#264F78";
+
     public string TerminalCursorStyle { get; init; } = "Bar";
 
     public bool TerminalCursorBlink { get; init; } = true;

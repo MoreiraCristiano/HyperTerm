@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input.Platform;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using SuperTerminal.UI.ViewModels;
@@ -108,6 +109,13 @@ public sealed class WebTerminalControl : NativeWebView
                 case "input":
                     await Tab.WritePtyAsync(root.GetProperty("data").GetString() ?? string.Empty);
                     break;
+                case "copy":
+                    await CopySelectionAsync(
+                        root.GetProperty("data").GetString() ?? string.Empty);
+                    break;
+                case "paste":
+                    await PasteClipboardAsync();
+                    break;
                 case "resize":
                     Tab.ResizePty(
                         root.GetProperty("columns").GetInt32(),
@@ -130,6 +138,59 @@ public sealed class WebTerminalControl : NativeWebView
     {
         pendingOutput.Enqueue(output);
         ScheduleOutputFlush();
+    }
+
+    private async Task CopySelectionAsync(string text)
+    {
+        if (Tab is null || text.Length == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
+            if (clipboard is null)
+            {
+                Tab.ReportCopyFailed("Windows clipboard is unavailable");
+                return;
+            }
+
+            await clipboard.SetTextAsync(text);
+            Tab.ReportTextCopied(text.Length);
+        }
+        catch (Exception exception)
+        {
+            Tab.ReportCopyFailed(exception.Message);
+        }
+    }
+
+    private async Task PasteClipboardAsync()
+    {
+        if (Tab is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
+            if (clipboard is null)
+            {
+                Tab.ReportPasteFailed("Windows clipboard is unavailable");
+                return;
+            }
+
+            string? text = await clipboard.TryGetTextAsync();
+            if (!string.IsNullOrEmpty(text))
+            {
+                await Tab.WritePtyAsync(text);
+            }
+        }
+        catch (Exception exception)
+        {
+            Tab.ReportPasteFailed(exception.Message);
+        }
     }
 
     private void OnFocusRequested(object? sender, EventArgs eventArgs) =>
@@ -156,6 +217,7 @@ public sealed class WebTerminalControl : NativeWebView
         {
             fontFamily = Tab.FontFamily,
             fontSize = Tab.FontSize,
+            selectionBackground = Tab.SelectionColor,
             cursorStyle = Tab.CursorStyle.ToLowerInvariant(),
             cursorBlink = Tab.CursorBlink,
         });
