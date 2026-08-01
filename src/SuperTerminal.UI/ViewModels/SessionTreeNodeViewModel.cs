@@ -32,6 +32,9 @@ public sealed partial class SessionTreeNodeViewModel : ViewModelBase
     [ObservableProperty]
     private bool isSelectedForDeletion;
 
+    [ObservableProperty]
+    private bool isExpanded;
+
     public static SessionTreeNodeViewModel CreateFolder(string name, string path) =>
         new(name, path, null);
 

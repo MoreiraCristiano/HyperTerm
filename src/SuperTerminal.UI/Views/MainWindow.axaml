@@ -118,6 +118,7 @@
               Background="Transparent"
               DoubleTapped="OnSessionTreeDoubleTapped"
               ItemsSource="{Binding SessionTree}"
+              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
               SelectedItem="{Binding SelectedTreeNode, Mode=TwoWay}">
             <TreeView.ItemTemplate>
               <TreeDataTemplate
@@ -126,7 +127,7 @@
                 <Grid
                     Classes="sessionTreeRow"
                     Classes.batchSelected="{Binding IsSelectedForDeletion}"
-                    Margin="{DynamicResource TreeItemContentMargin}"
+                    Classes.sessionNode="{Binding IsSession}"
                     ColumnDefinitions="Auto,*,Auto">
                   <Grid.ContextFlyout>
                     <MenuFlyout>
@@ -157,10 +158,16 @@
                           Command="{Binding DataContext.RequestDeleteSessionCommand, ElementName=SessionsTree}" />
                     </MenuFlyout>
                   </Grid.ContextFlyout>
-                  <TextBlock
-                      Classes="sessionTreeIcon"
-                      IsVisible="{Binding IsFolder}"
-                      Text="&#xE8B7;" />
+                  <Grid IsVisible="{Binding IsFolder}">
+                    <TextBlock
+                        Classes="sessionTreeIcon"
+                        IsVisible="{Binding !IsExpanded}"
+                        Text="&#xE8B7;" />
+                    <TextBlock
+                        Classes="sessionTreeIcon"
+                        IsVisible="{Binding IsExpanded}"
+                        Text="&#xE838;" />
+                  </Grid>
                   <TextBlock
                       Classes="sessionTreeIcon"
                       IsVisible="{Binding IsSession}"
