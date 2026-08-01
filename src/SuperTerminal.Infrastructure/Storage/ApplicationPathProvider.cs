@@ -7,18 +7,25 @@ internal sealed class ApplicationPathProvider : IApplicationPathProvider
         string localApplicationData = Environment.GetFolderPath(
             Environment.SpecialFolder.LocalApplicationData);
 
+        string previousDirectory = Path.Combine(localApplicationData, "hyperTerms");
         string legacyDirectory = Path.Combine(localApplicationData, "SuperTerminal");
-        ApplicationDirectory = Path.Combine(localApplicationData, "hyperTerms");
+        ApplicationDirectory = Path.Combine(localApplicationData, "HyperTerm");
         Directory.CreateDirectory(ApplicationDirectory);
 
-        DatabasePath = Path.Combine(ApplicationDirectory, "hyperterms.db");
+        DatabasePath = Path.Combine(ApplicationDirectory, "hyperterm.db");
         SettingsPath = Path.Combine(ApplicationDirectory, "settings.json");
 
-        CopyLegacyFileIfNeeded(
-            Path.Combine(legacyDirectory, "superterminal.db"),
+        CopyFirstAvailableIfNeeded(
+            [
+                Path.Combine(previousDirectory, "hyperterms.db"),
+                Path.Combine(legacyDirectory, "superterminal.db"),
+            ],
             DatabasePath);
-        CopyLegacyFileIfNeeded(
-            Path.Combine(legacyDirectory, "settings.json"),
+        CopyFirstAvailableIfNeeded(
+            [
+                Path.Combine(previousDirectory, "settings.json"),
+                Path.Combine(legacyDirectory, "settings.json"),
+            ],
             SettingsPath);
     }
 
@@ -28,11 +35,19 @@ internal sealed class ApplicationPathProvider : IApplicationPathProvider
 
     public string SettingsPath { get; }
 
-    private static void CopyLegacyFileIfNeeded(string legacyPath, string destinationPath)
+    private static void CopyFirstAvailableIfNeeded(
+        IEnumerable<string> sourcePaths,
+        string destinationPath)
     {
-        if (!File.Exists(destinationPath) && File.Exists(legacyPath))
+        if (File.Exists(destinationPath))
         {
-            File.Copy(legacyPath, destinationPath);
+            return;
+        }
+
+        string? sourcePath = sourcePaths.FirstOrDefault(File.Exists);
+        if (sourcePath is not null)
+        {
+            File.Copy(sourcePath, destinationPath);
         }
     }
 }

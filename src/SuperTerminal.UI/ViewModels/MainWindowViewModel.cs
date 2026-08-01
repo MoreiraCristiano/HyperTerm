@@ -29,8 +29,9 @@ public sealed partial class MainWindowViewModel(
     private ApplicationSettings applicationSettings = new();
     private bool windowStateChanged;
     private int localTerminalSequence;
+    private bool rootFoldersDescending;
 
-    public string Title => "hyperTerms";
+    public string Title => "HyperTerm";
 
     public IReadOnlyList<string> ThemeOptions { get; } = ["Dark"];
 
@@ -43,6 +44,12 @@ public sealed partial class MainWindowViewModel(
     public ObservableCollection<string> FolderOptions { get; } = [];
 
     public ObservableCollection<string> SystemFontFamilies { get; } = [];
+
+    public string RootFolderSortGlyph => rootFoldersDescending ? "\uE74B" : "\uE74A";
+
+    public string RootFolderSortTooltip => rootFoldersDescending
+        ? "Sort root folders ascending"
+        : "Sort root folders descending";
 
     public IReadOnlyList<string> TerminalCursorStyles { get; } =
         ["Bar", "Block", "Underline"];
@@ -390,6 +397,15 @@ public sealed partial class MainWindowViewModel(
     [RelayCommand]
     private void ToggleSidebar() =>
         IsSidebarVisible = !IsSidebarVisible;
+
+    [RelayCommand]
+    private void ToggleRootFolderSort()
+    {
+        rootFoldersDescending = !rootFoldersDescending;
+        OnPropertyChanged(nameof(RootFolderSortGlyph));
+        OnPropertyChanged(nameof(RootFolderSortTooltip));
+        ApplyFilter(SelectedSession?.Id);
+    }
 
     [RelayCommand]
     private void OpenShortcuts() =>
@@ -810,7 +826,7 @@ public sealed partial class MainWindowViewModel(
             visibleSessionCount++;
         }
 
-        SortNodes(SessionTree);
+        SortNodes(SessionTree, rootFoldersDescending);
         SessionCountText = visibleSessionCount == 1
             ? "1 session"
             : $"{visibleSessionCount} sessions";
@@ -876,17 +892,32 @@ public sealed partial class MainWindowViewModel(
         return parentNodes;
     }
 
-    private static void SortNodes(ObservableCollection<SessionTreeNodeViewModel> nodes)
+    private static void SortNodes(
+        ObservableCollection<SessionTreeNodeViewModel> nodes,
+        bool foldersDescending = false)
     {
-        SessionTreeNodeViewModel[] sortedNodes = nodes
-            .OrderByDescending(node => node.IsFolder)
-            .ThenBy(node => node.Name, StringComparer.CurrentCultureIgnoreCase)
+        foreach (SessionTreeNodeViewModel node in nodes)
+        {
+            SortNodes(node.Children);
+        }
+
+        IEnumerable<SessionTreeNodeViewModel> folders = nodes.Where(node => node.IsFolder);
+        folders = foldersDescending
+            ? folders.OrderByDescending(
+                node => node.Name,
+                StringComparer.CurrentCultureIgnoreCase)
+            : folders.OrderBy(
+                node => node.Name,
+                StringComparer.CurrentCultureIgnoreCase);
+        SessionTreeNodeViewModel[] sortedNodes = folders
+            .Concat(nodes
+                .Where(node => node.IsSession)
+                .OrderBy(node => node.Name, StringComparer.CurrentCultureIgnoreCase))
             .ToArray();
 
         nodes.Clear();
         foreach (SessionTreeNodeViewModel node in sortedNodes)
         {
-            SortNodes(node.Children);
             nodes.Add(node);
         }
     }

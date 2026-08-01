@@ -31,7 +31,7 @@ function Stop-PreviousBootstrapRun {
     $expectedRoot = [System.IO.Path]::GetFullPath((Join-Path $repositoryRoot 'artifacts\runs'))
     $processPath = $previousProcess.Path
     $isWorkspaceBuild = $processPath -and
-        $previousProcess.ProcessName -in @('hyperTerms', 'SuperTerminal.UI') -and
+        $previousProcess.ProcessName -in @('HyperTerm', 'hyperTerms', 'SuperTerminal.UI') -and
         [System.IO.Path]::GetFullPath($processPath).StartsWith(
             $expectedRoot,
             [System.StringComparison]::OrdinalIgnoreCase)
@@ -70,7 +70,7 @@ if ($LASTEXITCODE -ne 0) {
     throw "Build web falhou com código $LASTEXITCODE."
 }
 
-Write-Host 'Compilando hyperTerms atual...'
+Write-Host 'Compilando HyperTerm atual...'
 & $dotnetPath build $projectPath `
     --configuration Release `
     --output $outputPath `
@@ -80,7 +80,7 @@ if ($LASTEXITCODE -ne 0) {
     throw "Compilação falhou com código $LASTEXITCODE."
 }
 
-$executablePath = Join-Path $outputPath 'hyperTerms.exe'
+$executablePath = Join-Path $outputPath 'HyperTerm.exe'
 if (-not (Test-Path -LiteralPath $executablePath)) {
     throw "Executável não foi gerado: $executablePath"
 }
@@ -89,7 +89,7 @@ Write-Host "Build atual: $executablePath"
 
 if (-not $BuildOnly) {
     Stop-PreviousBootstrapRun
-    Write-Host 'Abrindo hyperTerms...'
+    Write-Host 'Abrindo HyperTerm...'
     $applicationProcess = Start-Process `
         -FilePath $executablePath `
         -WorkingDirectory $outputPath `

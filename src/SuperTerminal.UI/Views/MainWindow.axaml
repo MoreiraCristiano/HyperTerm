@@ -51,7 +51,7 @@
               Grid.Row="3"
               MinHeight="{DynamicResource SidebarSectionHeaderHeight}"
               Margin="4,0,0,7"
-              ColumnDefinitions="*,Auto,Auto,Auto">
+              ColumnDefinitions="*,Auto,Auto,Auto,Auto">
             <TextBlock
                 FontSize="{DynamicResource FontSizeCaption}"
                 FontWeight="SemiBold"
@@ -83,6 +83,16 @@
                 FontFamily="{DynamicResource IconFontFamily}"
                 Content="&#xE8F4;"
                 ToolTip.Tip="Create folder" />
+            <Button
+                Grid.Column="4"
+                Margin="{DynamicResource SidebarActionLeadingMargin}"
+                Classes="iconButton"
+                Width="24"
+                Height="24"
+                Command="{Binding ToggleRootFolderSortCommand}"
+                FontFamily="{DynamicResource IconFontFamily}"
+                Content="{Binding RootFolderSortGlyph}"
+                ToolTip.Tip="{Binding RootFolderSortTooltip}" />
           </Grid>
           <StackPanel Grid.Row="1" Spacing="5">
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SidebarActionSpacing}">

@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <AssemblyName>hyperTerms</AssemblyName>
-    <AssemblyTitle>hyperTerms</AssemblyTitle>
-    <Product>hyperTerms</Product>
+    <AssemblyName>HyperTerm</AssemblyName>
+    <AssemblyTitle>HyperTerm</AssemblyTitle>
+    <Product>HyperTerm</Product>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>

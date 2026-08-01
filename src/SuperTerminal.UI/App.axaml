@@ -4,6 +4,6 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <Application.Styles>
     <FluentTheme DensityStyle="Compact" />
-    <StyleInclude Source="avares://hyperTerms/Styles/DesignSystem.axaml" />
+    <StyleInclude Source="avares://HyperTerm/Styles/DesignSystem.axaml" />
   </Application.Styles>
 </Application>

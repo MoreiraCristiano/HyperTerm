@@ -13,7 +13,7 @@ namespace SuperTerminal.UI.Views;
 public sealed partial class MainWindow : Window
 {
     private static readonly DataFormat<string> SessionDragFormat =
-        DataFormat.CreateInProcessFormat<string>("hyperTerms.SessionId");
+        DataFormat.CreateInProcessFormat<string>("HyperTerm.SessionId");
 
     private PointerPressedEventArgs? sessionDragStartEvent;
     private Point sessionDragStartPoint;
