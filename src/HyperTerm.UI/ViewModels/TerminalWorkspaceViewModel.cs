@@ -25,9 +25,7 @@ public sealed partial class TerminalWorkspaceViewModel(
 
     public ObservableCollection<TerminalTabViewModel> Tabs { get; } = [];
 
-    public string Title => SelectedTab is null
-        ? "HyperTerm"
-        : $"HyperTerm — {SelectedTab.Title}";
+    public string Title => "HyperTerm";
 
     public bool HasOpenTabs => Tabs.Count > 0;
 
@@ -44,16 +42,6 @@ public sealed partial class TerminalWorkspaceViewModel(
         TerminalTabViewModel? oldValue,
         TerminalTabViewModel? newValue)
     {
-        if (oldValue is not null)
-        {
-            oldValue.PropertyChanged -= OnSelectedTabPropertyChanged;
-        }
-
-        if (newValue is not null)
-        {
-            newValue.PropertyChanged += OnSelectedTabPropertyChanged;
-        }
-
         foreach (TerminalTabViewModel tab in Tabs)
         {
             tab.IsSelected = ReferenceEquals(tab, newValue);
@@ -65,7 +53,6 @@ public sealed partial class TerminalWorkspaceViewModel(
             newValue.RequestFocus();
         }
 
-        OnPropertyChanged(nameof(Title));
         CloseSelectedTabCommand.NotifyCanExecuteChanged();
         NextTabCommand.NotifyCanExecuteChanged();
         PreviousTabCommand.NotifyCanExecuteChanged();
@@ -282,11 +269,4 @@ public sealed partial class TerminalWorkspaceViewModel(
         }
     }
 
-    private void OnSelectedTabPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
-    {
-        if (eventArgs.PropertyName == nameof(TerminalTabViewModel.Title))
-        {
-            OnPropertyChanged(nameof(Title));
-        }
-    }
 }
