@@ -128,34 +128,41 @@
                     Classes="sessionTreeRow"
                     Classes.batchSelected="{Binding IsSelectedForDeletion}"
                     Classes.sessionNode="{Binding IsSession}"
-                    ColumnDefinitions="Auto,*,Auto">
+                    ColumnDefinitions="Auto,*,Auto"
+                    ContextRequested="OnSessionTreeItemContextRequested">
                   <Grid.ContextFlyout>
                     <MenuFlyout>
                       <MenuItem
                           Header="New session"
                           IsVisible="{Binding IsFolder}"
-                          Command="{Binding DataContext.NewSessionInSelectedFolderCommand, ElementName=SessionsTree}" />
+                          Command="{Binding DataContext.ContextNewSessionCommand, ElementName=SessionsTree}"
+                          CommandParameter="{Binding}" />
                       <MenuItem
                           Header="New folder"
                           IsVisible="{Binding IsFolder}"
-                          Command="{Binding DataContext.OpenSubfolderEditorCommand, ElementName=SessionsTree}" />
+                          Command="{Binding DataContext.ContextNewFolderCommand, ElementName=SessionsTree}"
+                          CommandParameter="{Binding}" />
                       <Separator IsVisible="{Binding IsFolder}" />
                       <MenuItem
                           Header="Edit folder"
                           IsVisible="{Binding IsFolder}"
-                          Command="{Binding DataContext.EditFolderCommand, ElementName=SessionsTree}" />
+                          Command="{Binding DataContext.ContextEditFolderCommand, ElementName=SessionsTree}"
+                          CommandParameter="{Binding}" />
                       <MenuItem
                           Header="Delete folder"
                           IsVisible="{Binding IsFolder}"
-                          Command="{Binding DataContext.RequestDeleteFolderCommand, ElementName=SessionsTree}" />
+                          Command="{Binding DataContext.ContextDeleteFolderCommand, ElementName=SessionsTree}"
+                          CommandParameter="{Binding}" />
                       <MenuItem
                           Header="Edit session"
                           IsVisible="{Binding IsSession}"
-                          Command="{Binding DataContext.EditSessionCommand, ElementName=SessionsTree}" />
+                          Command="{Binding DataContext.ContextEditSessionCommand, ElementName=SessionsTree}"
+                          CommandParameter="{Binding}" />
                       <MenuItem
                           Header="Delete session"
                           IsVisible="{Binding IsSession}"
-                          Command="{Binding DataContext.RequestDeleteSessionCommand, ElementName=SessionsTree}" />
+                          Command="{Binding DataContext.ContextDeleteSessionCommand, ElementName=SessionsTree}"
+                          CommandParameter="{Binding}" />
                     </MenuFlyout>
                   </Grid.ContextFlyout>
                   <Grid IsVisible="{Binding IsFolder}">
@@ -250,10 +257,10 @@
                   </StackPanel>
                   <Button
                       Grid.Column="1"
-                      Padding="7,2"
+                      Classes="tabCloseButton"
                       VerticalAlignment="Center"
-                      Background="Transparent"
                       Command="{Binding CloseCommand}"
+                      Focusable="False"
                       FontFamily="{DynamicResource IconFontFamily}"
                       Content="&#xE711;" />
                 </Grid>

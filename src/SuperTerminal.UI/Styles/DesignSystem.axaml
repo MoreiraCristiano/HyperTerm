@@ -66,6 +66,7 @@
     <x:Double x:Key="SettingsDialogWidth">680</x:Double>
     <x:Double x:Key="SettingsDialogMaxHeight">720</x:Double>
     <x:Double x:Key="TerminalTabMinWidth">190</x:Double>
+    <Thickness x:Key="TerminalTabClosePadding">7,2</Thickness>
     <x:Double x:Key="SettingsSectionSpacing">12</x:Double>
     <Thickness x:Key="SettingsBodyMargin">0,20,0,16</Thickness>
     <Thickness x:Key="SettingsSectionPadding">16</Thickness>
@@ -134,6 +135,19 @@
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
+  <Style Selector="Button.tabCloseButton">
+    <Setter Property="Padding" Value="{DynamicResource TerminalTabClosePadding}" />
+    <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
+  </Style>
+  <Style Selector="Button.tabCloseButton:pointerover">
+    <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+  </Style>
+  <Style Selector="Button.tabCloseButton:pointerover /template/ ContentPresenter, Button.tabCloseButton:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+  </Style>
   <Style Selector="TextBox, NumericUpDown, ComboBox">
     <Setter Property="Background" Value="{DynamicResource AppBackgroundBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
@@ -165,6 +179,8 @@
   </Style>
   <Style Selector="Grid.sessionTreeRow">
     <Setter Property="Margin" Value="{DynamicResource TreeItemContentMargin}" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
   </Style>
   <Style Selector="Grid.sessionTreeRow.batchSelected">
     <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />

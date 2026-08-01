@@ -161,17 +161,18 @@ public sealed partial class MainWindow : Window
         }
 
         bool controlPressed = eventArgs.KeyModifiers.HasFlag(KeyModifiers.Control);
+        if (isRightClick)
+        {
+            ClearDragStart();
+            return;
+        }
+
         if (DataContext is not MainWindowViewModel viewModel)
         {
             return;
         }
 
-        if (isRightClick)
-        {
-            viewModel.ActivateTreeNode(node);
-            SelectOnly(item);
-        }
-        else if (controlPressed && node.IsFolder)
+        if (controlPressed && node.IsFolder)
         {
             viewModel.ToggleFolderDeletionSelection(node);
             eventArgs.Handled = true;
@@ -207,6 +208,20 @@ public sealed partial class MainWindow : Window
     {
         SessionsTree.SelectedItems?.Clear();
         item.IsSelected = true;
+    }
+
+    private void OnSessionTreeItemContextRequested(
+        object? sender,
+        ContextRequestedEventArgs eventArgs)
+    {
+        if (sender is Control
+            {
+                ContextFlyout: PopupFlyoutBase flyout,
+            } target)
+        {
+            flyout.ShowAt(target, showAtPointer: true);
+            eventArgs.Handled = true;
+        }
     }
 
     private async void OnSessionTreePointerMoved(object? sender, PointerEventArgs eventArgs)

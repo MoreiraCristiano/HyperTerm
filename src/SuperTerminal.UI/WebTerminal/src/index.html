@@ -8,6 +8,9 @@
     :root {
       color-scheme: dark;
       --terminal-background: #1e1e1e;
+      --terminal-padding-top: 7px;
+      --terminal-padding-horizontal: 8px;
+      --terminal-padding-bottom: 5px;
       --scrollbar-thumb: #3c3c3c;
       --scrollbar-hover: #555555;
     }
@@ -23,7 +26,12 @@
       visibility: visible;
       pointer-events: auto;
     }
-    .xterm { padding: 6px 8px; }
+    .xterm {
+      padding:
+        var(--terminal-padding-top)
+        var(--terminal-padding-horizontal)
+        var(--terminal-padding-bottom);
+    }
     #terminal-host, #terminal-host * { cursor: default !important; }
     * {
       scrollbar-color: var(--scrollbar-thumb) var(--terminal-background);

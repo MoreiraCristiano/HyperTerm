@@ -30,6 +30,7 @@ public sealed partial class MainWindowViewModel(
         new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<SessionTreeNodeViewModel> selectedFolderNodes = [];
     private string[] foldersPendingDeletion = [];
+    private SessionListItemViewModel? sessionPendingDeletion;
     private Guid? editingSessionId;
     private string? editingFolderPath;
     private ApplicationSettings applicationSettings = new();
@@ -285,17 +286,6 @@ public sealed partial class MainWindowViewModel(
     {
         ArgumentNullException.ThrowIfNull(node);
         ClearFolderDeletionSelection();
-        SelectedTreeNode = node;
-    }
-
-    public void ActivateTreeNode(SessionTreeNodeViewModel node)
-    {
-        ArgumentNullException.ThrowIfNull(node);
-        if (!node.IsSelectedForDeletion)
-        {
-            ClearFolderDeletionSelection();
-        }
-
         SelectedTreeNode = node;
     }
 
@@ -566,10 +556,35 @@ public sealed partial class MainWindowViewModel(
         IsFolderEditorOpen = true;
     }
 
+    [RelayCommand]
+    private void ContextNewFolder(SessionTreeNodeViewModel? node)
+    {
+        if (node?.IsFolder == true)
+        {
+            PrepareFolderEditor($"{node.Path}/");
+        }
+    }
+
     [RelayCommand(CanExecute = nameof(HasSelectedFolder))]
     private void EditFolder()
     {
         editingFolderPath = SelectedTreeNode!.Path;
+        FolderEditorTitle = "Edit folder";
+        FolderEditorAction = "Save";
+        FolderPath = editingFolderPath;
+        FolderError = null;
+        IsFolderEditorOpen = true;
+    }
+
+    [RelayCommand]
+    private void ContextEditFolder(SessionTreeNodeViewModel? node)
+    {
+        if (node?.IsFolder != true)
+        {
+            return;
+        }
+
+        editingFolderPath = node.Path;
         FolderEditorTitle = "Edit folder";
         FolderEditorAction = "Save";
         FolderPath = editingFolderPath;
@@ -618,9 +633,27 @@ public sealed partial class MainWindowViewModel(
     [RelayCommand(CanExecute = nameof(HasSelectedFolder))]
     private void RequestDeleteFolder()
     {
-        foldersPendingDeletion = selectedFolderPaths.Count > 0
+        PrepareFolderDeletion(selectedFolderPaths.Count > 0
             ? selectedFolderPaths.ToArray()
-            : [SelectedTreeNode!.Path];
+            : [SelectedTreeNode!.Path]);
+    }
+
+    [RelayCommand]
+    private void ContextDeleteFolder(SessionTreeNodeViewModel? node)
+    {
+        if (node?.IsFolder != true)
+        {
+            return;
+        }
+
+        PrepareFolderDeletion(node.IsSelectedForDeletion && selectedFolderPaths.Count > 0
+            ? selectedFolderPaths.ToArray()
+            : [node.Path]);
+    }
+
+    private void PrepareFolderDeletion(string[] paths)
+    {
+        foldersPendingDeletion = paths;
         FolderDeleteTitle = foldersPendingDeletion.Length == 1
             ? "Delete folder?"
             : $"Delete {foldersPendingDeletion.Length} folders?";
@@ -822,6 +855,15 @@ public sealed partial class MainWindowViewModel(
     private void NewSessionInSelectedFolder() =>
         PrepareNewSession(SelectedTreeNode!.Path);
 
+    [RelayCommand]
+    private void ContextNewSession(SessionTreeNodeViewModel? node)
+    {
+        if (node?.IsFolder == true)
+        {
+            PrepareNewSession(node.Path);
+        }
+    }
+
     private void PrepareNewSession(string folder)
     {
         editingSessionId = null;
@@ -840,7 +882,20 @@ public sealed partial class MainWindowViewModel(
     [RelayCommand(CanExecute = nameof(HasSelectedSession))]
     private void EditSession()
     {
-        SessionListItemViewModel session = SelectedSession!;
+        PrepareEditSession(SelectedSession!);
+    }
+
+    [RelayCommand]
+    private void ContextEditSession(SessionTreeNodeViewModel? node)
+    {
+        if (node?.Session is not null)
+        {
+            PrepareEditSession(node.Session);
+        }
+    }
+
+    private void PrepareEditSession(SessionListItemViewModel session)
+    {
 
         editingSessionId = session.Id;
         EditorTitle = "Edit session";
@@ -896,6 +951,19 @@ public sealed partial class MainWindowViewModel(
     [RelayCommand(CanExecute = nameof(HasSelectedSession))]
     private void RequestDeleteSession()
     {
+        sessionPendingDeletion = SelectedSession;
+        IsDeleteConfirmationOpen = true;
+    }
+
+    [RelayCommand]
+    private void ContextDeleteSession(SessionTreeNodeViewModel? node)
+    {
+        if (node?.Session is null)
+        {
+            return;
+        }
+
+        sessionPendingDeletion = node.Session;
         IsDeleteConfirmationOpen = true;
     }
 
@@ -903,30 +971,34 @@ public sealed partial class MainWindowViewModel(
     private void CancelDeleteSession()
     {
         IsDeleteConfirmationOpen = false;
+        sessionPendingDeletion = null;
     }
 
     [RelayCommand]
     private async Task ConfirmDeleteSessionAsync()
     {
-        if (SelectedSession is null)
+        SessionListItemViewModel? session = sessionPendingDeletion ?? SelectedSession;
+        if (session is null)
         {
             IsDeleteConfirmationOpen = false;
             return;
         }
 
-        Guid id = SelectedSession.Id;
-        string name = SelectedSession.Name;
+        Guid id = session.Id;
+        string name = session.Name;
 
         try
         {
             await sessionService.DeleteAsync(id);
             IsDeleteConfirmationOpen = false;
+            sessionPendingDeletion = null;
             StatusText = $"Session ‘{name}’ deleted";
             await ReloadSessionsAsync(null);
         }
         catch (KeyNotFoundException)
         {
             IsDeleteConfirmationOpen = false;
+            sessionPendingDeletion = null;
             StatusText = "Session not found";
             await ReloadSessionsAsync(null);
         }
