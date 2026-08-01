@@ -305,7 +305,11 @@
             </StackPanel>
             <StackPanel Grid.Column="2">
               <TextBlock Margin="0,0,0,5" Text="Port" />
-              <NumericUpDown Minimum="1" Maximum="65535" Value="{Binding EditorPort, Mode=TwoWay}" />
+              <NumericUpDown
+                  Minimum="1"
+                  Maximum="65535"
+                  ShowButtonSpinner="False"
+                  Value="{Binding EditorPort, Mode=TwoWay}" />
             </StackPanel>
           </Grid>
           <StackPanel Grid.Row="2" Margin="0,12,0,0">
@@ -432,6 +436,7 @@
                       <NumericUpDown
                           Minimum="8"
                           Maximum="32"
+                          ShowButtonSpinner="False"
                           Value="{Binding SettingsTerminalFontSize, Mode=TwoWay}" />
                     </StackPanel>
                   </Grid>
