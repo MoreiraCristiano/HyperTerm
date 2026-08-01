@@ -11,9 +11,20 @@
       --scrollbar-thumb: #3c3c3c;
       --scrollbar-hover: #555555;
     }
-    html, body, #terminal { width: 100%; height: 100%; margin: 0; overflow: hidden; background: var(--terminal-background); }
+    html, body, #terminal-host { width: 100%; height: 100%; margin: 0; overflow: hidden; background: var(--terminal-background); }
+    #terminal-host { position: relative; }
+    .terminal-pane {
+      position: absolute;
+      inset: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    .terminal-pane.active {
+      visibility: visible;
+      pointer-events: auto;
+    }
     .xterm { padding: 6px 8px; }
-    #terminal, #terminal * { cursor: default !important; }
+    #terminal-host, #terminal-host * { cursor: default !important; }
     * {
       scrollbar-color: var(--scrollbar-thumb) var(--terminal-background);
       scrollbar-width: thin;
@@ -30,7 +41,7 @@
   </style>
 </head>
 <body>
-  <div id="terminal"></div>
+  <div id="terminal-host"></div>
   <script src="terminal.js"></script>
 </body>
 </html>

@@ -29,8 +29,16 @@ internal static class Program
         App.Services = host.Services;
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
 
+        SynchronizationContext.SetSynchronizationContext(null);
         mainWindowViewModel.ShutdownAsync().GetAwaiter().GetResult();
-        host.StopAsync().GetAwaiter().GetResult();
+        using var stopTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        try
+        {
+            host.StopAsync(stopTimeout.Token).GetAwaiter().GetResult();
+        }
+        catch (OperationCanceledException)
+        {
+        }
     }
 
     public static AppBuilder BuildAvaloniaApp() =>

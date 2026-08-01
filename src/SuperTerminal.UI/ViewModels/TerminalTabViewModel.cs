@@ -12,6 +12,7 @@ public sealed partial class TerminalTabViewModel : ViewModelBase
     private readonly SemaphoreSlim startGate = new(1, 1);
     private Action? killProcess;
     private IPtySession? ptySession;
+    private int terminationSignaled;
 
     public TerminalTabViewModel(
         SessionListItemViewModel session,
@@ -99,6 +100,8 @@ public sealed partial class TerminalTabViewModel : ViewModelBase
 
     public event EventHandler? AppearanceChanged;
 
+    public event EventHandler? Terminating;
+
     public event EventHandler<string>? ApplicationCommandRequested;
 
     [ObservableProperty]
@@ -152,6 +155,7 @@ public sealed partial class TerminalTabViewModel : ViewModelBase
     public async Task TerminateAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        SignalTerminating();
         killProcess?.Invoke();
         killProcess = null;
         if (ptySession is not null)
@@ -163,6 +167,7 @@ public sealed partial class TerminalTabViewModel : ViewModelBase
 
     public async ValueTask DisposeAsync()
     {
+        SignalTerminating();
         killProcess?.Invoke();
         killProcess = null;
         if (ptySession is not null)
@@ -229,6 +234,14 @@ public sealed partial class TerminalTabViewModel : ViewModelBase
 
     private void OnPtyOutputReceived(object? sender, string output) =>
         TerminalOutputReceived?.Invoke(this, output);
+
+    private void SignalTerminating()
+    {
+        if (Interlocked.Exchange(ref terminationSignaled, 1) == 0)
+        {
+            Terminating?.Invoke(this, EventArgs.Empty);
+        }
+    }
 
     private void OnPtyExited(object? sender, int exitCode) =>
         ReportProcessExited(exitCode);

@@ -250,25 +250,13 @@
             </ListBox.ItemTemplate>
           </ListBox>
 
-          <ItemsControl
+          <controls:WebTerminalHostControl
+              x:Name="TerminalHost"
               Grid.Row="1"
-              ItemsSource="{Binding Tabs}"
-              IsVisible="{Binding AreTerminalHostsVisible}">
-            <ItemsControl.ItemsPanel>
-              <ItemsPanelTemplate>
-                <Grid />
-              </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="viewModels:TerminalTabViewModel">
-                <Grid IsVisible="{Binding IsSelected}" Background="{DynamicResource AppBackgroundBrush}">
-                  <controls:WebTerminalControl
-                      Tab="{Binding}"
-                      IsActive="{Binding IsSelected}" />
-                </Grid>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
+              ActiveTab="{Binding SelectedTab}"
+              Background="{DynamicResource AppBackgroundBrush}"
+              IsVisible="{Binding AreTerminalHostsVisible}"
+              Tabs="{Binding Tabs}" />
         </Grid>
 
       </Grid>

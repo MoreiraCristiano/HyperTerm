@@ -104,15 +104,20 @@ internal sealed class PortaPtySessionFactory : IPtySessionFactory
             {
             }
 
+            connection.Dispose();
+
             try
             {
-                await readTask;
+                await readTask
+                    .WaitAsync(TimeSpan.FromSeconds(2))
+                    .ConfigureAwait(false);
             }
-            catch (OperationCanceledException)
+            catch (Exception exception) when (
+                exception is OperationCanceledException or
+                    ObjectDisposedException or IOException or TimeoutException)
             {
             }
 
-            connection.Dispose();
             writeGate.Dispose();
             lifetime.Dispose();
         }
@@ -120,15 +125,35 @@ internal sealed class PortaPtySessionFactory : IPtySessionFactory
         private async Task ReadOutputAsync(CancellationToken cancellationToken)
         {
             byte[] buffer = new byte[64 * 1024];
+            char[] characters = new char[Utf8.GetMaxCharCount(buffer.Length)];
+            Decoder decoder = Utf8.GetDecoder();
             while (!cancellationToken.IsCancellationRequested)
             {
                 int count = await connection.ReaderStream.ReadAsync(buffer, cancellationToken);
                 if (count == 0)
                 {
+                    int remaining = decoder.GetChars(
+                        ReadOnlySpan<byte>.Empty,
+                        characters,
+                        flush: true);
+                    if (remaining > 0)
+                    {
+                        OutputReceived?.Invoke(this, new string(characters, 0, remaining));
+                    }
+
                     return;
                 }
 
-                OutputReceived?.Invoke(this, Utf8.GetString(buffer, 0, count));
+                int characterCount = decoder.GetChars(
+                    buffer.AsSpan(0, count),
+                    characters,
+                    flush: false);
+                if (characterCount > 0)
+                {
+                    OutputReceived?.Invoke(
+                        this,
+                        new string(characters, 0, characterCount));
+                }
             }
         }
 

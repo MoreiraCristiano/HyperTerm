@@ -78,11 +78,19 @@ public sealed partial class MainWindow : Window
             }
         };
         Opened += (_, _) => RestoreWindowState(viewModel.WindowSettings);
-        Closing += (_, _) => viewModel.CaptureWindowState(
-            Bounds.Width,
-            Bounds.Height,
-            Position.X,
-            Position.Y);
+        Closing += (_, _) =>
+        {
+            viewModel.CaptureWindowState(
+                Bounds.Width,
+                Bounds.Height,
+                Position.X,
+                Position.Y);
+
+            if (TerminalHost.Parent is Panel terminalParent)
+            {
+                terminalParent.Children.Remove(TerminalHost);
+            }
+        };
     }
 
     private void RestoreWindowState(WindowSettings settings)
