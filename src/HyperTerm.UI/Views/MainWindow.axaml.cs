@@ -37,6 +37,11 @@ public sealed partial class MainWindow : Window
             OnTitleBarPointerPressed,
             RoutingStrategies.Tunnel,
             handledEventsToo: true);
+        TerminalTabs.AddHandler(
+            InputElement.PointerPressedEvent,
+            OnTerminalTabPointerPressed,
+            RoutingStrategies.Tunnel,
+            handledEventsToo: true);
         SessionsTree.AddHandler(
             InputElement.PointerPressedEvent,
             OnSessionTreePointerPressed,
@@ -484,6 +489,25 @@ public sealed partial class MainWindow : Window
             },
             DispatcherPriority.Input);
         eventArgs.Handled = true;
+    }
+
+    private void OnTerminalTabPointerPressed(
+        object? sender,
+        PointerPressedEventArgs eventArgs)
+    {
+        if (!eventArgs.GetCurrentPoint(TerminalTabs).Properties.IsMiddleButtonPressed ||
+            eventArgs.Source is not Visual source ||
+            source.FindAncestorOfType<ListBoxItem>()?.DataContext is not
+                TerminalTabViewModel tab)
+        {
+            return;
+        }
+
+        eventArgs.Handled = true;
+        if (tab.CloseCommand.CanExecute(null))
+        {
+            tab.CloseCommand.Execute(null);
+        }
     }
 
     private void OnTabTitleEditorKeyDown(object? sender, KeyEventArgs eventArgs)

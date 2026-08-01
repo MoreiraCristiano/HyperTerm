@@ -49,6 +49,7 @@
         </Border>
 
         <ListBox
+            x:Name="TerminalTabs"
             Grid.Column="1"
             Classes="terminalTabs"
             Background="{DynamicResource HeaderBackgroundBrush}"
