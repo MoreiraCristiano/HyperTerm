@@ -127,7 +127,7 @@
                 <Grid
                     Classes="sessionTreeRow"
                     Classes.batchSelected="{Binding IsSelectedForDeletion}"
-                    Classes.sessionNode="{Binding IsSession}"
+                    Classes.nestedSession="{Binding IsNestedSession}"
                     ColumnDefinitions="Auto,*,Auto"
                     ContextRequested="OnSessionTreeItemContextRequested">
                   <Grid.ContextFlyout>

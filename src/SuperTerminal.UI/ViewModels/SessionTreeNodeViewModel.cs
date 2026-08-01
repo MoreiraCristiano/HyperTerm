@@ -27,6 +27,9 @@ public sealed partial class SessionTreeNodeViewModel : ViewModelBase
 
     public bool IsSession => Session is not null;
 
+    public bool IsNestedSession =>
+        Session is not null && !string.IsNullOrWhiteSpace(Session.Folder);
+
     public string Endpoint => Session?.Endpoint ?? string.Empty;
 
     [ObservableProperty]

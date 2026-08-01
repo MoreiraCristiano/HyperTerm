@@ -185,7 +185,7 @@
   <Style Selector="Grid.sessionTreeRow.batchSelected">
     <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
   </Style>
-  <Style Selector="Grid.sessionTreeRow.sessionNode">
+  <Style Selector="Grid.sessionTreeRow.nestedSession">
     <Setter Property="Margin" Value="{DynamicResource TreeSessionContentMargin}" />
   </Style>
   <Style Selector="TextBlock.sessionTreeEndpoint">
