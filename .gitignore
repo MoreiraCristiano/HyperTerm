@@ -5,7 +5,7 @@ artifacts/
 
 # Web terminal generated output
 **/node_modules/
-src/SuperTerminal.UI/WebTerminal/dist/
+src/HyperTerm.UI/WebTerminal/dist/
 npm-debug.log*
 
 # Local application data

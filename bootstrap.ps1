@@ -6,7 +6,7 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $repositoryRoot = $PSScriptRoot
-$projectPath = Join-Path $repositoryRoot 'src\SuperTerminal.UI\SuperTerminal.UI.csproj'
+$projectPath = Join-Path $repositoryRoot 'src\HyperTerm.UI\HyperTerm.UI.csproj'
 $dotnetPath = 'C:\Program Files\dotnet\dotnet.exe'
 $activeProcessFile = Join-Path $repositoryRoot 'artifacts\active-run.pid'
 
@@ -31,7 +31,7 @@ function Stop-PreviousBootstrapRun {
     $expectedRoot = [System.IO.Path]::GetFullPath((Join-Path $repositoryRoot 'artifacts\runs'))
     $processPath = $previousProcess.Path
     $isWorkspaceBuild = $processPath -and
-        $previousProcess.ProcessName -in @('HyperTerm', 'hyperTerms', 'SuperTerminal.UI') -and
+        $previousProcess.ProcessName -eq 'HyperTerm' -and
         [System.IO.Path]::GetFullPath($processPath).StartsWith(
             $expectedRoot,
             [System.StringComparison]::OrdinalIgnoreCase)
@@ -56,7 +56,7 @@ if (-not (Test-Path -LiteralPath $dotnetPath)) {
 
 $runId = Get-Date -Format 'yyyyMMdd-HHmmss-fff'
 $outputPath = Join-Path $repositoryRoot "artifacts\runs\$runId"
-$webTerminalPath = Join-Path $repositoryRoot 'src\SuperTerminal.UI\WebTerminal'
+$webTerminalPath = Join-Path $repositoryRoot 'src\HyperTerm.UI\WebTerminal'
 
 Write-Host 'Sincronizando dependências do terminal web...'
 & npm.cmd install --prefix $webTerminalPath --no-audit --no-fund

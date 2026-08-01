@@ -1,0 +1,37 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using HyperTerm.Core.Abstractions.Persistence;
+using HyperTerm.Core.Abstractions.Settings;
+using HyperTerm.Core.Abstractions.Terminal;
+using HyperTerm.Infrastructure.Persistence;
+using HyperTerm.Infrastructure.Persistence.Repositories;
+using HyperTerm.Infrastructure.Settings;
+using HyperTerm.Infrastructure.Storage;
+using HyperTerm.Infrastructure.Terminal;
+
+namespace HyperTerm.Infrastructure;
+
+public static class DependencyInjection
+{
+    public static IServiceCollection AddInfrastructure(this IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        services.AddSingleton<IApplicationPathProvider, ApplicationPathProvider>();
+        services.AddDbContextFactory<HyperTermDbContext>((serviceProvider, options) =>
+        {
+            IApplicationPathProvider pathProvider =
+                serviceProvider.GetRequiredService<IApplicationPathProvider>();
+
+            options.UseSqlite($"Data Source={pathProvider.DatabasePath}");
+        });
+        services.AddSingleton<IDatabaseInitializer, DatabaseInitializer>();
+        services.AddSingleton<ISessionRepository, SessionRepository>();
+        services.AddSingleton<ISessionFolderRepository, SessionFolderRepository>();
+        services.AddSingleton<ISettingsService, JsonSettingsService>();
+        services.AddSingleton<ITerminalSessionFactory, PowerShellSessionFactory>();
+        services.AddSingleton<IPtySessionFactory, PortaPtySessionFactory>();
+
+        return services;
+    }
+}

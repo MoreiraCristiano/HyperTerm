@@ -1,0 +1,749 @@
+<Window
+    x:Class="HyperTerm.UI.Views.MainWindow"
+    x:DataType="viewModels:MainWindowViewModel"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:HyperTerm.UI.Controls"
+    xmlns:viewModels="using:HyperTerm.UI.ViewModels"
+    Icon="/Assets/HyperTerm.ico"
+    Title="{Binding Title}"
+    Width="1200"
+    Height="760"
+    MinWidth="900"
+    MinHeight="600"
+    WindowState="Maximized"
+    WindowDecorations="None"
+    ExtendClientAreaToDecorationsHint="True"
+    ShowInTaskbar="True"
+    Background="{DynamicResource AppBackgroundBrush}">
+  <Window.KeyBindings>
+    <KeyBinding Gesture="Ctrl+Shift+N" Command="{Binding NewSessionCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+O" Command="{Binding OpenSelectedSessionCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+W" Command="{Binding CloseSelectedTabCommand}" />
+    <KeyBinding Gesture="Ctrl+Tab" Command="{Binding NextTabCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+Tab" Command="{Binding PreviousTabCommand}" />
+    <KeyBinding Gesture="Alt+F4" Command="{Binding RequestCloseWindowCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+," Command="{Binding OpenSettingsCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+B" Command="{Binding ToggleSidebarCommand}" />
+    <KeyBinding Gesture="F1" Command="{Binding OpenShortcutsCommand}" />
+    <KeyBinding Gesture="F2" Command="{Binding EditSessionCommand}" />
+    <KeyBinding Gesture="Escape" Command="{Binding CloseActiveOverlayCommand}" />
+  </Window.KeyBindings>
+  <Grid RowDefinitions="Auto,*,Auto">
+    <Border
+        x:Name="TitleBarRoot"
+        Grid.Row="0"
+        Height="{DynamicResource TitleBarHeight}"
+        Background="{DynamicResource HeaderBackgroundBrush}"
+        BorderBrush="{DynamicResource BorderBrush}"
+        BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto">
+        <Border
+            Width="{DynamicResource TitleBarIdentityWidth}"
+            Padding="{DynamicResource TitleBarIdentityPadding}">
+          <TextBlock
+              FontWeight="SemiBold"
+              Text="{Binding Title}"
+              TextTrimming="CharacterEllipsis"
+              VerticalAlignment="Center" />
+        </Border>
+
+        <ListBox
+            Grid.Column="1"
+            Classes="terminalTabs"
+            Background="{DynamicResource HeaderBackgroundBrush}"
+            BorderThickness="0"
+            ItemsSource="{Binding Tabs}"
+            ScrollViewer.HorizontalScrollBarVisibility="Auto"
+            ScrollViewer.VerticalScrollBarVisibility="Disabled"
+            SelectedItem="{Binding SelectedTab, Mode=TwoWay}"
+            WindowDecorationProperties.ElementRole="None">
+          <ListBox.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+          </ListBox.ItemsPanel>
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="viewModels:TerminalTabViewModel">
+              <Grid
+                  MinWidth="{DynamicResource TerminalTabMinWidth}"
+                  ColumnDefinitions="*,Auto"
+                  DoubleTapped="OnTerminalTabDoubleTapped">
+                <StackPanel Margin="8,0" VerticalAlignment="Center">
+                  <TextBlock
+                      IsVisible="{Binding !IsRenaming}"
+                      FontWeight="SemiBold"
+                      Text="{Binding Title}" />
+                  <TextBox
+                      x:Name="TabTitleEditor"
+                      MinWidth="100"
+                      Padding="3,0"
+                      IsVisible="{Binding IsRenaming}"
+                      KeyDown="OnTabTitleEditorKeyDown"
+                      LostFocus="OnTabTitleEditorLostFocus"
+                      Text="{Binding EditableTitle, Mode=TwoWay}" />
+                  <TextBlock
+                      FontSize="9"
+                      Foreground="{DynamicResource MutedTextBrush}"
+                      Text="{Binding Endpoint}" />
+                </StackPanel>
+                <Button
+                    Grid.Column="1"
+                    Classes="tabCloseButton"
+                    VerticalAlignment="Center"
+                    Command="{Binding CloseCommand}"
+                    Focusable="False"
+                    FontFamily="{DynamicResource IconFontFamily}"
+                    Content="&#xE711;" />
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+
+        <Button
+            Grid.Column="2"
+            Classes="titleBarButton"
+            Command="{Binding OpenSettingsCommand}"
+            ToolTip.Tip="Settings"
+            WindowDecorationProperties.ElementRole="None">
+          <TextBlock Classes="icon buttonIcon" Text="&#xE713;" />
+        </Button>
+        <Button
+            Grid.Column="3"
+            Classes="captionButton"
+            Click="OnMinimizeButtonClick"
+            ToolTip.Tip="Minimize"
+            WindowDecorationProperties.ElementRole="MinimizeButton">
+          <TextBlock Text="&#xE921;" />
+        </Button>
+        <Button
+            x:Name="MaximizeRestoreButton"
+            Grid.Column="4"
+            Classes="captionButton"
+            Click="OnMaximizeRestoreButtonClick"
+            WindowDecorationProperties.ElementRole="MaximizeButton">
+          <TextBlock x:Name="MaximizeRestoreIcon" />
+        </Button>
+        <Button
+            Grid.Column="5"
+            Classes="captionButton closeCaptionButton"
+            Click="OnCloseButtonClick"
+            ToolTip.Tip="Close"
+            WindowDecorationProperties.ElementRole="CloseButton">
+          <TextBlock Text="&#xE8BB;" />
+        </Button>
+      </Grid>
+    </Border>
+
+    <Grid x:Name="WorkspaceGrid" Grid.Row="1">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition
+            Width="{DynamicResource SidebarDefaultWidth}"
+            MinWidth="{DynamicResource SidebarMinWidth}"
+            MaxWidth="{DynamicResource SidebarMaxWidth}" />
+        <ColumnDefinition
+            Width="{DynamicResource SidebarSplitterWidth}" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+      <Border
+          Grid.Column="0"
+          IsVisible="{Binding IsSidebarVisible}"
+          Padding="12"
+          Background="{DynamicResource PanelBackgroundBrush}">
+        <Grid RowDefinitions="Auto,Auto,Auto,Auto,*">
+          <TextBlock
+              Grid.Row="0"
+              MinHeight="{DynamicResource SidebarSectionHeaderHeight}"
+              Margin="4,0,0,7"
+              FontSize="{DynamicResource FontSizeCaption}"
+              FontWeight="SemiBold"
+              VerticalAlignment="Center"
+              Text="GENERAL" />
+          <Grid
+              Grid.Row="3"
+              MinHeight="{DynamicResource SidebarSectionHeaderHeight}"
+              Margin="4,0,0,7"
+              ColumnDefinitions="*,Auto,Auto,Auto,Auto">
+            <TextBlock
+                FontSize="{DynamicResource FontSizeCaption}"
+                FontWeight="SemiBold"
+                VerticalAlignment="Center"
+                Text="SESSIONS" />
+            <TextBlock
+                Grid.Column="1"
+                FontSize="10"
+                Foreground="{DynamicResource MutedTextBrush}"
+                VerticalAlignment="Center"
+                Text="{Binding SessionCountText}" />
+            <Button
+                Grid.Column="2"
+                Margin="{DynamicResource SidebarActionLeadingMargin}"
+                Classes="iconButton"
+                Width="24"
+                Height="24"
+                Command="{Binding NewSessionCommand}"
+                FontFamily="{DynamicResource IconFontFamily}"
+                Content="&#xE710;"
+                ToolTip.Tip="Create session" />
+            <Button
+                Grid.Column="3"
+                Margin="{DynamicResource SidebarActionLeadingMargin}"
+                Classes="iconButton"
+                Width="24"
+                Height="24"
+                Command="{Binding OpenFolderEditorCommand}"
+                FontFamily="{DynamicResource IconFontFamily}"
+                Content="&#xE8F4;"
+                ToolTip.Tip="Create folder" />
+            <Button
+                Grid.Column="4"
+                Margin="{DynamicResource SidebarActionLeadingMargin}"
+                Classes="iconButton"
+                Width="24"
+                Height="24"
+                Command="{Binding ToggleRootFolderSortCommand}"
+                FontFamily="{DynamicResource IconFontFamily}"
+                Content="{Binding RootFolderSortGlyph}"
+                ToolTip.Tip="{Binding RootFolderSortTooltip}" />
+          </Grid>
+          <StackPanel Grid.Row="1" Spacing="5">
+            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SidebarActionSpacing}">
+              <Button Classes="iconButton" Command="{Binding OpenLocalTerminalCommand}" ToolTip.Tip="Local PowerShell">
+                <TextBlock Classes="icon buttonIcon" Text="&#xE756;" />
+              </Button>
+            </StackPanel>
+          </StackPanel>
+          <Border Grid.Row="2" Height="1" Margin="0,7,0,9" Background="{DynamicResource BorderBrush}" />
+          <TreeView
+              x:Name="SessionsTree"
+              Grid.Row="4"
+              Margin="{DynamicResource SessionTreeMargin}"
+              Background="Transparent"
+              DoubleTapped="OnSessionTreeDoubleTapped"
+              ItemsSource="{Binding SessionTree}"
+              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+              SelectedItem="{Binding SelectedTreeNode, Mode=TwoWay}">
+            <TreeView.ItemTemplate>
+              <TreeDataTemplate
+                  x:DataType="viewModels:SessionTreeNodeViewModel"
+                  ItemsSource="{Binding Children}">
+                <Grid
+                    Classes="sessionTreeRow"
+                    Classes.batchSelected="{Binding IsSelectedForDeletion}"
+                    Classes.nestedSession="{Binding IsNestedSession}"
+                    ColumnDefinitions="Auto,*,Auto"
+                    ContextRequested="OnSessionTreeItemContextRequested">
+                  <Grid.ContextFlyout>
+                    <MenuFlyout>
+                      <MenuItem
+                          Header="New session"
+                          IsVisible="{Binding IsFolder}"
+                          Command="{Binding DataContext.ContextNewSessionCommand, ElementName=SessionsTree}"
+                          CommandParameter="{Binding}" />
+                      <MenuItem
+                          Header="New folder"
+                          IsVisible="{Binding IsFolder}"
+                          Command="{Binding DataContext.ContextNewFolderCommand, ElementName=SessionsTree}"
+                          CommandParameter="{Binding}" />
+                      <Separator IsVisible="{Binding IsFolder}" />
+                      <MenuItem
+                          Header="Edit folder"
+                          IsVisible="{Binding IsFolder}"
+                          Command="{Binding DataContext.ContextEditFolderCommand, ElementName=SessionsTree}"
+                          CommandParameter="{Binding}" />
+                      <MenuItem
+                          Header="Delete folder"
+                          IsVisible="{Binding IsFolder}"
+                          Command="{Binding DataContext.ContextDeleteFolderCommand, ElementName=SessionsTree}"
+                          CommandParameter="{Binding}" />
+                      <MenuItem
+                          Header="Edit session"
+                          IsVisible="{Binding IsSession}"
+                          Command="{Binding DataContext.ContextEditSessionCommand, ElementName=SessionsTree}"
+                          CommandParameter="{Binding}" />
+                      <MenuItem
+                          Header="Delete session"
+                          IsVisible="{Binding IsSession}"
+                          Command="{Binding DataContext.ContextDeleteSessionCommand, ElementName=SessionsTree}"
+                          CommandParameter="{Binding}" />
+                    </MenuFlyout>
+                  </Grid.ContextFlyout>
+                  <Grid IsVisible="{Binding IsFolder}">
+                    <TextBlock
+                        Classes="sessionTreeIcon"
+                        IsVisible="{Binding !IsExpanded}"
+                        Text="&#xE8B7;" />
+                    <TextBlock
+                        Classes="sessionTreeIcon"
+                        IsVisible="{Binding IsExpanded}"
+                        Text="&#xE838;" />
+                  </Grid>
+                  <TextBlock
+                      Classes="sessionTreeIcon"
+                      IsVisible="{Binding IsSession}"
+                      Text="&#xE756;" />
+                  <TextBlock
+                      Grid.Column="1"
+                      Classes="sessionTreeFolder"
+                      IsVisible="{Binding IsFolder}"
+                      Text="{Binding Name}"
+                      TextTrimming="CharacterEllipsis"
+                      VerticalAlignment="Center" />
+                  <TextBlock
+                      Grid.Column="1"
+                      IsVisible="{Binding IsSession}"
+                      Text="{Binding Name}"
+                      TextTrimming="CharacterEllipsis"
+                      VerticalAlignment="Center" />
+                  <TextBlock
+                      Grid.Column="2"
+                      Margin="{DynamicResource TreeItemEndpointMargin}"
+                      Classes="sessionTreeEndpoint"
+                      IsVisible="{Binding IsSession}"
+                      Text="{Binding Endpoint}"
+                      TextTrimming="CharacterEllipsis"
+                      VerticalAlignment="Center" />
+                </Grid>
+              </TreeDataTemplate>
+            </TreeView.ItemTemplate>
+          </TreeView>
+        </Grid>
+      </Border>
+
+      <GridSplitter
+          Grid.Column="1"
+          Classes="sidebarSplitter"
+          IsVisible="{Binding IsSidebarVisible}"
+          ResizeBehavior="PreviousAndNext"
+          ResizeDirection="Columns" />
+
+      <controls:WebTerminalHostControl
+          x:Name="TerminalHost"
+          Grid.Column="2"
+          ActiveTab="{Binding SelectedTab}"
+          Background="{DynamicResource AppBackgroundBrush}"
+          IsVisible="{Binding AreTerminalHostsVisible}"
+          Tabs="{Binding Tabs}" />
+    </Grid>
+
+    <Border
+        Grid.Row="2"
+        IsVisible="{Binding IsStatusBarVisible}"
+        Padding="12,0"
+        MinHeight="28"
+        Background="{DynamicResource SecondaryBackgroundBrush}"
+        BorderBrush="{DynamicResource BorderBrush}"
+        BorderThickness="0,1,0,0">
+      <Grid ColumnDefinitions="*,Auto,Auto">
+        <TextBlock VerticalAlignment="Center" FontSize="11" Text="{Binding StatusText}" />
+        <TextBlock
+            Grid.Column="1"
+            Margin="12,0"
+            VerticalAlignment="Center"
+            FontSize="11"
+            Text="{Binding SelectedTab.ConnectionStatus}" />
+        <TextBlock Grid.Column="2" VerticalAlignment="Center" FontSize="11" Text="{Binding TerminalStatusText}" />
+      </Grid>
+    </Border>
+
+    <Panel Grid.Row="1" Grid.RowSpan="2" IsVisible="{Binding IsEditorOpen}">
+      <Border Background="{DynamicResource OverlayBrush}" />
+      <Border
+          Width="560"
+          Padding="24"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Center"
+          Background="{DynamicResource PanelBackgroundBrush}"
+          BorderBrush="{DynamicResource BorderBrush}"
+          BorderThickness="1"
+          CornerRadius="8">
+        <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+          <TextBlock FontSize="20" FontWeight="SemiBold" Text="{Binding EditorTitle}" />
+          <Grid Grid.Row="1" Margin="0,20,0,0" ColumnDefinitions="*,16,160">
+            <StackPanel>
+              <TextBlock Margin="0,0,0,5" Text="Name" />
+              <TextBox x:Name="SessionNameEditor" Text="{Binding EditorName, Mode=TwoWay}" />
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+              <TextBlock Margin="0,0,0,5" Text="Port" />
+              <NumericUpDown
+                  Minimum="1"
+                  Maximum="65535"
+                  ShowButtonSpinner="False"
+                  Value="{Binding EditorPort, Mode=TwoWay}" />
+            </StackPanel>
+          </Grid>
+          <StackPanel Grid.Row="2" Margin="0,12,0,0">
+            <TextBlock Margin="0,0,0,5" Text="Host" />
+            <TextBox Text="{Binding EditorHost, Mode=TwoWay}" />
+          </StackPanel>
+          <StackPanel Grid.Row="3" Margin="0,12,0,0">
+            <TextBlock Margin="0,0,0,5" Text="Username" />
+            <TextBox Text="{Binding EditorUsername, Mode=TwoWay}" />
+          </StackPanel>
+          <StackPanel Grid.Row="4" Margin="0,12,0,0">
+            <TextBlock Margin="0,0,0,5" Text="Private key (optional)" />
+            <TextBox PlaceholderText="C:\path\private-key.ppk" Text="{Binding EditorPrivateKey, Mode=TwoWay}" />
+          </StackPanel>
+          <StackPanel Grid.Row="5" Margin="0,12,0,0">
+            <TextBlock Margin="0,0,0,5" Text="Folder" />
+            <ComboBox
+                HorizontalAlignment="Stretch"
+                IsEditable="True"
+                ItemsSource="{Binding FolderOptions}"
+                PlaceholderText="No folder"
+                SelectedItem="{Binding EditorFolder, Mode=TwoWay}"
+                Text="{Binding EditorFolder, Mode=TwoWay}" />
+          </StackPanel>
+          <StackPanel Grid.Row="6" Margin="0,12,0,0">
+            <TextBlock Margin="0,0,0,5" Text="Notes" />
+            <TextBox
+                MinHeight="72"
+                AcceptsReturn="True"
+                TextWrapping="Wrap"
+                Text="{Binding EditorNotes, Mode=TwoWay}" />
+          </StackPanel>
+          <TextBlock
+              Grid.Row="7"
+              Margin="0,10,0,0"
+              Foreground="{DynamicResource DangerBrush}"
+              TextWrapping="Wrap"
+              Text="{Binding EditorError}" />
+          <StackPanel Grid.Row="8" Margin="0,20,0,0" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+            <Button Command="{Binding CancelEditorCommand}" Content="Cancel" />
+            <Button
+                Classes="accent"
+                Command="{Binding SaveSessionCommand}"
+                Content="Save"
+                IsDefault="{Binding IsEditorOpen}" />
+          </StackPanel>
+        </Grid>
+      </Border>
+    </Panel>
+
+    <Panel Grid.Row="1" Grid.RowSpan="2" IsVisible="{Binding IsDeleteConfirmationOpen}">
+      <Border Background="{DynamicResource OverlayBrush}" />
+      <Border
+          Width="420"
+          Padding="24"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Center"
+          Background="{DynamicResource PanelBackgroundBrush}"
+          BorderBrush="{DynamicResource BorderBrush}"
+          BorderThickness="1"
+          CornerRadius="8">
+        <StackPanel Spacing="16">
+          <TextBlock FontSize="19" FontWeight="SemiBold" Text="Delete session?" />
+          <TextBlock TextWrapping="Wrap" Text="This session will be permanently removed from the local database." />
+          <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+            <Button Command="{Binding CancelDeleteSessionCommand}" Content="Cancel" />
+            <Button
+                Classes="danger"
+                Command="{Binding ConfirmDeleteSessionCommand}"
+                Content="Delete"
+                IsDefault="{Binding IsDeleteConfirmationOpen}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Panel>
+
+    <Panel Grid.Row="1" Grid.RowSpan="2" IsVisible="{Binding IsSettingsOpen}">
+      <Border Background="{DynamicResource OverlayBrush}" />
+      <Border
+          Width="{DynamicResource SettingsDialogWidth}"
+          MaxHeight="{DynamicResource SettingsDialogMaxHeight}"
+          Padding="{DynamicResource DialogPadding}"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Center"
+          Background="{DynamicResource PanelBackgroundBrush}"
+          BorderBrush="{DynamicResource BorderBrush}"
+          BorderThickness="1"
+          CornerRadius="{DynamicResource RadiusL}">
+        <Grid RowDefinitions="Auto,*,Auto">
+          <StackPanel>
+            <TextBlock FontSize="{DynamicResource FontSizeTitle}" FontWeight="SemiBold" Text="Settings" />
+            <TextBlock Classes="secondary" Text="Configure the shell and terminal appearance." />
+          </StackPanel>
+
+          <ScrollViewer Grid.Row="1" Margin="{DynamicResource SettingsBodyMargin}">
+            <StackPanel Spacing="{DynamicResource SettingsSectionSpacing}">
+              <Border Classes="settingsSection">
+                <StackPanel>
+                  <TextBlock Classes="settingsSectionTitle" Text="Shell" />
+                  <TextBlock
+                      Classes="settingsSectionDescription"
+                      Text="Choose the PowerShell 7 executable used by local and SSH terminals." />
+                  <TextBlock Classes="settingsLabel" Text="PowerShell 7 executable" />
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBox IsReadOnly="True" Text="{Binding SettingsPowerShellPath}" />
+                    <Button
+                        Grid.Column="1"
+                        Margin="{DynamicResource SettingsBrowseButtonMargin}"
+                        Command="{Binding SelectPowerShellCommand}"
+                        Content="Browse..." />
+                  </Grid>
+                </StackPanel>
+              </Border>
+
+              <Border Classes="settingsSection">
+                <StackPanel>
+                  <TextBlock Classes="settingsSectionTitle" Text="Session data" />
+                  <TextBlock
+                      Classes="settingsSectionDescription"
+                      Text="Back up or transfer all saved sessions and folders using a versioned HyperTerm JSON archive." />
+                  <StackPanel
+                      Orientation="Horizontal"
+                      Spacing="{DynamicResource SettingsActionSpacing}">
+                    <Button
+                        Command="{Binding ExportSessionsCommand}"
+                        Content="Export..." />
+                    <Button
+                        Command="{Binding ImportSessionsCommand}"
+                        Content="Import..." />
+                  </StackPanel>
+                  <TextBlock
+                      Margin="{DynamicResource SettingsStatusMargin}"
+                      Foreground="{DynamicResource SuccessBrush}"
+                      TextWrapping="Wrap"
+                      Text="{Binding SettingsDataStatus}" />
+                </StackPanel>
+              </Border>
+
+              <Border Classes="settingsSection">
+                <StackPanel>
+                  <TextBlock Classes="settingsSectionTitle" Text="Interface" />
+                  <TextBlock
+                      Classes="settingsSectionDescription"
+                      Text="Control workspace visibility and view available keyboard shortcuts." />
+                  <StackPanel
+                      Orientation="Horizontal"
+                      Spacing="{DynamicResource SettingsActionSpacing}">
+                    <Button
+                        Command="{Binding ToggleStatusBarCommand}"
+                        Content="Toggle status bar" />
+                    <Button
+                        Command="{Binding OpenShortcutsCommand}"
+                        Content="Keyboard shortcuts" />
+                  </StackPanel>
+                </StackPanel>
+              </Border>
+
+              <Border Classes="settingsSection">
+                <StackPanel>
+                  <TextBlock Classes="settingsSectionTitle" Text="Terminal appearance" />
+                  <TextBlock
+                      Classes="settingsSectionDescription"
+                      Text="Select an installed font, adjust its size, and customize text selection." />
+                  <Grid ColumnDefinitions="*,16,180">
+                    <StackPanel>
+                      <TextBlock Classes="settingsLabel" Text="Font family" />
+                      <ComboBox
+                          IsEditable="True"
+                          ItemsSource="{Binding SystemFontFamilies}"
+                          SelectedItem="{Binding SettingsTerminalFontFamily, Mode=TwoWay}"
+                          Text="{Binding SettingsTerminalFontFamily, Mode=TwoWay}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                      <TextBlock Classes="settingsLabel" Text="Font size" />
+                      <NumericUpDown
+                          Minimum="8"
+                          Maximum="32"
+                          ShowButtonSpinner="False"
+                          Value="{Binding SettingsTerminalFontSize, Mode=TwoWay}" />
+                    </StackPanel>
+                  </Grid>
+                  <StackPanel Margin="{DynamicResource SettingsNestedFieldMargin}">
+                    <TextBlock Classes="settingsLabel" Text="Selection color" />
+                    <ComboBox
+                        Width="{DynamicResource SettingsColorPickerWidth}"
+                        HorizontalAlignment="Left"
+                        ItemsSource="{Binding TerminalSelectionColors}"
+                        SelectedItem="{Binding SettingsTerminalSelectionColor, Mode=TwoWay}">
+                      <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="viewModels:TerminalSelectionColorOption">
+                          <StackPanel Orientation="Horizontal">
+                            <Border
+                                Width="{DynamicResource ColorSwatchSize}"
+                                Height="{DynamicResource ColorSwatchSize}"
+                                Margin="{DynamicResource ColorSwatchMargin}"
+                                VerticalAlignment="Center"
+                                Background="{Binding PreviewBrush}"
+                                CornerRadius="{DynamicResource RadiusS}" />
+                            <TextBlock VerticalAlignment="Center" Text="{Binding Name}" />
+                          </StackPanel>
+                        </DataTemplate>
+                      </ComboBox.ItemTemplate>
+                    </ComboBox>
+                  </StackPanel>
+                </StackPanel>
+              </Border>
+
+              <Border Classes="settingsSection">
+                <StackPanel>
+                  <TextBlock Classes="settingsSectionTitle" Text="Cursor" />
+                  <TextBlock
+                      Classes="settingsSectionDescription"
+                      Text="Control the cursor shape and animation." />
+                  <Grid ColumnDefinitions="*,16,*">
+                    <StackPanel>
+                      <TextBlock Classes="settingsLabel" Text="Cursor style" />
+                      <ComboBox
+                          ItemsSource="{Binding TerminalCursorStyles}"
+                          SelectedItem="{Binding SettingsTerminalCursorStyle, Mode=TwoWay}" />
+                    </StackPanel>
+                    <CheckBox
+                        Grid.Column="2"
+                        VerticalAlignment="Bottom"
+                        IsChecked="{Binding SettingsTerminalCursorBlink, Mode=TwoWay}"
+                        Content="Blink cursor" />
+                  </Grid>
+                </StackPanel>
+              </Border>
+
+              <TextBlock
+                  Foreground="{DynamicResource DangerBrush}"
+                  TextWrapping="Wrap"
+                  Text="{Binding SettingsError}" />
+            </StackPanel>
+          </ScrollViewer>
+
+          <Border
+              Grid.Row="2"
+              Padding="{DynamicResource SettingsFooterPadding}"
+              BorderBrush="{DynamicResource BorderBrush}"
+              BorderThickness="0,1,0,0">
+            <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+              <Button Command="{Binding CancelSettingsCommand}" Content="Cancel" />
+              <Button
+                  Classes="accent"
+                  Command="{Binding SaveSettingsCommand}"
+                  Content="Save"
+                  IsDefault="{Binding IsSettingsOpen}" />
+            </StackPanel>
+          </Border>
+        </Grid>
+      </Border>
+    </Panel>
+
+    <Panel Grid.Row="1" Grid.RowSpan="2" IsVisible="{Binding IsShortcutsOpen}">
+      <Border Background="{DynamicResource OverlayBrush}" />
+      <Border
+          Width="500"
+          Padding="{DynamicResource DialogPadding}"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Center"
+          Background="{DynamicResource PanelBackgroundBrush}"
+          BorderBrush="{DynamicResource BorderBrush}"
+          BorderThickness="1"
+          CornerRadius="{DynamicResource RadiusL}">
+        <StackPanel Spacing="16">
+          <TextBlock FontSize="{DynamicResource FontSizeTitle}" FontWeight="SemiBold" Text="Keyboard shortcuts" />
+          <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+            <TextBlock Text="Toggle sidebar" /><TextBlock Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+B" />
+            <TextBlock Grid.Row="1" Text="New session" /><TextBlock Grid.Row="1" Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+N" />
+            <TextBlock Grid.Row="2" Text="Open selected session" /><TextBlock Grid.Row="2" Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+O" />
+            <TextBlock Grid.Row="3" Text="Edit selected session" /><TextBlock Grid.Row="3" Grid.Column="1" Classes="secondary" Text="F2" />
+            <TextBlock Grid.Row="4" Text="Close active tab" /><TextBlock Grid.Row="4" Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+W" />
+            <TextBlock Grid.Row="5" Text="Next tab" /><TextBlock Grid.Row="5" Grid.Column="1" Classes="secondary" Text="Ctrl+Tab" />
+            <TextBlock Grid.Row="6" Text="Previous tab" /><TextBlock Grid.Row="6" Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+Tab" />
+            <TextBlock Grid.Row="7" Text="Open settings" /><TextBlock Grid.Row="7" Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+," />
+            <TextBlock Grid.Row="8" Text="Show shortcuts" /><TextBlock Grid.Row="8" Grid.Column="1" Classes="secondary" Text="F1" />
+            <TextBlock Grid.Row="9" Text="Copy terminal selection" /><TextBlock Grid.Row="9" Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+C" />
+            <TextBlock Grid.Row="10" Text="Paste into terminal" /><TextBlock Grid.Row="10" Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+V" />
+            <TextBlock Grid.Row="11" Text="Close active screen" /><TextBlock Grid.Row="11" Grid.Column="1" Classes="secondary" Text="Esc" />
+            <TextBlock Grid.Row="12" Text="Close HyperTerm" /><TextBlock Grid.Row="12" Grid.Column="1" Classes="secondary" Text="Alt+F4" />
+          </Grid>
+          <Button HorizontalAlignment="Right" Command="{Binding CloseShortcutsCommand}" Content="Close" />
+        </StackPanel>
+      </Border>
+    </Panel>
+
+    <Panel Grid.Row="1" Grid.RowSpan="2" IsVisible="{Binding IsFolderEditorOpen}">
+      <Border Background="{DynamicResource OverlayBrush}" />
+      <Border
+          Width="440"
+          Padding="{DynamicResource DialogPadding}"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Center"
+          Background="{DynamicResource PanelBackgroundBrush}"
+          BorderBrush="{DynamicResource BorderBrush}"
+          BorderThickness="1"
+          CornerRadius="{DynamicResource RadiusL}">
+        <StackPanel Spacing="14">
+          <TextBlock FontSize="{DynamicResource FontSizeTitle}" FontWeight="SemiBold" Text="{Binding FolderEditorTitle}" />
+          <TextBlock Classes="secondary" Text="Use / to create nested folders." />
+          <TextBox
+              x:Name="FolderPathEditor"
+              PlaceholderText="Production/Linux"
+              Text="{Binding FolderPath, Mode=TwoWay}" />
+          <TextBlock Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap" Text="{Binding FolderError}" />
+          <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+            <Button Command="{Binding CancelFolderEditorCommand}" Content="Cancel" />
+            <Button
+                Classes="accent"
+                Command="{Binding CreateFolderCommand}"
+                Content="{Binding FolderEditorAction}"
+                IsDefault="{Binding IsFolderEditorOpen}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Panel>
+
+    <Panel Grid.Row="1" Grid.RowSpan="2" IsVisible="{Binding IsFolderDeleteConfirmationOpen}">
+      <Border Background="{DynamicResource OverlayBrush}" />
+      <Border
+          Width="440"
+          Padding="{DynamicResource DialogPadding}"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Center"
+          Background="{DynamicResource PanelBackgroundBrush}"
+          BorderBrush="{DynamicResource BorderBrush}"
+          BorderThickness="1"
+          CornerRadius="{DynamicResource RadiusL}">
+        <StackPanel Spacing="14">
+          <TextBlock FontSize="{DynamicResource FontSizeTitle}" FontWeight="SemiBold" Text="{Binding FolderDeleteTitle}" />
+          <TextBlock TextWrapping="Wrap" Text="{Binding FolderDeleteMessage}" />
+          <CheckBox
+              Content="Force delete contained sessions"
+              IsChecked="{Binding ForceDeleteFolders}" />
+          <TextBlock
+              Foreground="{DynamicResource SecondaryTextBrush}"
+              Text="Force delete permanently removes every session inside the selected folders."
+              TextWrapping="Wrap" />
+          <TextBlock Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap" Text="{Binding FolderDeleteError}" />
+          <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+            <Button Command="{Binding CancelDeleteFolderCommand}" Content="Cancel" />
+            <Button
+                Classes="danger"
+                Command="{Binding ConfirmDeleteFolderCommand}"
+                Content="Delete"
+                IsDefault="{Binding IsFolderDeleteConfirmationOpen}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Panel>
+
+    <Grid
+        x:Name="ResizeGripOverlay"
+        Grid.RowSpan="3">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="{DynamicResource WindowResizeGripSize}" />
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="{DynamicResource WindowResizeGripSize}" />
+      </Grid.ColumnDefinitions>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="{DynamicResource WindowResizeGripSize}" />
+        <RowDefinition Height="*" />
+        <RowDefinition Height="{DynamicResource WindowResizeGripSize}" />
+      </Grid.RowDefinitions>
+      <Border Grid.Row="0" Grid.Column="0" Background="{DynamicResource TransparentBrush}" Cursor="TopLeftCorner" Tag="NorthWest" PointerPressed="OnResizeGripPointerPressed" />
+      <Border Grid.Row="0" Grid.Column="1" Background="{DynamicResource TransparentBrush}" Cursor="SizeNorthSouth" Tag="North" PointerPressed="OnResizeGripPointerPressed" />
+      <Border Grid.Row="0" Grid.Column="2" Background="{DynamicResource TransparentBrush}" Cursor="TopRightCorner" Tag="NorthEast" PointerPressed="OnResizeGripPointerPressed" />
+      <Border Grid.Row="1" Grid.Column="0" Background="{DynamicResource TransparentBrush}" Cursor="SizeWestEast" Tag="West" PointerPressed="OnResizeGripPointerPressed" />
+      <Border Grid.Row="1" Grid.Column="2" Background="{DynamicResource TransparentBrush}" Cursor="SizeWestEast" Tag="East" PointerPressed="OnResizeGripPointerPressed" />
+      <Border Grid.Row="2" Grid.Column="0" Background="{DynamicResource TransparentBrush}" Cursor="BottomLeftCorner" Tag="SouthWest" PointerPressed="OnResizeGripPointerPressed" />
+      <Border Grid.Row="2" Grid.Column="1" Background="{DynamicResource TransparentBrush}" Cursor="SizeNorthSouth" Tag="South" PointerPressed="OnResizeGripPointerPressed" />
+      <Border Grid.Row="2" Grid.Column="2" Background="{DynamicResource TransparentBrush}" Cursor="BottomRightCorner" Tag="SouthEast" PointerPressed="OnResizeGripPointerPressed" />
+    </Grid>
+  </Grid>
+</Window>

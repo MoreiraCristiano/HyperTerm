@@ -57,9 +57,9 @@ To build without launching the application:
 Build the web terminal first because its generated `dist` directory is intentionally excluded from Git:
 
 ```powershell
-npm install --prefix .\src\SuperTerminal.UI\WebTerminal --no-audit --no-fund
-npm run build --prefix .\src\SuperTerminal.UI\WebTerminal
-dotnet build .\src\SuperTerminal.UI\SuperTerminal.UI.csproj --configuration Release
+npm install --prefix .\src\HyperTerm.UI\WebTerminal --no-audit --no-fund
+npm run build --prefix .\src\HyperTerm.UI\WebTerminal
+dotnet build .\src\HyperTerm.UI\HyperTerm.UI.csproj --configuration Release
 ```
 
 The executable is named `HyperTerm.exe`.
@@ -113,12 +113,12 @@ Existing data from the previous `hyperTerms` or `SuperTerminal` application dire
 The solution follows a simplified Clean Architecture structure:
 
 ```text
-SuperTerminal.sln
+HyperTerm.sln
 └── src
-    ├── SuperTerminal.Core
-    ├── SuperTerminal.Infrastructure
-    ├── SuperTerminal.Shared
-    └── SuperTerminal.UI
+    ├── HyperTerm.Core
+    ├── HyperTerm.Infrastructure
+    ├── HyperTerm.Shared
+    └── HyperTerm.UI
 ```
 
 - **Core** contains entities, models, service contracts, and terminal abstractions.
@@ -126,7 +126,7 @@ SuperTerminal.sln
 - **UI** contains Avalonia views, MVVM view models, the design system, and the xterm.js host.
 - **Shared** contains cross-project utilities.
 
-The public product name is **HyperTerm**. The `SuperTerminal.*` names remain internally to avoid a disruptive namespace and project migration during MVP development.
+The product, solution, projects, assemblies, and namespaces use the final **HyperTerm** name consistently.
 
 ## Terminal pipeline
 
@@ -155,4 +155,3 @@ Each tab owns an independent ConPTY process and xterm buffer. A shared WebView2 
 - No password or credential storage
 - No built-in SSH implementation
 - No terminal session restoration after restarting the application
-
