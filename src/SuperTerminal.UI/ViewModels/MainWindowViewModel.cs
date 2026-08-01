@@ -55,6 +55,8 @@ public sealed partial class MainWindowViewModel(
 
     public ObservableCollection<string> SystemFontFamilies { get; } = [];
 
+    public bool HasMultipleFoldersSelected => selectedFolderPaths.Count > 1;
+
     public string RootFolderSortGlyph => rootFoldersDescending ? "\uE74B" : "\uE74A";
 
     public string RootFolderSortTooltip => rootFoldersDescending
@@ -687,6 +689,15 @@ public sealed partial class MainWindowViewModel(
         PrepareFolderDeletion(selectedFolderPaths.Count > 0
             ? selectedFolderPaths.ToArray()
             : [SelectedTreeNode!.Path]);
+    }
+
+    [RelayCommand]
+    private void RequestDeleteSelectedFolders()
+    {
+        if (selectedFolderPaths.Count > 1)
+        {
+            PrepareFolderDeletion(selectedFolderPaths.ToArray());
+        }
     }
 
     [RelayCommand]

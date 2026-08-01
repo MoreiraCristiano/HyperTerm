@@ -296,10 +296,31 @@ public sealed partial class MainWindow : Window
         object? sender,
         ContextRequestedEventArgs eventArgs)
     {
-        if (sender is Control
+        if (sender is not Control target)
+        {
+            return;
+        }
+
+        if (DataContext is MainWindowViewModel
+            {
+                HasMultipleFoldersSelected: true,
+            } viewModel)
+        {
+            var multipleSelectionFlyout = new MenuFlyout();
+            multipleSelectionFlyout.Items.Add(new MenuItem
+            {
+                Header = "Delete folders",
+                Command = viewModel.RequestDeleteSelectedFoldersCommand,
+            });
+            multipleSelectionFlyout.ShowAt(target, showAtPointer: true);
+            eventArgs.Handled = true;
+            return;
+        }
+
+        if (target is
             {
                 ContextFlyout: PopupFlyoutBase flyout,
-            } target)
+            })
         {
             flyout.ShowAt(target, showAtPointer: true);
             eventArgs.Handled = true;
