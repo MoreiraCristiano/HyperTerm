@@ -178,6 +178,16 @@
   <Style Selector="Button.closeCaptionButton:pointerover /template/ ContentPresenter, Button.closeCaptionButton:pressed /template/ ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource DangerBrush}" />
   </Style>
+  <Style Selector="MenuFlyoutPresenter">
+    <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}" />
+    <Setter Property="FontSize" Value="{DynamicResource FontSizeBody}" />
+  </Style>
+  <Style Selector="MenuItem">
+    <Setter Property="MinHeight" Value="{DynamicResource TreeItemMinHeight}" />
+    <Setter Property="Padding" Value="{DynamicResource CompactControlPadding}" />
+    <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}" />
+    <Setter Property="FontSize" Value="{DynamicResource FontSizeBody}" />
+  </Style>
   <Style Selector="TextBox, NumericUpDown, ComboBox">
     <Setter Property="Background" Value="{DynamicResource AppBackgroundBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
