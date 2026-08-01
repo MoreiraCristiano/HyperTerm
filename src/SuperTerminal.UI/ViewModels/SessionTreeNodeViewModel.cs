@@ -1,8 +1,9 @@
 using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace SuperTerminal.UI.ViewModels;
 
-public sealed class SessionTreeNodeViewModel
+public sealed partial class SessionTreeNodeViewModel : ViewModelBase
 {
     private SessionTreeNodeViewModel(
         string name,
@@ -27,6 +28,9 @@ public sealed class SessionTreeNodeViewModel
     public bool IsSession => Session is not null;
 
     public string Endpoint => Session?.Endpoint ?? string.Empty;
+
+    [ObservableProperty]
+    private bool isSelectedForDeletion;
 
     public static SessionTreeNodeViewModel CreateFolder(string name, string path) =>
         new(name, path, null);

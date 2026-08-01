@@ -69,4 +69,19 @@ public sealed class Session
         Notes = notes;
         UpdatedAt = updatedAt;
     }
+
+    internal void Restore(
+        string name,
+        string host,
+        int port,
+        string username,
+        string? privateKey,
+        string folder,
+        string? notes,
+        DateTime createdAt,
+        DateTime updatedAt)
+    {
+        Update(name, host, port, username, privateKey, folder, notes, updatedAt);
+        CreatedAt = createdAt;
+    }
 }

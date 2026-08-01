@@ -124,9 +124,10 @@
                   x:DataType="viewModels:SessionTreeNodeViewModel"
                   ItemsSource="{Binding Children}">
                 <Grid
+                    Classes="sessionTreeRow"
+                    Classes.batchSelected="{Binding IsSelectedForDeletion}"
                     Margin="{DynamicResource TreeItemContentMargin}"
-                    ColumnDefinitions="Auto,*,Auto"
-                    Background="{DynamicResource TransparentBrush}">
+                    ColumnDefinitions="Auto,*,Auto">
                   <Grid.ContextFlyout>
                     <MenuFlyout>
                       <MenuItem
@@ -418,6 +419,30 @@
 
               <Border Classes="settingsSection">
                 <StackPanel>
+                  <TextBlock Classes="settingsSectionTitle" Text="Session data" />
+                  <TextBlock
+                      Classes="settingsSectionDescription"
+                      Text="Back up or transfer all saved sessions and folders using a versioned HyperTerm JSON archive." />
+                  <StackPanel
+                      Orientation="Horizontal"
+                      Spacing="{DynamicResource SettingsActionSpacing}">
+                    <Button
+                        Command="{Binding ExportSessionsCommand}"
+                        Content="Export..." />
+                    <Button
+                        Command="{Binding ImportSessionsCommand}"
+                        Content="Import..." />
+                  </StackPanel>
+                  <TextBlock
+                      Margin="{DynamicResource SettingsStatusMargin}"
+                      Foreground="{DynamicResource SuccessBrush}"
+                      TextWrapping="Wrap"
+                      Text="{Binding SettingsDataStatus}" />
+                </StackPanel>
+              </Border>
+
+              <Border Classes="settingsSection">
+                <StackPanel>
                   <TextBlock Classes="settingsSectionTitle" Text="Terminal appearance" />
                   <TextBlock
                       Classes="settingsSectionDescription"
@@ -578,8 +603,15 @@
           BorderThickness="1"
           CornerRadius="{DynamicResource RadiusL}">
         <StackPanel Spacing="14">
-          <TextBlock FontSize="{DynamicResource FontSizeTitle}" FontWeight="SemiBold" Text="Delete folder?" />
-          <TextBlock TextWrapping="Wrap" Text="{Binding FolderToDeletePath, StringFormat='The folder ‘{0}’ and its empty subfolders will be deleted.'}" />
+          <TextBlock FontSize="{DynamicResource FontSizeTitle}" FontWeight="SemiBold" Text="{Binding FolderDeleteTitle}" />
+          <TextBlock TextWrapping="Wrap" Text="{Binding FolderDeleteMessage}" />
+          <CheckBox
+              Content="Force delete contained sessions"
+              IsChecked="{Binding ForceDeleteFolders}" />
+          <TextBlock
+              Foreground="{DynamicResource SecondaryTextBrush}"
+              Text="Force delete permanently removes every session inside the selected folders."
+              TextWrapping="Wrap" />
           <TextBlock Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap" Text="{Binding FolderDeleteError}" />
           <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
             <Button Command="{Binding CancelDeleteFolderCommand}" Content="Cancel" />

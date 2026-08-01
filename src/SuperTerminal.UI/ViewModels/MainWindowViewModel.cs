@@ -20,10 +20,16 @@ public sealed partial class MainWindowViewModel(
     ISettingsService settingsService,
     IThemeService themeService,
     IExecutableFilePicker executableFilePicker,
+    ISessionArchiveService sessionArchiveService,
+    ISessionArchiveFilePicker sessionArchiveFilePicker,
     ISystemFontService systemFontService) : ViewModelBase
 {
     private readonly List<SessionListItemViewModel> allSessions = [];
     private readonly List<SessionFolder> allFolders = [];
+    private readonly HashSet<string> selectedFolderPaths =
+        new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<SessionTreeNodeViewModel> selectedFolderNodes = [];
+    private string[] foldersPendingDeletion = [];
     private Guid? editingSessionId;
     private string? editingFolderPath;
     private ApplicationSettings applicationSettings = new();
@@ -122,7 +128,13 @@ public sealed partial class MainWindowViewModel(
     private bool isFolderDeleteConfirmationOpen;
 
     [ObservableProperty]
-    private string folderToDeletePath = string.Empty;
+    private string folderDeleteTitle = "Delete folder?";
+
+    [ObservableProperty]
+    private string folderDeleteMessage = string.Empty;
+
+    [ObservableProperty]
+    private bool forceDeleteFolders;
 
     [ObservableProperty]
     private string? folderDeleteError;
@@ -154,6 +166,9 @@ public sealed partial class MainWindowViewModel(
 
     [ObservableProperty]
     private string? settingsError;
+
+    [ObservableProperty]
+    private string? settingsDataStatus;
 
     [ObservableProperty]
     private bool isEditorOpen;
@@ -264,6 +279,71 @@ public sealed partial class MainWindowViewModel(
         NewSessionInSelectedFolderCommand.NotifyCanExecuteChanged();
         OpenSubfolderEditorCommand.NotifyCanExecuteChanged();
         RequestDeleteFolderCommand.NotifyCanExecuteChanged();
+    }
+
+    public void SelectSingleTreeNode(SessionTreeNodeViewModel node)
+    {
+        ArgumentNullException.ThrowIfNull(node);
+        ClearFolderDeletionSelection();
+        SelectedTreeNode = node;
+    }
+
+    public void ActivateTreeNode(SessionTreeNodeViewModel node)
+    {
+        ArgumentNullException.ThrowIfNull(node);
+        if (!node.IsSelectedForDeletion)
+        {
+            ClearFolderDeletionSelection();
+        }
+
+        SelectedTreeNode = node;
+    }
+
+    public void ToggleFolderDeletionSelection(SessionTreeNodeViewModel node)
+    {
+        ArgumentNullException.ThrowIfNull(node);
+        if (!node.IsFolder)
+        {
+            return;
+        }
+
+        if (selectedFolderNodes.Count == 0 &&
+            SelectedTreeNode is { IsFolder: true } currentFolder &&
+            !ReferenceEquals(currentFolder, node))
+        {
+            SetFolderDeletionSelection(currentFolder, true);
+        }
+
+        SetFolderDeletionSelection(node, !node.IsSelectedForDeletion);
+        SelectedTreeNode = node.IsSelectedForDeletion
+            ? node
+            : selectedFolderNodes.LastOrDefault();
+    }
+
+    private void SetFolderDeletionSelection(SessionTreeNodeViewModel node, bool selected)
+    {
+        node.IsSelectedForDeletion = selected;
+        if (selected)
+        {
+            selectedFolderNodes.Add(node);
+            selectedFolderPaths.Add(node.Path);
+        }
+        else
+        {
+            selectedFolderNodes.Remove(node);
+            selectedFolderPaths.Remove(node.Path);
+        }
+    }
+
+    private void ClearFolderDeletionSelection()
+    {
+        foreach (SessionTreeNodeViewModel node in selectedFolderNodes)
+        {
+            node.IsSelectedForDeletion = false;
+        }
+
+        selectedFolderNodes.Clear();
+        selectedFolderPaths.Clear();
     }
 
     partial void OnSelectedSessionChanged(SessionListItemViewModel? value)
@@ -406,6 +486,7 @@ public sealed partial class MainWindowViewModel(
         SettingsTerminalCursorBlink = applicationSettings.TerminalCursorBlink;
         LoadSystemFonts();
         SettingsError = null;
+        SettingsDataStatus = null;
         IsSettingsOpen = true;
     }
 
@@ -537,7 +618,16 @@ public sealed partial class MainWindowViewModel(
     [RelayCommand(CanExecute = nameof(HasSelectedFolder))]
     private void RequestDeleteFolder()
     {
-        FolderToDeletePath = SelectedTreeNode!.Path;
+        foldersPendingDeletion = selectedFolderPaths.Count > 0
+            ? selectedFolderPaths.ToArray()
+            : [SelectedTreeNode!.Path];
+        FolderDeleteTitle = foldersPendingDeletion.Length == 1
+            ? "Delete folder?"
+            : $"Delete {foldersPendingDeletion.Length} folders?";
+        FolderDeleteMessage = foldersPendingDeletion.Length == 1
+            ? $"Folder ‘{foldersPendingDeletion[0]}’ and its subfolders will be deleted."
+            : $"{foldersPendingDeletion.Length} selected folders and their subfolders will be deleted.";
+        ForceDeleteFolders = false;
         FolderDeleteError = null;
         IsFolderDeleteConfirmationOpen = true;
     }
@@ -547,6 +637,8 @@ public sealed partial class MainWindowViewModel(
     {
         IsFolderDeleteConfirmationOpen = false;
         FolderDeleteError = null;
+        ForceDeleteFolders = false;
+        foldersPendingDeletion = [];
     }
 
     [RelayCommand]
@@ -554,11 +646,16 @@ public sealed partial class MainWindowViewModel(
     {
         try
         {
-            string deletedPath = FolderToDeletePath;
-            await sessionFolderService.DeleteAsync(deletedPath);
+            FolderDeleteResult result = await sessionFolderService.DeleteAsync(
+                foldersPendingDeletion,
+                ForceDeleteFolders);
             IsFolderDeleteConfirmationOpen = false;
             FolderDeleteError = null;
-            StatusText = $"Folder ‘{deletedPath}’ deleted";
+            ForceDeleteFolders = false;
+            foldersPendingDeletion = [];
+            StatusText = result.DeletedSessions == 0
+                ? $"Deleted {result.DeletedFolders} folder(s)"
+                : $"Deleted {result.DeletedFolders} folder(s) and {result.DeletedSessions} session(s)";
             await ReloadSessionsAsync(null);
         }
         catch (Exception exception) when (
@@ -591,6 +688,65 @@ public sealed partial class MainWindowViewModel(
             exception is InvalidOperationException or IOException)
         {
             SettingsError = $"Could not select the executable: {exception.Message}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task ExportSessionsAsync()
+    {
+        try
+        {
+            Stream? destination = await sessionArchiveFilePicker.OpenExportStreamAsync();
+            if (destination is null)
+            {
+                return;
+            }
+
+            await using (destination)
+            {
+                await sessionArchiveService.ExportAsync(destination);
+            }
+
+            SettingsError = null;
+            SettingsDataStatus = "Sessions and folders exported successfully.";
+            StatusText = "Session archive exported";
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            SettingsDataStatus = null;
+            SettingsError = $"Export failed: {exception.Message}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task ImportSessionsAsync()
+    {
+        try
+        {
+            Stream? source = await sessionArchiveFilePicker.OpenImportStreamAsync();
+            if (source is null)
+            {
+                return;
+            }
+
+            SessionImportResult result;
+            await using (source)
+            {
+                result = await sessionArchiveService.ImportAsync(source);
+            }
+
+            await ReloadSessionsAsync(SelectedSession?.Id);
+            SettingsError = null;
+            SettingsDataStatus =
+                $"Imported {result.ImportedSessions} sessions " +
+                $"({result.AddedSessions} new, {result.UpdatedSessions} updated) " +
+                $"and {result.AddedFolders} folders.";
+            StatusText = "Session archive imported";
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            SettingsDataStatus = null;
+            SettingsError = $"Import failed: {exception.Message}";
         }
     }
 
@@ -834,6 +990,7 @@ public sealed partial class MainWindowViewModel(
                 session.Folder.Contains(filter, StringComparison.OrdinalIgnoreCase));
         }
 
+        ClearFolderDeletionSelection();
         SessionTree.Clear();
         var foldersByPath = new Dictionary<string, SessionTreeNodeViewModel>(
             StringComparer.OrdinalIgnoreCase);

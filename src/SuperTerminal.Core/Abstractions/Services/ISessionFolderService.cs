@@ -1,4 +1,5 @@
 using SuperTerminal.Core.Entities;
+using SuperTerminal.Core.Models;
 
 namespace SuperTerminal.Core.Abstractions.Services;
 
@@ -13,5 +14,8 @@ public interface ISessionFolderService
         string newPath,
         CancellationToken cancellationToken = default);
 
-    Task DeleteAsync(string path, CancellationToken cancellationToken = default);
+    Task<FolderDeleteResult> DeleteAsync(
+        IReadOnlyCollection<string> paths,
+        bool force,
+        CancellationToken cancellationToken = default);
 }

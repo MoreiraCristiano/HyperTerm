@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SuperTerminal.Core.Abstractions.Persistence;
 using SuperTerminal.Core.Entities;
+using SuperTerminal.Core.Models;
 
 namespace SuperTerminal.Infrastructure.Persistence.Repositories;
 
@@ -44,17 +45,47 @@ internal sealed class SessionFolderRepository(
         await context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<int> DeleteTreeAsync(
-        string path,
+    public async Task<FolderDeleteResult> DeleteTreesAsync(
+        IReadOnlyCollection<string> paths,
+        bool force,
         CancellationToken cancellationToken = default)
     {
         await using SuperTerminalDbContext context =
             await contextFactory.CreateDbContextAsync(cancellationToken);
+        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
 
-        string childPrefix = $"{path}/";
-        return await context.SessionFolders
-            .Where(folder => folder.Path == path || folder.Path.StartsWith(childPrefix))
-            .ExecuteDeleteAsync(cancellationToken);
+        List<SessionFolder> allFolders = await context.SessionFolders
+            .ToListAsync(cancellationToken);
+        List<SessionFolder> foldersToDelete = allFolders
+            .Where(folder => IsInsideAny(folder.Path, paths))
+            .ToList();
+        List<Session> sessionsToDelete = await context.Sessions
+            .Where(session => session.Folder != string.Empty)
+            .ToListAsync(cancellationToken);
+        sessionsToDelete = sessionsToDelete
+            .Where(session => IsInsideAny(session.Folder, paths))
+            .ToList();
+
+        if (foldersToDelete.Count == 0 && sessionsToDelete.Count == 0)
+        {
+            throw new KeyNotFoundException("The selected folders were not found.");
+        }
+
+        if (sessionsToDelete.Count > 0 && !force)
+        {
+            throw new InvalidOperationException(
+                "Selected folders contain sessions. Enable force delete to remove them.");
+        }
+
+        if (force)
+        {
+            context.Sessions.RemoveRange(sessionsToDelete);
+        }
+
+        context.SessionFolders.RemoveRange(foldersToDelete);
+        await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return new FolderDeleteResult(foldersToDelete.Count, sessionsToDelete.Count);
     }
 
     public async Task<bool> RenameTreeAsync(
@@ -113,4 +144,12 @@ internal sealed class SessionFolderRepository(
         path.Equals(currentPath, StringComparison.OrdinalIgnoreCase)
             ? newPath
             : $"{newPath}{path[currentPath.Length..]}";
+
+    private static bool IsInsideAny(string path, IReadOnlyCollection<string> roots)
+    {
+        string normalizedPath = path.Replace('\\', '/').Trim('/');
+        return roots.Any(root =>
+            normalizedPath.Equals(root, StringComparison.OrdinalIgnoreCase) ||
+            normalizedPath.StartsWith($"{root}/", StringComparison.OrdinalIgnoreCase));
+    }
 }

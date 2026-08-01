@@ -105,7 +105,7 @@ internal sealed class SessionService(ISessionRepository repository) : ISessionSe
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static string NormalizeFolder(string? value) =>
-        string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim();
+        SessionFolderPath.NormalizeOptional(value);
 
     private static void EnsureValidId(Guid id)
     {

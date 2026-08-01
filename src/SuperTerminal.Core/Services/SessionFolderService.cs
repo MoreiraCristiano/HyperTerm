@@ -1,12 +1,11 @@
 using SuperTerminal.Core.Abstractions.Persistence;
 using SuperTerminal.Core.Abstractions.Services;
 using SuperTerminal.Core.Entities;
+using SuperTerminal.Core.Models;
 
 namespace SuperTerminal.Core.Services;
 
-internal sealed class SessionFolderService(
-    ISessionFolderRepository repository,
-    ISessionRepository sessionRepository)
+internal sealed class SessionFolderService(ISessionFolderRepository repository)
     : ISessionFolderService
 {
     public Task<IReadOnlyList<SessionFolder>> GetAllAsync(
@@ -17,7 +16,7 @@ internal sealed class SessionFolderService(
         string path,
         CancellationToken cancellationToken = default)
     {
-        string normalizedPath = NormalizePath(path);
+        string normalizedPath = SessionFolderPath.Normalize(path);
         if (await repository.ExistsAsync(normalizedPath, cancellationToken))
         {
             throw new InvalidOperationException($"Folder ‘{normalizedPath}’ already exists.");
@@ -28,30 +27,28 @@ internal sealed class SessionFolderService(
         return folder;
     }
 
-    public async Task DeleteAsync(
-        string path,
+    public Task<FolderDeleteResult> DeleteAsync(
+        IReadOnlyCollection<string> paths,
+        bool force,
         CancellationToken cancellationToken = default)
     {
-        string normalizedPath = NormalizePath(path);
-        IReadOnlyList<Session> sessions = await sessionRepository.GetAllAsync(cancellationToken);
-        bool containsSessions = sessions.Any(session =>
+        ArgumentNullException.ThrowIfNull(paths);
+        if (paths.Count == 0)
         {
-            string sessionPath = session.Folder.Replace('\\', '/').Trim('/');
-            return sessionPath.Equals(normalizedPath, StringComparison.OrdinalIgnoreCase) ||
-                sessionPath.StartsWith($"{normalizedPath}/", StringComparison.OrdinalIgnoreCase);
-        });
-
-        if (containsSessions)
-        {
-            throw new InvalidOperationException(
-                "Move or delete the sessions inside this folder first.");
+            throw new ArgumentException("Select at least one folder.", nameof(paths));
         }
 
-        int deleted = await repository.DeleteTreeAsync(normalizedPath, cancellationToken);
-        if (deleted == 0)
-        {
-            throw new KeyNotFoundException($"Folder ‘{normalizedPath}’ was not found.");
-        }
+        string[] normalizedPaths = paths
+            .Select(SessionFolderPath.Normalize)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        string[] roots = normalizedPaths
+            .Where(path => !normalizedPaths.Any(other =>
+                !path.Equals(other, StringComparison.OrdinalIgnoreCase) &&
+                    path.StartsWith($"{other}/", StringComparison.OrdinalIgnoreCase)))
+            .ToArray();
+
+        return repository.DeleteTreesAsync(roots, force, cancellationToken);
     }
 
     public async Task RenameAsync(
@@ -59,8 +56,8 @@ internal sealed class SessionFolderService(
         string newPath,
         CancellationToken cancellationToken = default)
     {
-        string normalizedCurrentPath = NormalizePath(currentPath);
-        string normalizedNewPath = NormalizePath(newPath);
+        string normalizedCurrentPath = SessionFolderPath.Normalize(currentPath);
+        string normalizedNewPath = SessionFolderPath.Normalize(newPath);
         if (normalizedCurrentPath.Equals(normalizedNewPath, StringComparison.OrdinalIgnoreCase))
         {
             return;
@@ -83,25 +80,4 @@ internal sealed class SessionFolderService(
         }
     }
 
-    private static string NormalizePath(string path)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-
-        string[] segments = path
-            .Replace('\\', '/')
-            .Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-        if (segments.Length == 0 || segments.Any(segment => segment is "." or ".."))
-        {
-            throw new ArgumentException("Enter a valid folder path.", nameof(path));
-        }
-
-        string normalized = string.Join('/', segments);
-        if (normalized.Length > 500)
-        {
-            throw new ArgumentException("Folder path cannot exceed 500 characters.", nameof(path));
-        }
-
-        return normalized;
-    }
 }

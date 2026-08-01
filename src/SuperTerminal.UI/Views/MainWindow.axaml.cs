@@ -155,12 +155,32 @@ public sealed partial class MainWindow : Window
         }
 
         TreeViewItem? item = source.FindAncestorOfType<TreeViewItem>();
-        if (item is null)
+        if (item?.DataContext is not SessionTreeNodeViewModel node)
         {
             return;
         }
 
-        SessionsTree.SelectedItem = item.DataContext;
+        bool controlPressed = eventArgs.KeyModifiers.HasFlag(KeyModifiers.Control);
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        if (isRightClick)
+        {
+            viewModel.ActivateTreeNode(node);
+            SelectOnly(item);
+        }
+        else if (controlPressed && node.IsFolder)
+        {
+            viewModel.ToggleFolderDeletionSelection(node);
+            eventArgs.Handled = true;
+        }
+        else
+        {
+            viewModel.SelectSingleTreeNode(node);
+            SelectOnly(item);
+        }
 
         if (isLeftClick && item.DataContext is SessionTreeNodeViewModel { IsSession: true } sessionNode)
         {
@@ -175,12 +195,18 @@ public sealed partial class MainWindow : Window
 
         bool clickedExpander = source is ToggleButton ||
             source.FindAncestorOfType<ToggleButton>() is not null;
-        if (isLeftClick && !clickedExpander &&
+        if (isLeftClick && !controlPressed && !clickedExpander &&
             item.DataContext is SessionTreeNodeViewModel { IsFolder: true })
         {
             item.IsExpanded = !item.IsExpanded;
             eventArgs.Handled = true;
         }
+    }
+
+    private void SelectOnly(TreeViewItem item)
+    {
+        SessionsTree.SelectedItems?.Clear();
+        item.IsSelected = true;
     }
 
     private async void OnSessionTreePointerMoved(object? sender, PointerEventArgs eventArgs)

@@ -12,6 +12,7 @@ public static class DependencyInjection
 
         services.AddSingleton<ISessionService, SessionService>();
         services.AddSingleton<ISessionFolderService, SessionFolderService>();
+        services.AddSingleton<ISessionArchiveService, SessionArchiveService>();
         return services;
     }
 }

@@ -55,6 +55,7 @@ internal static class Program
                 services.AddInfrastructure();
                 services.AddSingleton<IThemeService, AvaloniaThemeService>();
                 services.AddSingleton<IExecutableFilePicker, ExecutableFilePicker>();
+                services.AddSingleton<ISessionArchiveFilePicker, SessionArchiveFilePicker>();
                 services.AddSingleton<ISystemFontService, AvaloniaSystemFontService>();
                 services.AddSingleton<MainWindowViewModel>();
                 services.AddSingleton<MainWindow>();
