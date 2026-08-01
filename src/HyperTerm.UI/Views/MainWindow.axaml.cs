@@ -159,7 +159,11 @@ public sealed partial class MainWindow : Window
                 UpdateSidebarVisibility(viewModel.IsSidebarVisible);
             }
         };
-        Opened += (_, _) => RestoreWindowState(viewModel.WindowSettings);
+        Opened += (_, _) =>
+        {
+            RestoreWindowState(viewModel.WindowSettings);
+            viewModel.ShowFirstRunSetup();
+        };
         Closing += (_, _) =>
         {
             viewModel.CaptureWindowState(

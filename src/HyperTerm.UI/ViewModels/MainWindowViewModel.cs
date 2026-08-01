@@ -38,6 +38,7 @@ public sealed partial class MainWindowViewModel(
     private ApplicationSettings applicationSettings = new();
     private bool windowStateChanged;
     private bool rootFoldersDescending;
+    private bool requiresInitialPowerShellSelection;
 
     public string Title => SelectedTab is null
         ? "HyperTerm"
@@ -99,7 +100,7 @@ public sealed partial class MainWindowViewModel(
     public bool AreTerminalHostsVisible =>
         HasOpenTabs && !IsEditorOpen && !IsDeleteConfirmationOpen &&
         !IsSettingsOpen && !IsShortcutsOpen && !IsFolderEditorOpen &&
-        !IsFolderDeleteConfirmationOpen;
+        !IsFolderDeleteConfirmationOpen && !IsPowerShellSetupOpen;
 
     [ObservableProperty]
     private string statusText = "Ready";
@@ -148,6 +149,12 @@ public sealed partial class MainWindowViewModel(
 
     [ObservableProperty]
     private bool isSettingsOpen;
+
+    [ObservableProperty]
+    private bool isPowerShellSetupOpen;
+
+    [ObservableProperty]
+    private string? powerShellSetupError;
 
     [ObservableProperty]
     private string settingsPowerShellPath = "pwsh.exe";
@@ -215,13 +222,12 @@ public sealed partial class MainWindowViewModel(
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
+        requiresInitialPowerShellSelection = !settingsService.Exists();
+
         try
         {
             applicationSettings = await settingsService.LoadAsync(cancellationToken);
-            if (string.IsNullOrWhiteSpace(applicationSettings.PowerShellPath) ||
-                applicationSettings.PowerShellPath.Equals(
-                    "powershell.exe",
-                    StringComparison.OrdinalIgnoreCase))
+            if (string.IsNullOrWhiteSpace(applicationSettings.PowerShellPath))
             {
                 applicationSettings = applicationSettings with
                 {
@@ -248,7 +254,21 @@ public sealed partial class MainWindowViewModel(
         }
 
         await ReloadSessionsAsync(null, cancellationToken);
-        await OpenLocalTerminalAsync();
+        if (!requiresInitialPowerShellSelection)
+        {
+            await OpenLocalTerminalAsync();
+        }
+    }
+
+    public void ShowFirstRunSetup()
+    {
+        if (!requiresInitialPowerShellSelection)
+        {
+            return;
+        }
+
+        PowerShellSetupError = null;
+        IsPowerShellSetupOpen = true;
     }
 
     public async Task ShutdownAsync()
@@ -258,7 +278,7 @@ public sealed partial class MainWindowViewModel(
             await CloseTabAsync(tab);
         }
 
-        if (windowStateChanged)
+        if (windowStateChanged && !requiresInitialPowerShellSelection)
         {
             await settingsService.SaveAsync(applicationSettings);
             windowStateChanged = false;
@@ -398,6 +418,9 @@ public sealed partial class MainWindowViewModel(
 
     partial void OnIsSettingsOpenChanged(bool value) => NotifyTabVisibilityChanged();
 
+    partial void OnIsPowerShellSetupOpenChanged(bool value) =>
+        NotifyTabVisibilityChanged();
+
     partial void OnSettingsDataStatusChanged(string? value) =>
         OnPropertyChanged(nameof(HasSettingsDataStatus));
 
@@ -524,6 +547,11 @@ public sealed partial class MainWindowViewModel(
     [RelayCommand]
     private void OpenSettings()
     {
+        if (IsPowerShellSetupOpen)
+        {
+            return;
+        }
+
         SettingsPowerShellPath = applicationSettings.PowerShellPath;
         SettingsTheme = NormalizeTheme(applicationSettings.Theme);
         SettingsTerminalFontFamily = applicationSettings.TerminalFontFamily;
@@ -567,7 +595,11 @@ public sealed partial class MainWindowViewModel(
     [RelayCommand]
     private void CloseActiveOverlay()
     {
-        if (IsFolderDeleteConfirmationOpen)
+        if (IsPowerShellSetupOpen)
+        {
+            return;
+        }
+        else if (IsFolderDeleteConfirmationOpen)
         {
             CancelDeleteFolder();
         }
@@ -776,19 +808,61 @@ public sealed partial class MainWindowViewModel(
     [RelayCommand]
     private async Task SelectPowerShellAsync()
     {
+        string? selectedPath = await PickPowerShellAsync();
+        if (!string.IsNullOrWhiteSpace(selectedPath))
+        {
+            SettingsPowerShellPath = selectedPath;
+            SettingsError = null;
+        }
+    }
+
+    [RelayCommand]
+    private async Task UseDefaultPowerShellAsync()
+    {
+        SettingsPowerShellPath = "pwsh.exe";
+        await CompletePowerShellSetupAsync();
+    }
+
+    [RelayCommand]
+    private async Task ChooseInitialPowerShellAsync()
+    {
+        PowerShellSetupError = null;
+        string? selectedPath = await PickPowerShellAsync();
+        if (string.IsNullOrWhiteSpace(selectedPath))
+        {
+            PowerShellSetupError = SettingsError;
+            return;
+        }
+
+        SettingsPowerShellPath = selectedPath;
+        await CompletePowerShellSetupAsync();
+    }
+
+    private async Task CompletePowerShellSetupAsync()
+    {
+        PowerShellSetupError = null;
+        if (!await TrySaveSettingsAsync())
+        {
+            PowerShellSetupError = SettingsError;
+            return;
+        }
+
+        requiresInitialPowerShellSelection = false;
+        IsPowerShellSetupOpen = false;
+        await OpenLocalTerminalAsync();
+    }
+
+    private async Task<string?> PickPowerShellAsync()
+    {
         try
         {
-            string? selectedPath = await executableFilePicker.PickPowerShellAsync();
-            if (!string.IsNullOrWhiteSpace(selectedPath))
-            {
-                SettingsPowerShellPath = selectedPath;
-                SettingsError = null;
-            }
+            return await executableFilePicker.PickPowerShellAsync();
         }
         catch (Exception exception) when (
             exception is InvalidOperationException or IOException)
         {
             SettingsError = $"Could not select the executable: {exception.Message}";
+            return null;
         }
     }
 
@@ -854,17 +928,36 @@ public sealed partial class MainWindowViewModel(
     [RelayCommand]
     private async Task SaveSettingsAsync()
     {
+        if (!await TrySaveSettingsAsync() || !requiresInitialPowerShellSelection)
+        {
+            return;
+        }
+
+        requiresInitialPowerShellSelection = false;
+        await OpenLocalTerminalAsync();
+    }
+
+    private async Task<bool> TrySaveSettingsAsync()
+    {
         string powerShellPath = SettingsPowerShellPath.Trim().Trim('"');
         if (powerShellPath.Length == 0)
         {
-            SettingsError = "Select pwsh.exe or provide the full PowerShell 7 path.";
-            return;
+            SettingsError = "Select pwsh.exe or powershell.exe.";
+            return false;
         }
 
         if (Path.IsPathRooted(powerShellPath) && !File.Exists(powerShellPath))
         {
             SettingsError = "The selected file does not exist.";
-            return;
+            return false;
+        }
+
+        string executableName = Path.GetFileName(powerShellPath);
+        if (!executableName.Equals("pwsh.exe", StringComparison.OrdinalIgnoreCase) &&
+            !executableName.Equals("powershell.exe", StringComparison.OrdinalIgnoreCase))
+        {
+            SettingsError = "Select a PowerShell executable named pwsh.exe or powershell.exe.";
+            return false;
         }
 
         try
@@ -908,10 +1001,12 @@ public sealed partial class MainWindowViewModel(
             IsSettingsOpen = false;
             UpdateTerminalStatus();
             StatusText = "Settings saved";
+            return true;
         }
         catch (IOException exception)
         {
             SettingsError = $"Failed to save settings: {exception.Message}";
+            return false;
         }
     }
 

@@ -21,13 +21,13 @@ internal sealed class ExecutableFilePicker : IExecutableFilePicker
         IReadOnlyList<IStorageFile> files = await desktop.MainWindow.StorageProvider
             .OpenFilePickerAsync(new FilePickerOpenOptions
             {
-                Title = "Select PowerShell 7 (pwsh.exe)",
+                Title = "Select PowerShell",
                 AllowMultiple = false,
                 FileTypeFilter =
                 [
                     new FilePickerFileType("PowerShell executable")
                     {
-                        Patterns = ["pwsh.exe"],
+                        Patterns = ["pwsh.exe", "powershell.exe"],
                         MimeTypes = ["application/x-msdownload"],
                     },
                     new FilePickerFileType("Executables")

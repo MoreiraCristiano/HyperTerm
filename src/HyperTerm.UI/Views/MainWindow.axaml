@@ -421,6 +421,50 @@
       </Border>
     </Panel>
 
+    <Panel Grid.Row="1" Grid.RowSpan="2" IsVisible="{Binding IsPowerShellSetupOpen}">
+      <Border Background="{DynamicResource OverlayBrush}" />
+      <Border
+          Width="{DynamicResource PowerShellSetupDialogWidth}"
+          Padding="{DynamicResource DialogPadding}"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Center"
+          Background="{DynamicResource PanelBackgroundBrush}"
+          BorderBrush="{DynamicResource BorderBrush}"
+          BorderThickness="1"
+          CornerRadius="{DynamicResource RadiusL}">
+        <StackPanel Spacing="{DynamicResource DialogContentSpacing}">
+          <TextBlock
+              FontSize="{DynamicResource FontSizeTitle}"
+              FontWeight="SemiBold"
+              Text="Choose PowerShell" />
+          <TextBlock
+              Text="HyperTerm needs to know which PowerShell executable to use for local and SSH terminals."
+              TextWrapping="Wrap" />
+          <TextBlock
+              Classes="secondary"
+              Text="Use the default pwsh.exe available on PATH, or choose pwsh.exe or powershell.exe from a specific installation. You can change this later in Settings."
+              TextWrapping="Wrap" />
+          <TextBlock
+              Foreground="{DynamicResource DangerBrush}"
+              Text="{Binding PowerShellSetupError}"
+              TextWrapping="Wrap" />
+          <StackPanel
+              HorizontalAlignment="Right"
+              Orientation="Horizontal"
+              Spacing="{DynamicResource DialogButtonSpacing}">
+            <Button
+                Command="{Binding ChooseInitialPowerShellCommand}"
+                Content="Choose another..." />
+            <Button
+                Classes="accent"
+                Command="{Binding UseDefaultPowerShellCommand}"
+                Content="Use pwsh.exe"
+                IsDefault="{Binding IsPowerShellSetupOpen}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Panel>
+
     <Panel Grid.Row="1" Grid.RowSpan="2" IsVisible="{Binding IsDeleteConfirmationOpen}">
       <Border Background="{DynamicResource OverlayBrush}" />
       <Border
@@ -472,8 +516,8 @@
                   <TextBlock Classes="settingsSectionTitle" Text="Shell" />
                   <TextBlock
                       Classes="settingsSectionDescription"
-                      Text="Choose the PowerShell 7 executable used by local and SSH terminals." />
-                  <TextBlock Classes="settingsLabel" Text="PowerShell 7 executable" />
+                      Text="Choose the PowerShell executable used by local and SSH terminals." />
+                  <TextBlock Classes="settingsLabel" Text="PowerShell executable" />
                   <Grid ColumnDefinitions="*,Auto">
                     <TextBox IsReadOnly="True" Text="{Binding SettingsPowerShellPath}" />
                     <Button

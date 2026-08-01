@@ -14,9 +14,10 @@ internal sealed class PowerShellSessionFactory(ISettingsService settingsService)
         CancellationToken cancellationToken = default)
     {
         ApplicationSettings settings = await settingsService.LoadAsync(cancellationToken);
+        string configuredPath = NormalizePowerShellPath(settings.PowerShellPath);
         string powerShellPath = ResolveExecutable(
-            NormalizeLegacyPath(settings.PowerShellPath),
-            "pwsh.exe");
+            configuredPath,
+            Path.GetFileName(configuredPath));
 
         return new TerminalSessionDefinition(
             powerShellPath,
@@ -32,9 +33,10 @@ internal sealed class PowerShellSessionFactory(ISettingsService settingsService)
         cancellationToken.ThrowIfCancellationRequested();
 
         ApplicationSettings settings = await settingsService.LoadAsync(cancellationToken);
+        string configuredPath = NormalizePowerShellPath(settings.PowerShellPath);
         string powerShellPath = ResolveExecutable(
-            NormalizeLegacyPath(settings.PowerShellPath),
-            "pwsh.exe");
+            configuredPath,
+            Path.GetFileName(configuredPath));
         string sshPath = ResolveExecutable("ssh.exe", "ssh.exe");
         string command = BuildSshCommand(sshPath, session);
         string encodedCommand = Convert.ToBase64String(Encoding.Unicode.GetBytes(command));
@@ -67,11 +69,10 @@ internal sealed class PowerShellSessionFactory(ISettingsService settingsService)
     private static string QuotePowerShellLiteral(string value) =>
         $"'{value.Replace("'", "''", StringComparison.Ordinal)}'";
 
-    private static string NormalizeLegacyPath(string configuredPath) =>
-        string.IsNullOrWhiteSpace(configuredPath) ||
-        configuredPath.Equals("powershell.exe", StringComparison.OrdinalIgnoreCase)
+    private static string NormalizePowerShellPath(string configuredPath) =>
+        string.IsNullOrWhiteSpace(configuredPath)
             ? "pwsh.exe"
-            : configuredPath;
+            : configuredPath.Trim().Trim('"');
 
     private static string ResolveExecutable(string configuredPath, string executableName)
     {
@@ -97,10 +98,17 @@ internal sealed class PowerShellSessionFactory(ISettingsService settingsService)
             }
         }
 
-        string systemPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.System),
-            executableName == "ssh.exe" ? "OpenSSH" : string.Empty,
-            executableName);
+        string systemDirectory = Environment.GetFolderPath(Environment.SpecialFolder.System);
+        string systemPath = executableName.ToLowerInvariant() switch
+        {
+            "ssh.exe" => Path.Combine(systemDirectory, "OpenSSH", executableName),
+            "powershell.exe" => Path.Combine(
+                systemDirectory,
+                "WindowsPowerShell",
+                "v1.0",
+                executableName),
+            _ => Path.Combine(systemDirectory, executableName),
+        };
         if (File.Exists(systemPath))
         {
             return systemPath;
@@ -108,14 +116,14 @@ internal sealed class PowerShellSessionFactory(ISettingsService settingsService)
 
         if (executableName == "pwsh.exe")
         {
-            string powerShell7Path = Path.Combine(
+            string standardPwshPath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
                 "PowerShell",
                 "7",
                 "pwsh.exe");
-            if (File.Exists(powerShell7Path))
+            if (File.Exists(standardPwshPath))
             {
-                return powerShell7Path;
+                return standardPwshPath;
             }
         }
 

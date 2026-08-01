@@ -1,12 +1,12 @@
 # HyperTerm
 
-HyperTerm is a modern Windows terminal and SSH session manager built with .NET and Avalonia. It provides a developer-tool interface for organizing connections while using PowerShell 7, Windows OpenSSH, ConPTY, and xterm.js for the actual terminal experience.
+HyperTerm is a modern Windows terminal and SSH session manager built with .NET and Avalonia. It provides a developer-tool interface for organizing connections while using PowerShell (`pwsh.exe` or `powershell.exe`), Windows OpenSSH, ConPTY, and xterm.js for the actual terminal experience.
 
-> HyperTerm is under active MVP development. It does not implement the SSH protocol and does not store passwords. SSH connections are executed by the Windows OpenSSH client inside PowerShell 7.
+> HyperTerm is under active MVP development. It does not implement the SSH protocol and does not store passwords. SSH connections are executed by the Windows OpenSSH client inside PowerShell.
 
 ## Features
 
-- Local PowerShell 7 terminal opened automatically at startup
+- Local PowerShell terminal opened automatically at startup
 - SSH session management with host, port, username, private key, folder, and notes
 - Nested folders with mouse-driven creation, editing, deletion, and session drag-and-drop
 - Multiple terminal tabs with isolated processes and editable titles
@@ -23,7 +23,7 @@ HyperTerm is a modern Windows terminal and SSH session manager built with .NET a
 - Windows 10 or Windows 11
 - [.NET SDK 9](https://dotnet.microsoft.com/download/dotnet/9.0) or newer
 - [Node.js](https://nodejs.org/) with npm
-- [PowerShell 7](https://github.com/PowerShell/PowerShell) (`pwsh.exe`)
+- PowerShell (`pwsh.exe` or Windows `powershell.exe`)
 - Windows OpenSSH Client (`ssh.exe`) for SSH sessions
 - Microsoft Edge WebView2 Runtime
 
@@ -73,7 +73,7 @@ An alternative version or Windows architecture can be selected explicitly:
 .\build.ps1 -Version 1.1.0 -Runtime win-arm64
 ```
 
-The destination computer still needs PowerShell 7 and Microsoft Edge WebView2
+The destination computer still needs PowerShell (`pwsh.exe` or `powershell.exe`) and Microsoft Edge WebView2
 Runtime. Windows OpenSSH Client is also required for SSH sessions.
 
 ## Manual build
@@ -90,13 +90,16 @@ The executable is named `HyperTerm.exe`.
 
 ## First run
 
-HyperTerm resolves `pwsh.exe` from `PATH` and then checks the standard PowerShell 7 installation directory. To select another installation:
+On the first launch, HyperTerm displays an initial setup dialog. The user can
+apply the default `pwsh.exe` available on `PATH`, or choose `pwsh.exe` or
+`powershell.exe` with the Windows file picker. The selected option is saved for
+subsequent launches. To change it later:
 
 1. Open **Settings**.
-2. Under **Shell**, select the desired `pwsh.exe` with the Windows file picker.
+2. Under **Shell**, select the desired `pwsh.exe` or `powershell.exe` with the Windows file picker.
 3. Save the settings.
 
-SSH sessions require the Windows OpenSSH Client. HyperTerm launches `ssh.exe` through the configured PowerShell 7 executable and leaves authentication prompts inside the terminal.
+SSH sessions require the Windows OpenSSH Client. HyperTerm launches `ssh.exe` through the configured PowerShell executable and leaves authentication prompts inside the terminal.
 
 ## Keyboard shortcuts
 
@@ -132,6 +135,16 @@ User data is stored locally under:
 
 Existing data from the previous `hyperTerms` or `SuperTerminal` application directories is copied automatically when the current files do not yet exist.
 
+To permanently remove all sessions, folders, settings, and legacy data, close
+HyperTerm and run:
+
+```powershell
+.\reset-data.ps1
+```
+
+The script displays every target directory and requires `DELETE` confirmation.
+Use `-Force` only when running it from an automated environment.
+
 ## Architecture
 
 The solution follows a simplified Clean Architecture structure:
@@ -155,7 +168,7 @@ The product, solution, projects, assemblies, and namespaces use the final **Hype
 ## Terminal pipeline
 
 ```text
-HyperTerm UI → shared WebView2 host → xterm.js → C# bridge → ConPTY → pwsh.exe → ssh.exe
+HyperTerm UI → shared WebView2 host → xterm.js → C# bridge → ConPTY → PowerShell → ssh.exe
 ```
 
 Each tab owns an independent ConPTY process and xterm buffer. A shared WebView2 host reduces memory usage, while bounded output queues and backpressure keep high-volume terminals from freezing the UI.
@@ -169,7 +182,7 @@ Each tab owns an independent ConPTY process and xterm buffer. A shared WebView2 
 - Entity Framework Core 9 with SQLite
 - Porta.Pty and Windows ConPTY
 - xterm.js 5 with WebGL
-- PowerShell 7 and Windows OpenSSH
+- PowerShell (`pwsh.exe` or `powershell.exe`) and Windows OpenSSH
 
 ## Current MVP boundaries
 

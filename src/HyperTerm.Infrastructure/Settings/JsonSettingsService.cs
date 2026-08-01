@@ -15,6 +15,8 @@ internal sealed class JsonSettingsService(IApplicationPathProvider pathProvider)
 
     private readonly SemaphoreSlim accessLock = new(1, 1);
 
+    public bool Exists() => File.Exists(pathProvider.SettingsPath);
+
     public async Task<ApplicationSettings> LoadAsync(
         CancellationToken cancellationToken = default)
     {

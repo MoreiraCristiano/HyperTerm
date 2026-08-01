@@ -47,6 +47,8 @@
     <Thickness x:Key="ControlPadding">12,7</Thickness>
     <Thickness x:Key="CompactControlPadding">8,5</Thickness>
     <Thickness x:Key="DialogPadding">24</Thickness>
+    <x:Double x:Key="DialogContentSpacing">16</x:Double>
+    <x:Double x:Key="DialogButtonSpacing">8</x:Double>
     <Thickness x:Key="TreeItemPadding">0</Thickness>
     <Thickness x:Key="SessionTreeMargin">4,0,0,0</Thickness>
     <Thickness x:Key="TreeItemContentMargin">0</Thickness>
@@ -65,6 +67,7 @@
     <Thickness x:Key="SidebarActionLeadingMargin">6,0,0,0</Thickness>
     <x:Double x:Key="SettingsDialogWidth">680</x:Double>
     <x:Double x:Key="SettingsDialogMaxHeight">720</x:Double>
+    <x:Double x:Key="PowerShellSetupDialogWidth">480</x:Double>
     <x:Double x:Key="TerminalTabMinWidth">190</x:Double>
     <Thickness x:Key="TerminalTabClosePadding">7,2</Thickness>
     <x:Double x:Key="TitleBarHeight">42</x:Double>
