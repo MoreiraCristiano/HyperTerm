@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="using:SuperTerminal.UI.Controls"
     xmlns:viewModels="using:SuperTerminal.UI.ViewModels"
+    Icon="/Assets/hyperterm_icon.ico"
     Title="{Binding Title}"
     Width="1200"
     Height="760"
