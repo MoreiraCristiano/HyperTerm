@@ -43,6 +43,22 @@ function fitAndReport() {
 
 terminal.onData(data => send({ type: 'input', data }));
 terminal.attachCustomKeyEventHandler(event => {
+  if (event.type === 'keydown' && event.ctrlKey && event.shiftKey) {
+    const applicationCommands = {
+      KeyN: 'newSession',
+      KeyO: 'openSession',
+      KeyW: 'closeTab',
+      KeyB: 'toggleSidebar',
+      Comma: 'settings'
+    };
+    const command = applicationCommands[event.code];
+    if (command) {
+      if (!event.repeat) {
+        send({ type: 'applicationCommand', command });
+      }
+      return false;
+    }
+  }
   if (event.type === 'keydown' && event.ctrlKey && event.shiftKey && event.code === 'KeyC') {
     const selected = terminal.getSelection();
     if (selected) {

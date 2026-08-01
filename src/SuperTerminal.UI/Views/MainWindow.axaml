@@ -13,13 +13,14 @@
     WindowState="Maximized"
     Background="{DynamicResource AppBackgroundBrush}">
   <Window.KeyBindings>
-    <KeyBinding Gesture="Ctrl+N" Command="{Binding NewSessionCommand}" />
-    <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenSelectedSessionCommand}" />
-    <KeyBinding Gesture="Ctrl+W" Command="{Binding CloseSelectedTabCommand}" />
-    <KeyBinding Gesture="Ctrl+," Command="{Binding OpenSettingsCommand}" />
-    <KeyBinding Gesture="Ctrl+B" Command="{Binding ToggleSidebarCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+N" Command="{Binding NewSessionCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+O" Command="{Binding OpenSelectedSessionCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+W" Command="{Binding CloseSelectedTabCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+," Command="{Binding OpenSettingsCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+B" Command="{Binding ToggleSidebarCommand}" />
     <KeyBinding Gesture="F1" Command="{Binding OpenShortcutsCommand}" />
     <KeyBinding Gesture="F2" Command="{Binding EditSessionCommand}" />
+    <KeyBinding Gesture="Escape" Command="{Binding CloseActiveOverlayCommand}" />
   </Window.KeyBindings>
   <Grid RowDefinitions="*,Auto">
     <Grid x:Name="WorkspaceGrid" Grid.Row="0">
@@ -40,20 +41,31 @@
         <Grid RowDefinitions="Auto,Auto,Auto,Auto,*">
           <TextBlock
               Grid.Row="0"
+              MinHeight="{DynamicResource SidebarSectionHeaderHeight}"
               Margin="4,0,0,7"
               FontSize="{DynamicResource FontSizeCaption}"
               FontWeight="SemiBold"
+              VerticalAlignment="Center"
               Text="GENERAL" />
-          <Grid Grid.Row="3" Margin="4,0,0,7" ColumnDefinitions="*,Auto,Auto,Auto">
-            <TextBlock FontSize="{DynamicResource FontSizeCaption}" FontWeight="SemiBold" Text="SESSIONS" />
+          <Grid
+              Grid.Row="3"
+              MinHeight="{DynamicResource SidebarSectionHeaderHeight}"
+              Margin="4,0,0,7"
+              ColumnDefinitions="*,Auto,Auto,Auto">
+            <TextBlock
+                FontSize="{DynamicResource FontSizeCaption}"
+                FontWeight="SemiBold"
+                VerticalAlignment="Center"
+                Text="SESSIONS" />
             <TextBlock
                 Grid.Column="1"
                 FontSize="10"
                 Foreground="{DynamicResource MutedTextBrush}"
+                VerticalAlignment="Center"
                 Text="{Binding SessionCountText}" />
             <Button
                 Grid.Column="2"
-                Margin="5,0,0,0"
+                Margin="{DynamicResource SidebarActionLeadingMargin}"
                 Classes="iconButton"
                 Width="24"
                 Height="24"
@@ -63,6 +75,7 @@
                 ToolTip.Tip="Create session" />
             <Button
                 Grid.Column="3"
+                Margin="{DynamicResource SidebarActionLeadingMargin}"
                 Classes="iconButton"
                 Width="24"
                 Height="24"
@@ -72,7 +85,7 @@
                 ToolTip.Tip="Create folder" />
           </Grid>
           <StackPanel Grid.Row="1" Spacing="5">
-            <StackPanel Orientation="Horizontal" Spacing="6">
+            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SidebarActionSpacing}">
               <Button Classes="iconButton" Command="{Binding OpenLocalTerminalCommand}" ToolTip.Tip="Local PowerShell">
                 <TextBlock Classes="icon buttonIcon" Text="&#xE756;" />
               </Button>
@@ -363,69 +376,107 @@
     <Panel Grid.RowSpan="2" IsVisible="{Binding IsSettingsOpen}">
       <Border Background="{DynamicResource OverlayBrush}" />
       <Border
-          Width="620"
-          Padding="24"
+          Width="{DynamicResource SettingsDialogWidth}"
+          MaxHeight="{DynamicResource SettingsDialogMaxHeight}"
+          Padding="{DynamicResource DialogPadding}"
           HorizontalAlignment="Center"
           VerticalAlignment="Center"
           Background="{DynamicResource PanelBackgroundBrush}"
           BorderBrush="{DynamicResource BorderBrush}"
           BorderThickness="1"
-          CornerRadius="8">
-        <StackPanel Spacing="14">
-          <TextBlock FontSize="20" FontWeight="SemiBold" Text="Settings" />
-          <TextBlock
-              Foreground="{DynamicResource MutedTextBrush}"
-              Text="PowerShell runs ssh.exe automatically for each remote tab." />
-          <TextBlock Margin="0,4,0,-8" Text="PowerShell 7 executable" />
-          <Grid ColumnDefinitions="*,Auto">
-            <TextBox
-                IsReadOnly="True"
-                Text="{Binding SettingsPowerShellPath}" />
-            <Button
-                Grid.Column="1"
-                Margin="8,0,0,0"
-                Command="{Binding SelectPowerShellCommand}"
-                Content="Browse..." />
-          </Grid>
-          <Grid ColumnDefinitions="*,16,180">
-            <StackPanel>
-              <TextBlock Margin="0,0,0,5" Text="Terminal font" />
-              <ComboBox
-                  IsEditable="True"
-                  ItemsSource="{Binding SystemFontFamilies}"
-                  SelectedItem="{Binding SettingsTerminalFontFamily, Mode=TwoWay}"
-                  Text="{Binding SettingsTerminalFontFamily, Mode=TwoWay}" />
-            </StackPanel>
-            <StackPanel Grid.Column="2">
-              <TextBlock Margin="0,0,0,5" Text="Size" />
-              <NumericUpDown
-                  Minimum="8"
-                  Maximum="32"
-                  Value="{Binding SettingsTerminalFontSize, Mode=TwoWay}" />
-            </StackPanel>
-          </Grid>
-          <Grid ColumnDefinitions="*,16,*">
-            <StackPanel>
-              <TextBlock Margin="0,0,0,5" Text="Cursor style" />
-              <ComboBox
-                  ItemsSource="{Binding TerminalCursorStyles}"
-                  SelectedItem="{Binding SettingsTerminalCursorStyle, Mode=TwoWay}" />
-            </StackPanel>
-            <CheckBox
-                Grid.Column="2"
-                VerticalAlignment="Bottom"
-                IsChecked="{Binding SettingsTerminalCursorBlink, Mode=TwoWay}"
-                Content="Blink cursor" />
-          </Grid>
-          <TextBlock
-              Foreground="{DynamicResource DangerBrush}"
-              TextWrapping="Wrap"
-              Text="{Binding SettingsError}" />
-          <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
-            <Button Command="{Binding CancelSettingsCommand}" Content="Cancel" />
-            <Button Classes="accent" Command="{Binding SaveSettingsCommand}" Content="Save" />
+          CornerRadius="{DynamicResource RadiusL}">
+        <Grid RowDefinitions="Auto,*,Auto">
+          <StackPanel>
+            <TextBlock FontSize="{DynamicResource FontSizeTitle}" FontWeight="SemiBold" Text="Settings" />
+            <TextBlock Classes="secondary" Text="Configure the shell and terminal appearance." />
           </StackPanel>
-        </StackPanel>
+
+          <ScrollViewer Grid.Row="1" Margin="{DynamicResource SettingsBodyMargin}">
+            <StackPanel Spacing="{DynamicResource SettingsSectionSpacing}">
+              <Border Classes="settingsSection">
+                <StackPanel>
+                  <TextBlock Classes="settingsSectionTitle" Text="Shell" />
+                  <TextBlock
+                      Classes="settingsSectionDescription"
+                      Text="Choose the PowerShell 7 executable used by local and SSH terminals." />
+                  <TextBlock Classes="settingsLabel" Text="PowerShell 7 executable" />
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBox IsReadOnly="True" Text="{Binding SettingsPowerShellPath}" />
+                    <Button
+                        Grid.Column="1"
+                        Margin="{DynamicResource SettingsBrowseButtonMargin}"
+                        Command="{Binding SelectPowerShellCommand}"
+                        Content="Browse..." />
+                  </Grid>
+                </StackPanel>
+              </Border>
+
+              <Border Classes="settingsSection">
+                <StackPanel>
+                  <TextBlock Classes="settingsSectionTitle" Text="Terminal appearance" />
+                  <TextBlock
+                      Classes="settingsSectionDescription"
+                      Text="Select an installed font and adjust its size." />
+                  <Grid ColumnDefinitions="*,16,180">
+                    <StackPanel>
+                      <TextBlock Classes="settingsLabel" Text="Font family" />
+                      <ComboBox
+                          IsEditable="True"
+                          ItemsSource="{Binding SystemFontFamilies}"
+                          SelectedItem="{Binding SettingsTerminalFontFamily, Mode=TwoWay}"
+                          Text="{Binding SettingsTerminalFontFamily, Mode=TwoWay}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                      <TextBlock Classes="settingsLabel" Text="Font size" />
+                      <NumericUpDown
+                          Minimum="8"
+                          Maximum="32"
+                          Value="{Binding SettingsTerminalFontSize, Mode=TwoWay}" />
+                    </StackPanel>
+                  </Grid>
+                </StackPanel>
+              </Border>
+
+              <Border Classes="settingsSection">
+                <StackPanel>
+                  <TextBlock Classes="settingsSectionTitle" Text="Cursor" />
+                  <TextBlock
+                      Classes="settingsSectionDescription"
+                      Text="Control the cursor shape and animation." />
+                  <Grid ColumnDefinitions="*,16,*">
+                    <StackPanel>
+                      <TextBlock Classes="settingsLabel" Text="Cursor style" />
+                      <ComboBox
+                          ItemsSource="{Binding TerminalCursorStyles}"
+                          SelectedItem="{Binding SettingsTerminalCursorStyle, Mode=TwoWay}" />
+                    </StackPanel>
+                    <CheckBox
+                        Grid.Column="2"
+                        VerticalAlignment="Bottom"
+                        IsChecked="{Binding SettingsTerminalCursorBlink, Mode=TwoWay}"
+                        Content="Blink cursor" />
+                  </Grid>
+                </StackPanel>
+              </Border>
+
+              <TextBlock
+                  Foreground="{DynamicResource DangerBrush}"
+                  TextWrapping="Wrap"
+                  Text="{Binding SettingsError}" />
+            </StackPanel>
+          </ScrollViewer>
+
+          <Border
+              Grid.Row="2"
+              Padding="{DynamicResource SettingsFooterPadding}"
+              BorderBrush="{DynamicResource BorderBrush}"
+              BorderThickness="0,1,0,0">
+            <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+              <Button Command="{Binding CancelSettingsCommand}" Content="Cancel" />
+              <Button Classes="accent" Command="{Binding SaveSettingsCommand}" Content="Save" />
+            </StackPanel>
+          </Border>
+        </Grid>
       </Border>
     </Panel>
 
@@ -442,16 +493,17 @@
           CornerRadius="{DynamicResource RadiusL}">
         <StackPanel Spacing="16">
           <TextBlock FontSize="{DynamicResource FontSizeTitle}" FontWeight="SemiBold" Text="Keyboard shortcuts" />
-          <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
-            <TextBlock Text="Toggle sidebar" /><TextBlock Grid.Column="1" Classes="secondary" Text="Ctrl+B" />
-            <TextBlock Grid.Row="1" Text="New session" /><TextBlock Grid.Row="1" Grid.Column="1" Classes="secondary" Text="Ctrl+N" />
-            <TextBlock Grid.Row="2" Text="Open selected session" /><TextBlock Grid.Row="2" Grid.Column="1" Classes="secondary" Text="Ctrl+O" />
+          <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+            <TextBlock Text="Toggle sidebar" /><TextBlock Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+B" />
+            <TextBlock Grid.Row="1" Text="New session" /><TextBlock Grid.Row="1" Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+N" />
+            <TextBlock Grid.Row="2" Text="Open selected session" /><TextBlock Grid.Row="2" Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+O" />
             <TextBlock Grid.Row="3" Text="Edit selected session" /><TextBlock Grid.Row="3" Grid.Column="1" Classes="secondary" Text="F2" />
-            <TextBlock Grid.Row="4" Text="Close active tab" /><TextBlock Grid.Row="4" Grid.Column="1" Classes="secondary" Text="Ctrl+W" />
-            <TextBlock Grid.Row="5" Text="Open settings" /><TextBlock Grid.Row="5" Grid.Column="1" Classes="secondary" Text="Ctrl+," />
+            <TextBlock Grid.Row="4" Text="Close active tab" /><TextBlock Grid.Row="4" Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+W" />
+            <TextBlock Grid.Row="5" Text="Open settings" /><TextBlock Grid.Row="5" Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+," />
             <TextBlock Grid.Row="6" Text="Show shortcuts" /><TextBlock Grid.Row="6" Grid.Column="1" Classes="secondary" Text="F1" />
             <TextBlock Grid.Row="7" Text="Copy terminal selection" /><TextBlock Grid.Row="7" Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+C" />
             <TextBlock Grid.Row="8" Text="Paste into terminal" /><TextBlock Grid.Row="8" Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+V" />
+            <TextBlock Grid.Row="9" Text="Close active screen" /><TextBlock Grid.Row="9" Grid.Column="1" Classes="secondary" Text="Esc" />
           </Grid>
           <Button HorizontalAlignment="Right" Command="{Binding CloseShortcutsCommand}" Content="Close" />
         </StackPanel>

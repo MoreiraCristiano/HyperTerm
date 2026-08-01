@@ -113,6 +113,10 @@ public sealed class WebTerminalControl : NativeWebView
                         root.GetProperty("columns").GetInt32(),
                         root.GetProperty("rows").GetInt32());
                     break;
+                case "applicationCommand":
+                    Tab.RequestApplicationCommand(
+                        root.GetProperty("command").GetString() ?? string.Empty);
+                    break;
             }
         }
         catch (Exception exception) when (

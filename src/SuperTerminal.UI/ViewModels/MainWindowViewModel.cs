@@ -314,6 +314,7 @@ public sealed partial class MainWindowViewModel(
                 applicationSettings.TerminalCursorStyle,
                 applicationSettings.TerminalCursorBlink,
                 CloseTabAsync);
+            tab.ApplicationCommandRequested += OnApplicationCommandRequested;
             Tabs.Add(tab);
             SelectedTab = tab;
             HasOpenTabs = true;
@@ -350,6 +351,7 @@ public sealed partial class MainWindowViewModel(
                 applicationSettings.TerminalCursorBlink,
                 CloseTabAsync);
 
+            tab.ApplicationCommandRequested += OnApplicationCommandRequested;
             Tabs.Add(tab);
             SelectedTab = tab;
             HasOpenTabs = true;
@@ -396,6 +398,35 @@ public sealed partial class MainWindowViewModel(
     [RelayCommand]
     private void CloseShortcuts() =>
         IsShortcutsOpen = false;
+
+    [RelayCommand]
+    private void CloseActiveOverlay()
+    {
+        if (IsFolderDeleteConfirmationOpen)
+        {
+            CancelDeleteFolder();
+        }
+        else if (IsDeleteConfirmationOpen)
+        {
+            CancelDeleteSession();
+        }
+        else if (IsFolderEditorOpen)
+        {
+            CancelFolderEditor();
+        }
+        else if (IsEditorOpen)
+        {
+            CancelEditor();
+        }
+        else if (IsSettingsOpen)
+        {
+            CancelSettings();
+        }
+        else if (IsShortcutsOpen)
+        {
+            CloseShortcuts();
+        }
+    }
 
     [RelayCommand]
     private void OpenFolderEditor()
@@ -900,6 +931,7 @@ public sealed partial class MainWindowViewModel(
             return;
         }
 
+        tab.ApplicationCommandRequested -= OnApplicationCommandRequested;
         bool wasSelected = ReferenceEquals(SelectedTab, tab);
         Tabs.RemoveAt(closedTabIndex);
 
@@ -911,6 +943,28 @@ public sealed partial class MainWindowViewModel(
 
         HasOpenTabs = Tabs.Count > 0;
         StatusText = $"Tab ‘{tab.Title}’ closed";
+    }
+
+    private async void OnApplicationCommandRequested(object? sender, string command)
+    {
+        switch (command)
+        {
+            case "newSession":
+                NewSession();
+                break;
+            case "openSession" when HasSelectedSession():
+                await OpenSelectedSessionAsync();
+                break;
+            case "closeTab" when sender is TerminalTabViewModel tab:
+                await CloseTabAsync(tab);
+                break;
+            case "toggleSidebar":
+                ToggleSidebar();
+                break;
+            case "settings":
+                OpenSettings();
+                break;
+        }
     }
 
     private async Task SynchronizeTabsAsync()

@@ -93,6 +93,8 @@ public sealed partial class TerminalTabViewModel : ViewModelBase
 
     public event EventHandler? AppearanceChanged;
 
+    public event EventHandler<string>? ApplicationCommandRequested;
+
     [ObservableProperty]
     private string title = string.Empty;
 
@@ -200,6 +202,9 @@ public sealed partial class TerminalTabViewModel : ViewModelBase
 
     public void RequestFocus() =>
         FocusRequested?.Invoke(this, EventArgs.Empty);
+
+    public void RequestApplicationCommand(string command) =>
+        ApplicationCommandRequested?.Invoke(this, command);
 
     public void UpdateAppearance(
         string fontFamily,
