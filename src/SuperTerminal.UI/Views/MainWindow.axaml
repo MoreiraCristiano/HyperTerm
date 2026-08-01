@@ -11,19 +11,130 @@
     MinWidth="900"
     MinHeight="600"
     WindowState="Maximized"
+    WindowDecorations="None"
+    ExtendClientAreaToDecorationsHint="True"
+    ShowInTaskbar="True"
     Background="{DynamicResource AppBackgroundBrush}">
   <Window.KeyBindings>
     <KeyBinding Gesture="Ctrl+Shift+N" Command="{Binding NewSessionCommand}" />
     <KeyBinding Gesture="Ctrl+Shift+O" Command="{Binding OpenSelectedSessionCommand}" />
     <KeyBinding Gesture="Ctrl+Shift+W" Command="{Binding CloseSelectedTabCommand}" />
+    <KeyBinding Gesture="Ctrl+Tab" Command="{Binding NextTabCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+Tab" Command="{Binding PreviousTabCommand}" />
+    <KeyBinding Gesture="Alt+F4" Command="{Binding RequestCloseWindowCommand}" />
     <KeyBinding Gesture="Ctrl+Shift+," Command="{Binding OpenSettingsCommand}" />
     <KeyBinding Gesture="Ctrl+Shift+B" Command="{Binding ToggleSidebarCommand}" />
     <KeyBinding Gesture="F1" Command="{Binding OpenShortcutsCommand}" />
     <KeyBinding Gesture="F2" Command="{Binding EditSessionCommand}" />
     <KeyBinding Gesture="Escape" Command="{Binding CloseActiveOverlayCommand}" />
   </Window.KeyBindings>
-  <Grid RowDefinitions="*,Auto">
-    <Grid x:Name="WorkspaceGrid" Grid.Row="0">
+  <Grid RowDefinitions="Auto,*,Auto">
+    <Border
+        x:Name="TitleBarRoot"
+        Grid.Row="0"
+        Height="{DynamicResource TitleBarHeight}"
+        Background="{DynamicResource HeaderBackgroundBrush}"
+        BorderBrush="{DynamicResource BorderBrush}"
+        BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto">
+        <Border
+            Width="{DynamicResource TitleBarIdentityWidth}"
+            Padding="{DynamicResource TitleBarIdentityPadding}">
+          <TextBlock
+              FontWeight="SemiBold"
+              Text="{Binding Title}"
+              TextTrimming="CharacterEllipsis"
+              VerticalAlignment="Center" />
+        </Border>
+
+        <ListBox
+            Grid.Column="1"
+            Classes="terminalTabs"
+            Background="{DynamicResource HeaderBackgroundBrush}"
+            BorderThickness="0"
+            ItemsSource="{Binding Tabs}"
+            ScrollViewer.HorizontalScrollBarVisibility="Auto"
+            ScrollViewer.VerticalScrollBarVisibility="Disabled"
+            SelectedItem="{Binding SelectedTab, Mode=TwoWay}"
+            WindowDecorationProperties.ElementRole="None">
+          <ListBox.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+          </ListBox.ItemsPanel>
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="viewModels:TerminalTabViewModel">
+              <Grid
+                  MinWidth="{DynamicResource TerminalTabMinWidth}"
+                  ColumnDefinitions="*,Auto"
+                  DoubleTapped="OnTerminalTabDoubleTapped">
+                <StackPanel Margin="8,0" VerticalAlignment="Center">
+                  <TextBlock
+                      IsVisible="{Binding !IsRenaming}"
+                      FontWeight="SemiBold"
+                      Text="{Binding Title}" />
+                  <TextBox
+                      x:Name="TabTitleEditor"
+                      MinWidth="100"
+                      Padding="3,0"
+                      IsVisible="{Binding IsRenaming}"
+                      KeyDown="OnTabTitleEditorKeyDown"
+                      LostFocus="OnTabTitleEditorLostFocus"
+                      Text="{Binding EditableTitle, Mode=TwoWay}" />
+                  <TextBlock
+                      FontSize="9"
+                      Foreground="{DynamicResource MutedTextBrush}"
+                      Text="{Binding Endpoint}" />
+                </StackPanel>
+                <Button
+                    Grid.Column="1"
+                    Classes="tabCloseButton"
+                    VerticalAlignment="Center"
+                    Command="{Binding CloseCommand}"
+                    Focusable="False"
+                    FontFamily="{DynamicResource IconFontFamily}"
+                    Content="&#xE711;" />
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+
+        <Button
+            Grid.Column="2"
+            Classes="titleBarButton"
+            Command="{Binding OpenSettingsCommand}"
+            ToolTip.Tip="Settings"
+            WindowDecorationProperties.ElementRole="None">
+          <TextBlock Classes="icon buttonIcon" Text="&#xE713;" />
+        </Button>
+        <Button
+            Grid.Column="3"
+            Classes="captionButton"
+            Click="OnMinimizeButtonClick"
+            ToolTip.Tip="Minimize"
+            WindowDecorationProperties.ElementRole="MinimizeButton">
+          <TextBlock Text="&#xE921;" />
+        </Button>
+        <Button
+            x:Name="MaximizeRestoreButton"
+            Grid.Column="4"
+            Classes="captionButton"
+            Click="OnMaximizeRestoreButtonClick"
+            WindowDecorationProperties.ElementRole="MaximizeButton">
+          <TextBlock x:Name="MaximizeRestoreIcon" />
+        </Button>
+        <Button
+            Grid.Column="5"
+            Classes="captionButton closeCaptionButton"
+            Click="OnCloseButtonClick"
+            ToolTip.Tip="Close"
+            WindowDecorationProperties.ElementRole="CloseButton">
+          <TextBlock Text="&#xE8BB;" />
+        </Button>
+      </Grid>
+    </Border>
+
+    <Grid x:Name="WorkspaceGrid" Grid.Row="1">
       <Grid.ColumnDefinitions>
         <ColumnDefinition
             Width="{DynamicResource SidebarDefaultWidth}"
@@ -98,15 +209,6 @@
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SidebarActionSpacing}">
               <Button Classes="iconButton" Command="{Binding OpenLocalTerminalCommand}" ToolTip.Tip="Local PowerShell">
                 <TextBlock Classes="icon buttonIcon" Text="&#xE756;" />
-              </Button>
-              <Button Classes="iconButton" Command="{Binding OpenSettingsCommand}" ToolTip.Tip="Settings">
-                <TextBlock Classes="icon buttonIcon" Text="&#xE713;" />
-              </Button>
-              <Button Classes="iconButton" Command="{Binding ToggleStatusBarCommand}" ToolTip.Tip="Toggle status bar">
-                <TextBlock Classes="icon buttonIcon" Text="&#xE9D9;" />
-              </Button>
-              <Button Classes="iconButton" Command="{Binding OpenShortcutsCommand}" ToolTip.Tip="Keyboard shortcuts">
-                <TextBlock Classes="icon buttonIcon" Text="&#xE765;" />
               </Button>
             </StackPanel>
           </StackPanel>
@@ -214,74 +316,17 @@
           ResizeBehavior="PreviousAndNext"
           ResizeDirection="Columns" />
 
-      <Grid Grid.Column="2">
-        <Grid RowDefinitions="42,*">
-          <ListBox
-              Grid.Row="0"
-              Classes="terminalTabs"
-              Background="{DynamicResource HeaderBackgroundBrush}"
-              BorderBrush="{DynamicResource BorderBrush}"
-              BorderThickness="0,0,0,1"
-              ItemsSource="{Binding Tabs}"
-              ScrollViewer.HorizontalScrollBarVisibility="Auto"
-              ScrollViewer.VerticalScrollBarVisibility="Disabled"
-              SelectedItem="{Binding SelectedTab, Mode=TwoWay}">
-            <ListBox.ItemsPanel>
-              <ItemsPanelTemplate>
-                <StackPanel Orientation="Horizontal" />
-              </ItemsPanelTemplate>
-            </ListBox.ItemsPanel>
-            <ListBox.ItemTemplate>
-              <DataTemplate x:DataType="viewModels:TerminalTabViewModel">
-                <Grid
-                    MinWidth="{DynamicResource TerminalTabMinWidth}"
-                    ColumnDefinitions="*,Auto"
-                    DoubleTapped="OnTerminalTabDoubleTapped">
-                  <StackPanel Margin="8,0" VerticalAlignment="Center">
-                    <TextBlock
-                        IsVisible="{Binding !IsRenaming}"
-                        FontWeight="SemiBold"
-                        Text="{Binding Title}" />
-                    <TextBox
-                        x:Name="TabTitleEditor"
-                        MinWidth="100"
-                        Padding="3,0"
-                        IsVisible="{Binding IsRenaming}"
-                        KeyDown="OnTabTitleEditorKeyDown"
-                        LostFocus="OnTabTitleEditorLostFocus"
-                        Text="{Binding EditableTitle, Mode=TwoWay}" />
-                    <TextBlock
-                        FontSize="9"
-                        Foreground="{DynamicResource MutedTextBrush}"
-                        Text="{Binding Endpoint}" />
-                  </StackPanel>
-                  <Button
-                      Grid.Column="1"
-                      Classes="tabCloseButton"
-                      VerticalAlignment="Center"
-                      Command="{Binding CloseCommand}"
-                      Focusable="False"
-                      FontFamily="{DynamicResource IconFontFamily}"
-                      Content="&#xE711;" />
-                </Grid>
-              </DataTemplate>
-            </ListBox.ItemTemplate>
-          </ListBox>
-
-          <controls:WebTerminalHostControl
-              x:Name="TerminalHost"
-              Grid.Row="1"
-              ActiveTab="{Binding SelectedTab}"
-              Background="{DynamicResource AppBackgroundBrush}"
-              IsVisible="{Binding AreTerminalHostsVisible}"
-              Tabs="{Binding Tabs}" />
-        </Grid>
-
-      </Grid>
+      <controls:WebTerminalHostControl
+          x:Name="TerminalHost"
+          Grid.Column="2"
+          ActiveTab="{Binding SelectedTab}"
+          Background="{DynamicResource AppBackgroundBrush}"
+          IsVisible="{Binding AreTerminalHostsVisible}"
+          Tabs="{Binding Tabs}" />
     </Grid>
 
     <Border
-        Grid.Row="1"
+        Grid.Row="2"
         IsVisible="{Binding IsStatusBarVisible}"
         Padding="12,0"
         MinHeight="28"
@@ -300,7 +345,7 @@
       </Grid>
     </Border>
 
-    <Panel Grid.RowSpan="2" IsVisible="{Binding IsEditorOpen}">
+    <Panel Grid.Row="1" Grid.RowSpan="2" IsVisible="{Binding IsEditorOpen}">
       <Border Background="{DynamicResource OverlayBrush}" />
       <Border
           Width="560"
@@ -375,7 +420,7 @@
       </Border>
     </Panel>
 
-    <Panel Grid.RowSpan="2" IsVisible="{Binding IsDeleteConfirmationOpen}">
+    <Panel Grid.Row="1" Grid.RowSpan="2" IsVisible="{Binding IsDeleteConfirmationOpen}">
       <Border Background="{DynamicResource OverlayBrush}" />
       <Border
           Width="420"
@@ -401,7 +446,7 @@
       </Border>
     </Panel>
 
-    <Panel Grid.RowSpan="2" IsVisible="{Binding IsSettingsOpen}">
+    <Panel Grid.Row="1" Grid.RowSpan="2" IsVisible="{Binding IsSettingsOpen}">
       <Border Background="{DynamicResource OverlayBrush}" />
       <Border
           Width="{DynamicResource SettingsDialogWidth}"
@@ -460,6 +505,25 @@
                       Foreground="{DynamicResource SuccessBrush}"
                       TextWrapping="Wrap"
                       Text="{Binding SettingsDataStatus}" />
+                </StackPanel>
+              </Border>
+
+              <Border Classes="settingsSection">
+                <StackPanel>
+                  <TextBlock Classes="settingsSectionTitle" Text="Interface" />
+                  <TextBlock
+                      Classes="settingsSectionDescription"
+                      Text="Control workspace visibility and view available keyboard shortcuts." />
+                  <StackPanel
+                      Orientation="Horizontal"
+                      Spacing="{DynamicResource SettingsActionSpacing}">
+                    <Button
+                        Command="{Binding ToggleStatusBarCommand}"
+                        Content="Toggle status bar" />
+                    <Button
+                        Command="{Binding OpenShortcutsCommand}"
+                        Content="Keyboard shortcuts" />
+                  </StackPanel>
                 </StackPanel>
               </Border>
 
@@ -560,7 +624,7 @@
       </Border>
     </Panel>
 
-    <Panel Grid.RowSpan="2" IsVisible="{Binding IsShortcutsOpen}">
+    <Panel Grid.Row="1" Grid.RowSpan="2" IsVisible="{Binding IsShortcutsOpen}">
       <Border Background="{DynamicResource OverlayBrush}" />
       <Border
           Width="500"
@@ -573,24 +637,27 @@
           CornerRadius="{DynamicResource RadiusL}">
         <StackPanel Spacing="16">
           <TextBlock FontSize="{DynamicResource FontSizeTitle}" FontWeight="SemiBold" Text="Keyboard shortcuts" />
-          <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+          <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
             <TextBlock Text="Toggle sidebar" /><TextBlock Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+B" />
             <TextBlock Grid.Row="1" Text="New session" /><TextBlock Grid.Row="1" Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+N" />
             <TextBlock Grid.Row="2" Text="Open selected session" /><TextBlock Grid.Row="2" Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+O" />
             <TextBlock Grid.Row="3" Text="Edit selected session" /><TextBlock Grid.Row="3" Grid.Column="1" Classes="secondary" Text="F2" />
             <TextBlock Grid.Row="4" Text="Close active tab" /><TextBlock Grid.Row="4" Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+W" />
-            <TextBlock Grid.Row="5" Text="Open settings" /><TextBlock Grid.Row="5" Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+," />
-            <TextBlock Grid.Row="6" Text="Show shortcuts" /><TextBlock Grid.Row="6" Grid.Column="1" Classes="secondary" Text="F1" />
-            <TextBlock Grid.Row="7" Text="Copy terminal selection" /><TextBlock Grid.Row="7" Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+C" />
-            <TextBlock Grid.Row="8" Text="Paste into terminal" /><TextBlock Grid.Row="8" Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+V" />
-            <TextBlock Grid.Row="9" Text="Close active screen" /><TextBlock Grid.Row="9" Grid.Column="1" Classes="secondary" Text="Esc" />
+            <TextBlock Grid.Row="5" Text="Next tab" /><TextBlock Grid.Row="5" Grid.Column="1" Classes="secondary" Text="Ctrl+Tab" />
+            <TextBlock Grid.Row="6" Text="Previous tab" /><TextBlock Grid.Row="6" Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+Tab" />
+            <TextBlock Grid.Row="7" Text="Open settings" /><TextBlock Grid.Row="7" Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+," />
+            <TextBlock Grid.Row="8" Text="Show shortcuts" /><TextBlock Grid.Row="8" Grid.Column="1" Classes="secondary" Text="F1" />
+            <TextBlock Grid.Row="9" Text="Copy terminal selection" /><TextBlock Grid.Row="9" Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+C" />
+            <TextBlock Grid.Row="10" Text="Paste into terminal" /><TextBlock Grid.Row="10" Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+V" />
+            <TextBlock Grid.Row="11" Text="Close active screen" /><TextBlock Grid.Row="11" Grid.Column="1" Classes="secondary" Text="Esc" />
+            <TextBlock Grid.Row="12" Text="Close HyperTerm" /><TextBlock Grid.Row="12" Grid.Column="1" Classes="secondary" Text="Alt+F4" />
           </Grid>
           <Button HorizontalAlignment="Right" Command="{Binding CloseShortcutsCommand}" Content="Close" />
         </StackPanel>
       </Border>
     </Panel>
 
-    <Panel Grid.RowSpan="2" IsVisible="{Binding IsFolderEditorOpen}">
+    <Panel Grid.Row="1" Grid.RowSpan="2" IsVisible="{Binding IsFolderEditorOpen}">
       <Border Background="{DynamicResource OverlayBrush}" />
       <Border
           Width="440"
@@ -621,7 +688,7 @@
       </Border>
     </Panel>
 
-    <Panel Grid.RowSpan="2" IsVisible="{Binding IsFolderDeleteConfirmationOpen}">
+    <Panel Grid.Row="1" Grid.RowSpan="2" IsVisible="{Binding IsFolderDeleteConfirmationOpen}">
       <Border Background="{DynamicResource OverlayBrush}" />
       <Border
           Width="440"
@@ -654,5 +721,28 @@
         </StackPanel>
       </Border>
     </Panel>
+
+    <Grid
+        x:Name="ResizeGripOverlay"
+        Grid.RowSpan="3">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="{DynamicResource WindowResizeGripSize}" />
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="{DynamicResource WindowResizeGripSize}" />
+      </Grid.ColumnDefinitions>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="{DynamicResource WindowResizeGripSize}" />
+        <RowDefinition Height="*" />
+        <RowDefinition Height="{DynamicResource WindowResizeGripSize}" />
+      </Grid.RowDefinitions>
+      <Border Grid.Row="0" Grid.Column="0" Background="{DynamicResource TransparentBrush}" Cursor="TopLeftCorner" Tag="NorthWest" PointerPressed="OnResizeGripPointerPressed" />
+      <Border Grid.Row="0" Grid.Column="1" Background="{DynamicResource TransparentBrush}" Cursor="SizeNorthSouth" Tag="North" PointerPressed="OnResizeGripPointerPressed" />
+      <Border Grid.Row="0" Grid.Column="2" Background="{DynamicResource TransparentBrush}" Cursor="TopRightCorner" Tag="NorthEast" PointerPressed="OnResizeGripPointerPressed" />
+      <Border Grid.Row="1" Grid.Column="0" Background="{DynamicResource TransparentBrush}" Cursor="SizeWestEast" Tag="West" PointerPressed="OnResizeGripPointerPressed" />
+      <Border Grid.Row="1" Grid.Column="2" Background="{DynamicResource TransparentBrush}" Cursor="SizeWestEast" Tag="East" PointerPressed="OnResizeGripPointerPressed" />
+      <Border Grid.Row="2" Grid.Column="0" Background="{DynamicResource TransparentBrush}" Cursor="BottomLeftCorner" Tag="SouthWest" PointerPressed="OnResizeGripPointerPressed" />
+      <Border Grid.Row="2" Grid.Column="1" Background="{DynamicResource TransparentBrush}" Cursor="SizeNorthSouth" Tag="South" PointerPressed="OnResizeGripPointerPressed" />
+      <Border Grid.Row="2" Grid.Column="2" Background="{DynamicResource TransparentBrush}" Cursor="BottomRightCorner" Tag="SouthEast" PointerPressed="OnResizeGripPointerPressed" />
+    </Grid>
   </Grid>
 </Window>

@@ -61,6 +61,28 @@ function createTerminal({ tabId, options }) {
 }
 
 function handleKeyEvent(state, event) {
+  if (event.altKey && !event.ctrlKey && !event.metaKey && event.code === 'F4') {
+    if (event.type === 'keydown' && !event.repeat) {
+      send({
+        type: 'applicationCommand',
+        tabId: state.tabId,
+        command: 'closeWindow'
+      });
+    }
+    return false;
+  }
+
+  if (event.ctrlKey && !event.altKey && !event.metaKey && event.code === 'Tab') {
+    if (event.type === 'keydown' && !event.repeat) {
+      send({
+        type: 'applicationCommand',
+        tabId: state.tabId,
+        command: event.shiftKey ? 'previousTab' : 'nextTab'
+      });
+    }
+    return false;
+  }
+
   if (event.type === 'keydown' && event.ctrlKey && event.shiftKey) {
     const applicationCommands = {
       KeyN: 'newSession',

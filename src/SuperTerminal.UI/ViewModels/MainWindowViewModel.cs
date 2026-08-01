@@ -24,6 +24,8 @@ public sealed partial class MainWindowViewModel(
     ISessionArchiveFilePicker sessionArchiveFilePicker,
     ISystemFontService systemFontService) : ViewModelBase
 {
+    public event EventHandler? CloseWindowRequested;
+
     private readonly List<SessionListItemViewModel> allSessions = [];
     private readonly List<SessionFolder> allFolders = [];
     private readonly HashSet<string> selectedFolderPaths =
@@ -37,7 +39,9 @@ public sealed partial class MainWindowViewModel(
     private bool windowStateChanged;
     private bool rootFoldersDescending;
 
-    public string Title => "HyperTerm";
+    public string Title => SelectedTab is null
+        ? "HyperTerm"
+        : $"HyperTerm — {SelectedTab.Title}";
 
     public IReadOnlyList<string> ThemeOptions { get; } = ["Dark"];
 
@@ -341,20 +345,43 @@ public sealed partial class MainWindowViewModel(
         RequestDeleteSessionCommand.NotifyCanExecuteChanged();
     }
 
-    partial void OnSelectedTabChanged(TerminalTabViewModel? value)
+    partial void OnSelectedTabChanged(
+        TerminalTabViewModel? oldValue,
+        TerminalTabViewModel? newValue)
     {
+        if (oldValue is not null)
+        {
+            oldValue.PropertyChanged -= OnSelectedTabPropertyChanged;
+        }
+
+        if (newValue is not null)
+        {
+            newValue.PropertyChanged += OnSelectedTabPropertyChanged;
+        }
+
         foreach (TerminalTabViewModel tab in Tabs)
         {
-            tab.IsSelected = ReferenceEquals(tab, value);
+            tab.IsSelected = ReferenceEquals(tab, newValue);
         }
 
-        if (value is not null)
+        if (newValue is not null)
         {
-            StatusText = $"Active tab: {value.Title}";
-            value.RequestFocus();
+            StatusText = $"Active tab: {newValue.Title}";
+            newValue.RequestFocus();
         }
 
+        OnPropertyChanged(nameof(Title));
         CloseSelectedTabCommand.NotifyCanExecuteChanged();
+        NextTabCommand.NotifyCanExecuteChanged();
+        PreviousTabCommand.NotifyCanExecuteChanged();
+    }
+
+    private void OnSelectedTabPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
+    {
+        if (eventArgs.PropertyName == nameof(TerminalTabViewModel.Title))
+        {
+            OnPropertyChanged(nameof(Title));
+        }
     }
 
     partial void OnHasOpenTabsChanged(bool value) =>
@@ -459,6 +486,32 @@ public sealed partial class MainWindowViewModel(
 
     [RelayCommand(CanExecute = nameof(HasSelectedTab))]
     private Task CloseSelectedTabAsync() => CloseTabAsync(SelectedTab!);
+
+    [RelayCommand]
+    private void RequestCloseWindow() =>
+        CloseWindowRequested?.Invoke(this, EventArgs.Empty);
+
+    [RelayCommand(CanExecute = nameof(HasSelectedTab))]
+    private void NextTab() => SelectRelativeTab(1);
+
+    [RelayCommand(CanExecute = nameof(HasSelectedTab))]
+    private void PreviousTab() => SelectRelativeTab(-1);
+
+    private void SelectRelativeTab(int offset)
+    {
+        if (Tabs.Count == 0)
+        {
+            return;
+        }
+
+        int currentIndex = SelectedTab is null ? -1 : Tabs.IndexOf(SelectedTab);
+        int nextIndex = currentIndex < 0
+            ? offset > 0 ? 0 : Tabs.Count - 1
+            : (currentIndex + offset + Tabs.Count) % Tabs.Count;
+
+        SelectedTab = Tabs[nextIndex];
+        SelectedTab.RequestFocus();
+    }
 
     [RelayCommand]
     private void OpenSettings()
@@ -1239,6 +1292,15 @@ public sealed partial class MainWindowViewModel(
                 break;
             case "closeTab" when sender is TerminalTabViewModel tab:
                 await CloseTabAsync(tab);
+                break;
+            case "nextTab":
+                NextTab();
+                break;
+            case "previousTab":
+                PreviousTab();
+                break;
+            case "closeWindow":
+                RequestCloseWindow();
                 break;
             case "toggleSidebar":
                 ToggleSidebar();

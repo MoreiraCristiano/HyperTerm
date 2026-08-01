@@ -31,6 +31,12 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        UpdateMaximizeRestoreIcon();
+        TitleBarRoot.AddHandler(
+            InputElement.PointerPressedEvent,
+            OnTitleBarPointerPressed,
+            RoutingStrategies.Tunnel,
+            handledEventsToo: true);
         SessionsTree.AddHandler(
             InputElement.PointerPressedEvent,
             OnSessionTreePointerPressed,
@@ -56,10 +62,86 @@ public sealed partial class MainWindow : Window
         sidebarWidth = SidebarColumn.Width.Value;
     }
 
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+
+        if (change.Property == WindowStateProperty)
+        {
+            UpdateMaximizeRestoreIcon();
+        }
+    }
+
+    private void OnMinimizeButtonClick(object? sender, RoutedEventArgs eventArgs) =>
+        WindowState = WindowState.Minimized;
+
+    private void OnMaximizeRestoreButtonClick(object? sender, RoutedEventArgs eventArgs) =>
+        WindowState = WindowState == WindowState.Maximized
+            ? WindowState.Normal
+            : WindowState.Maximized;
+
+    private void OnCloseButtonClick(object? sender, RoutedEventArgs eventArgs) => Close();
+
+    private void OnTitleBarPointerPressed(object? sender, PointerPressedEventArgs eventArgs)
+    {
+        PointerPoint point = eventArgs.GetCurrentPoint(TitleBarRoot);
+        if (!point.Properties.IsLeftButtonPressed ||
+            eventArgs.Source is not Visual source ||
+            source.FindAncestorOfType<Button>() is not null ||
+            source.FindAncestorOfType<ListBoxItem>() is not null ||
+            source.FindAncestorOfType<TextBox>() is not null ||
+            source.FindAncestorOfType<ScrollBar>() is not null)
+        {
+            return;
+        }
+
+        if (eventArgs.ClickCount == 2)
+        {
+            WindowState = WindowState == WindowState.Maximized
+                ? WindowState.Normal
+                : WindowState.Maximized;
+            eventArgs.Handled = true;
+            return;
+        }
+
+        BeginMoveDrag(eventArgs);
+        eventArgs.Handled = true;
+    }
+
+    private void OnResizeGripPointerPressed(object? sender, PointerPressedEventArgs eventArgs)
+    {
+        if (WindowState != WindowState.Normal ||
+            sender is not Control { Tag: string edgeName } ||
+            !Enum.TryParse(edgeName, out WindowEdge edge) ||
+            !eventArgs.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        {
+            return;
+        }
+
+        BeginResizeDrag(edge, eventArgs);
+        eventArgs.Handled = true;
+    }
+
+    private void UpdateMaximizeRestoreIcon()
+    {
+        if (MaximizeRestoreIcon is null)
+        {
+            return;
+        }
+
+        bool isMaximized = WindowState == WindowState.Maximized;
+        ResizeGripOverlay.IsVisible = !isMaximized;
+        MaximizeRestoreIcon.Text = isMaximized ? "\uE923" : "\uE922";
+        ToolTip.SetTip(
+            MaximizeRestoreButton,
+            isMaximized ? "Restore" : "Maximize");
+    }
+
     public MainWindow(MainWindowViewModel viewModel)
         : this()
     {
         DataContext = viewModel;
+        viewModel.CloseWindowRequested += (_, _) => Close();
         viewModel.PropertyChanged += (_, eventArgs) =>
         {
             if (eventArgs.PropertyName == nameof(MainWindowViewModel.IsEditorOpen) &&
