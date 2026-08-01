@@ -52,6 +52,30 @@ To build without launching the application:
 .\bootstrap.ps1 -BuildOnly
 ```
 
+## Portable release
+
+Create a self-contained Windows package that does not require .NET on the
+destination computer:
+
+```powershell
+.\build.ps1
+```
+
+The resulting ZIP is written to:
+
+```text
+artifacts\releases\HyperTerm-1.0.0-win-x64.zip
+```
+
+An alternative version or Windows architecture can be selected explicitly:
+
+```powershell
+.\build.ps1 -Version 1.1.0 -Runtime win-arm64
+```
+
+The destination computer still needs PowerShell 7 and Microsoft Edge WebView2
+Runtime. Windows OpenSSH Client is also required for SSH sessions.
+
 ## Manual build
 
 Build the web terminal first because its generated `dist` directory is intentionally excluded from Git:
