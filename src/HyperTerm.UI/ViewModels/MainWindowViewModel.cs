@@ -177,6 +177,9 @@ public sealed partial class MainWindowViewModel(
     [ObservableProperty]
     private string? settingsDataStatus;
 
+    public bool HasSettingsDataStatus =>
+        !string.IsNullOrWhiteSpace(SettingsDataStatus);
+
     [ObservableProperty]
     private bool isEditorOpen;
 
@@ -394,6 +397,9 @@ public sealed partial class MainWindowViewModel(
     partial void OnIsDeleteConfirmationOpenChanged(bool value) => NotifyTabVisibilityChanged();
 
     partial void OnIsSettingsOpenChanged(bool value) => NotifyTabVisibilityChanged();
+
+    partial void OnSettingsDataStatusChanged(string? value) =>
+        OnPropertyChanged(nameof(HasSettingsDataStatus));
 
     partial void OnIsShortcutsOpenChanged(bool value) => NotifyTabVisibilityChanged();
 

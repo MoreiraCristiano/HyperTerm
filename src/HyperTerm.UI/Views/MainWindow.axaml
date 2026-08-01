@@ -504,6 +504,7 @@
                   <TextBlock
                       Margin="{DynamicResource SettingsStatusMargin}"
                       Foreground="{DynamicResource SuccessBrush}"
+                      IsVisible="{Binding HasSettingsDataStatus}"
                       TextWrapping="Wrap"
                       Text="{Binding SettingsDataStatus}" />
                 </StackPanel>
