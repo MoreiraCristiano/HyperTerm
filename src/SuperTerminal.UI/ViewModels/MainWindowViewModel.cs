@@ -240,6 +240,7 @@ public sealed partial class MainWindowViewModel(
         SelectedSession = value?.Session;
         EditFolderCommand.NotifyCanExecuteChanged();
         NewSessionInSelectedFolderCommand.NotifyCanExecuteChanged();
+        OpenSubfolderEditorCommand.NotifyCanExecuteChanged();
         RequestDeleteFolderCommand.NotifyCanExecuteChanged();
     }
 
@@ -399,12 +400,21 @@ public sealed partial class MainWindowViewModel(
     [RelayCommand]
     private void OpenFolderEditor()
     {
+        PrepareFolderEditor(string.Empty);
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSelectedFolder))]
+    private void OpenSubfolderEditor()
+    {
+        PrepareFolderEditor($"{SelectedTreeNode!.Path}/");
+    }
+
+    private void PrepareFolderEditor(string initialPath)
+    {
         editingFolderPath = null;
         FolderEditorTitle = "New folder";
         FolderEditorAction = "Create";
-        FolderPath = SelectedTreeNode?.IsFolder == true
-            ? $"{SelectedTreeNode.Path}/"
-            : string.Empty;
+        FolderPath = initialPath;
         FolderError = null;
         IsFolderEditorOpen = true;
     }

@@ -19,6 +19,14 @@ public sealed partial class MainWindow : Window
     private Point sessionDragStartPoint;
     private SessionTreeNodeViewModel? draggedSessionNode;
     private TreeViewItem? currentDropTarget;
+    private readonly double sidebarMinimumWidth;
+    private readonly double sidebarMaximumWidth;
+    private readonly GridLength sidebarSplitterWidth;
+    private double sidebarWidth;
+
+    private ColumnDefinition SidebarColumn => WorkspaceGrid.ColumnDefinitions[0];
+
+    private ColumnDefinition SidebarSplitterColumn => WorkspaceGrid.ColumnDefinitions[1];
 
     public MainWindow()
     {
@@ -42,12 +50,33 @@ public sealed partial class MainWindow : Window
         DragDrop.AddDragOverHandler(SessionsTree, OnSessionTreeDragOver);
         DragDrop.AddDragLeaveHandler(SessionsTree, OnSessionTreeDragLeave);
         DragDrop.AddDropHandler(SessionsTree, OnSessionTreeDrop);
+        sidebarMinimumWidth = SidebarColumn.MinWidth;
+        sidebarMaximumWidth = SidebarColumn.MaxWidth;
+        sidebarSplitterWidth = SidebarSplitterColumn.Width;
+        sidebarWidth = SidebarColumn.Width.Value;
     }
 
     public MainWindow(MainWindowViewModel viewModel)
         : this()
     {
         DataContext = viewModel;
+        viewModel.PropertyChanged += (_, eventArgs) =>
+        {
+            if (eventArgs.PropertyName == nameof(MainWindowViewModel.IsEditorOpen) &&
+                viewModel.IsEditorOpen)
+            {
+                FocusEditor(SessionNameEditor);
+            }
+            else if (eventArgs.PropertyName == nameof(MainWindowViewModel.IsFolderEditorOpen) &&
+                     viewModel.IsFolderEditorOpen)
+            {
+                FocusEditor(FolderPathEditor);
+            }
+            else if (eventArgs.PropertyName == nameof(MainWindowViewModel.IsSidebarVisible))
+            {
+                UpdateSidebarVisibility(viewModel.IsSidebarVisible);
+            }
+        };
         Opened += (_, _) => RestoreWindowState(viewModel.WindowSettings);
         Closing += (_, _) => viewModel.CaptureWindowState(
             Bounds.Width,
@@ -72,6 +101,39 @@ public sealed partial class MainWindow : Window
             WindowStartupLocation = WindowStartupLocation.Manual;
             Position = savedPosition;
         }
+    }
+
+    private static void FocusEditor(TextBox editor)
+    {
+        Dispatcher.UIThread.Post(
+            () =>
+            {
+                editor.Focus();
+                editor.SelectAll();
+            },
+            DispatcherPriority.Loaded);
+    }
+
+    private void UpdateSidebarVisibility(bool isVisible)
+    {
+        if (!isVisible)
+        {
+            if (SidebarColumn.ActualWidth > 0)
+            {
+                sidebarWidth = SidebarColumn.ActualWidth;
+            }
+
+            SidebarColumn.MinWidth = 0;
+            SidebarColumn.MaxWidth = 0;
+            SidebarColumn.Width = new GridLength(0);
+            SidebarSplitterColumn.Width = new GridLength(0);
+            return;
+        }
+
+        SidebarColumn.MinWidth = sidebarMinimumWidth;
+        SidebarColumn.MaxWidth = sidebarMaximumWidth;
+        SidebarColumn.Width = new GridLength(sidebarWidth);
+        SidebarSplitterColumn.Width = sidebarSplitterWidth;
     }
 
     private void OnSessionTreePointerPressed(object? sender, PointerPressedEventArgs eventArgs)

@@ -55,6 +55,10 @@
     <x:Double x:Key="TreeItemMinHeight">28</x:Double>
     <x:Double x:Key="TreeItemIconSize">13</x:Double>
     <x:Double x:Key="TreeItemIconWidth">16</x:Double>
+    <x:Double x:Key="SidebarMinWidth">180</x:Double>
+    <x:Double x:Key="SidebarMaxWidth">480</x:Double>
+    <GridLength x:Key="SidebarDefaultWidth">240</GridLength>
+    <GridLength x:Key="SidebarSplitterWidth">4</GridLength>
     <CornerRadius x:Key="RadiusS">3</CornerRadius>
     <CornerRadius x:Key="RadiusM">6</CornerRadius>
     <CornerRadius x:Key="RadiusL">8</CornerRadius>
@@ -150,5 +154,11 @@
   </Style>
   <Style Selector="TreeViewItem.dropTarget /template/ Border#PART_LayoutRoot">
     <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
+  </Style>
+  <Style Selector="GridSplitter.sidebarSplitter">
+    <Setter Property="Background" Value="{DynamicResource BorderBrush}" />
+  </Style>
+  <Style Selector="GridSplitter.sidebarSplitter:pointerover">
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
   </Style>
 </Styles>
