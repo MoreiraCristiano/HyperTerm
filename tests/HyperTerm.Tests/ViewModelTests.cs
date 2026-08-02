@@ -29,6 +29,65 @@ public sealed class ViewModelTests
     }
 
     [Fact]
+    public async Task ExplorerPreservesExpandedFoldersWhenMovingSession()
+    {
+        var sessions = new FakeSessionService();
+        var folders = new FakeFolderService();
+        folders.Folders.Add(new(Guid.NewGuid(), "Source/Nested", DateTime.UtcNow));
+        folders.Folders.Add(new(Guid.NewGuid(), "Destination", DateTime.UtcNow));
+        Guid sessionId = Guid.NewGuid();
+        sessions.Sessions.Add(FakeSessionService.CreateSession(
+            sessionId,
+            new SessionDetails(
+                "Server", "host", 22, "user", null, "Source/Nested", null)));
+        var explorer = new SessionExplorerViewModel(sessions, folders);
+
+        await explorer.InitializeAsync(TestContext.Current.CancellationToken);
+        SessionTreeNodeViewModel source = explorer.SessionTree.Single(
+            node => node.Name == "Source");
+        SessionTreeNodeViewModel nested = source.Children.Single(
+            node => node.Name == "Nested");
+        SessionTreeNodeViewModel destination = explorer.SessionTree.Single(
+            node => node.Name == "Destination");
+        source.IsExpanded = true;
+        nested.IsExpanded = true;
+        destination.IsExpanded = true;
+
+        await explorer.MoveSessionAsync(sessionId, "Destination");
+
+        Assert.True(explorer.SessionTree.Single(node => node.Name == "Source").IsExpanded);
+        Assert.True(explorer.SessionTree.Single(node => node.Name == "Source")
+            .Children.Single(node => node.Name == "Nested").IsExpanded);
+        Assert.True(explorer.SessionTree.Single(node => node.Name == "Destination").IsExpanded);
+    }
+
+    [Fact]
+    public async Task ExplorerMovesFolderTreeAndPreservesExpansion()
+    {
+        var sessions = new FakeSessionService();
+        var folders = new FakeFolderService();
+        folders.Folders.Add(new(Guid.NewGuid(), "Source/Nested", DateTime.UtcNow));
+        folders.Folders.Add(new(Guid.NewGuid(), "Destination", DateTime.UtcNow));
+        var explorer = new SessionExplorerViewModel(sessions, folders);
+
+        await explorer.InitializeAsync(TestContext.Current.CancellationToken);
+        SessionTreeNodeViewModel source = explorer.SessionTree.Single(
+            node => node.Name == "Source");
+        source.IsExpanded = true;
+        source.Children.Single(node => node.Name == "Nested").IsExpanded = true;
+
+        await explorer.MoveFolderAsync("Source", "Destination");
+
+        SessionTreeNodeViewModel destination = explorer.SessionTree.Single(
+            node => node.Name == "Destination");
+        SessionTreeNodeViewModel movedSource = destination.Children.Single(
+            node => node.Name == "Source");
+        Assert.True(destination.IsExpanded);
+        Assert.True(movedSource.IsExpanded);
+        Assert.True(movedSource.Children.Single(node => node.Name == "Nested").IsExpanded);
+    }
+
+    [Fact]
     public async Task WorkspaceOpensNavigatesAndClosesLocalTabs()
     {
         var workspace = new TerminalWorkspaceViewModel(

@@ -16,6 +16,7 @@ public sealed partial class SessionExplorerViewModel(
         new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<SessionTreeNodeViewModel> selectedFolderNodes = [];
     private bool rootFoldersDescending;
+    private (string CurrentPath, string NewPath, string DestinationPath)? pendingFolderMove;
 
     public event Action<SessionListItemViewModel>? SessionOpenRequested;
     public event Action<string>? NewSessionRequested;
@@ -128,6 +129,33 @@ public sealed partial class SessionExplorerViewModel(
         {
             StatusRequested?.Invoke(exception.Message);
             await ReloadAsync();
+        }
+    }
+
+    public async Task MoveFolderAsync(string currentPath, string destinationFolder)
+    {
+        string folderName = currentPath.Split('/').Last();
+        string newPath = string.IsNullOrWhiteSpace(destinationFolder)
+            ? folderName
+            : $"{destinationFolder}/{folderName}";
+        if (currentPath.Equals(newPath, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        try
+        {
+            await sessionFolderService.RenameAsync(currentPath, newPath);
+            pendingFolderMove = (currentPath, newPath, destinationFolder);
+            StatusRequested?.Invoke(string.IsNullOrWhiteSpace(destinationFolder)
+                ? $"Folder ‘{folderName}’ moved to root"
+                : $"Folder ‘{folderName}’ moved to ‘{destinationFolder}’");
+            await ReloadAsync();
+        }
+        catch (Exception exception) when (
+            exception is ArgumentException or InvalidOperationException or KeyNotFoundException)
+        {
+            StatusRequested?.Invoke(exception.Message);
         }
     }
 
@@ -265,6 +293,12 @@ public sealed partial class SessionExplorerViewModel(
 
     private void ApplyFilter(Guid? sessionToSelect)
     {
+        HashSet<string> expandedFolderPaths = GetExpandedFolderPaths(SessionTree);
+        if (pendingFolderMove is { } move)
+        {
+            expandedFolderPaths = RemapExpandedFolderPaths(expandedFolderPaths, move);
+            pendingFolderMove = null;
+        }
         string filter = SearchText.Trim();
         IEnumerable<SessionListItemViewModel> filteredSessions = allSessions;
         if (filter.Length > 0)
@@ -293,12 +327,63 @@ public sealed partial class SessionExplorerViewModel(
         }
 
         SortNodes(SessionTree, rootFoldersDescending);
+        RestoreExpandedFolders(SessionTree, expandedFolderPaths);
         SessionCountText = visibleSessionCount == 1
             ? "1 session"
             : $"{visibleSessionCount} sessions";
         SelectedTreeNode = sessionToSelect.HasValue
             ? FindSessionNode(SessionTree, sessionToSelect.Value)
             : null;
+    }
+
+    private static HashSet<string> RemapExpandedFolderPaths(
+        IEnumerable<string> paths,
+        (string CurrentPath, string NewPath, string DestinationPath) move)
+    {
+        var remappedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string path in paths)
+        {
+            remappedPaths.Add(path.Equals(move.CurrentPath, StringComparison.OrdinalIgnoreCase)
+                ? move.NewPath
+                : path.StartsWith($"{move.CurrentPath}/", StringComparison.OrdinalIgnoreCase)
+                    ? $"{move.NewPath}{path[move.CurrentPath.Length..]}"
+                    : path);
+        }
+
+        if (!string.IsNullOrWhiteSpace(move.DestinationPath))
+        {
+            remappedPaths.Add(move.DestinationPath);
+        }
+
+        return remappedPaths;
+    }
+
+    private static HashSet<string> GetExpandedFolderPaths(
+        IEnumerable<SessionTreeNodeViewModel> nodes)
+    {
+        var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (SessionTreeNodeViewModel node in nodes)
+        {
+            if (node.IsFolder && node.IsExpanded)
+            {
+                paths.Add(node.Path);
+            }
+
+            paths.UnionWith(GetExpandedFolderPaths(node.Children));
+        }
+
+        return paths;
+    }
+
+    private static void RestoreExpandedFolders(
+        IEnumerable<SessionTreeNodeViewModel> nodes,
+        ISet<string> expandedFolderPaths)
+    {
+        foreach (SessionTreeNodeViewModel node in nodes)
+        {
+            node.IsExpanded = node.IsFolder && expandedFolderPaths.Contains(node.Path);
+            RestoreExpandedFolders(node.Children, expandedFolderPaths);
+        }
     }
 
     private void RefreshFolderOptions()

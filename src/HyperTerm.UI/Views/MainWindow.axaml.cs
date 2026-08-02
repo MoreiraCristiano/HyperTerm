@@ -14,10 +14,12 @@ public sealed partial class MainWindow : Window
 {
     private static readonly DataFormat<string> SessionDragFormat =
         DataFormat.CreateInProcessFormat<string>("HyperTerm.SessionId");
+    private static readonly DataFormat<string> FolderDragFormat =
+        DataFormat.CreateInProcessFormat<string>("HyperTerm.FolderPath");
 
     private PointerPressedEventArgs? sessionDragStartEvent;
     private Point sessionDragStartPoint;
-    private SessionTreeNodeViewModel? draggedSessionNode;
+    private SessionTreeNodeViewModel? draggedTreeNode;
     private TreeViewItem? currentDropTarget;
     private readonly double sidebarMinimumWidth;
     private readonly double sidebarMaximumWidth;
@@ -280,25 +282,17 @@ public sealed partial class MainWindow : Window
             SelectOnly(item);
         }
 
-        if (isLeftClick && item.DataContext is SessionTreeNodeViewModel { IsSession: true } sessionNode)
+        if (isLeftClick && !controlPressed)
         {
             sessionDragStartEvent = eventArgs;
             sessionDragStartPoint = eventArgs.GetPosition(SessionsTree);
-            draggedSessionNode = sessionNode;
+            draggedTreeNode = node;
         }
         else
         {
             ClearDragStart();
         }
 
-        bool clickedExpander = source is ToggleButton ||
-            source.FindAncestorOfType<ToggleButton>() is not null;
-        if (isLeftClick && !controlPressed && !clickedExpander &&
-            item.DataContext is SessionTreeNodeViewModel { IsFolder: true })
-        {
-            item.IsExpanded = !item.IsExpanded;
-            eventArgs.Handled = true;
-        }
     }
 
     private void SelectOnly(TreeViewItem item)
@@ -342,7 +336,7 @@ public sealed partial class MainWindow : Window
 
     private async void OnSessionTreePointerMoved(object? sender, PointerEventArgs eventArgs)
     {
-        if (sessionDragStartEvent is null || draggedSessionNode?.Session is null ||
+        if (sessionDragStartEvent is null || draggedTreeNode is null ||
             !eventArgs.GetCurrentPoint(SessionsTree).Properties.IsLeftButtonPressed)
         {
             return;
@@ -356,23 +350,49 @@ public sealed partial class MainWindow : Window
         }
 
         PointerPressedEventArgs dragEvent = sessionDragStartEvent;
-        Guid sessionId = draggedSessionNode.Session.Id;
+        SessionTreeNodeViewModel draggedNode = draggedTreeNode;
         ClearDragStart();
         dragEvent.PreventGestureRecognition();
         dragEvent.Pointer.Capture(null);
 
         var data = new DataTransfer();
-        data.Add(DataTransferItem.Create(SessionDragFormat, sessionId.ToString("D")));
+        if (draggedNode.Session is { } session)
+        {
+            data.Add(DataTransferItem.Create(SessionDragFormat, session.Id.ToString("D")));
+        }
+        else
+        {
+            data.Add(DataTransferItem.Create(FolderDragFormat, draggedNode.Path));
+        }
         await DragDrop.DoDragDropAsync(dragEvent, data, DragDropEffects.Move);
         ClearDropTarget();
     }
 
-    private void OnSessionTreePointerReleased(object? sender, PointerReleasedEventArgs eventArgs) =>
+    private void OnSessionTreePointerReleased(object? sender, PointerReleasedEventArgs eventArgs)
+    {
+        if (sessionDragStartEvent is not null &&
+            draggedTreeNode is { IsFolder: true } folderNode &&
+            eventArgs.Source is Visual source &&
+            source.FindAncestorOfType<TreeViewItem>() is { } item &&
+            ReferenceEquals(item.DataContext, folderNode))
+        {
+            Point releasePoint = eventArgs.GetPosition(SessionsTree);
+            if (Math.Abs(releasePoint.X - sessionDragStartPoint.X) < 5 &&
+                Math.Abs(releasePoint.Y - sessionDragStartPoint.Y) < 5)
+            {
+                item.IsExpanded = !item.IsExpanded;
+                eventArgs.Handled = true;
+            }
+        }
+
         ClearDragStart();
+    }
 
     private void OnSessionTreeDragOver(object? sender, DragEventArgs eventArgs)
     {
-        if (!eventArgs.DataTransfer.Contains(SessionDragFormat))
+        bool isSessionDrag = eventArgs.DataTransfer.Contains(SessionDragFormat);
+        bool isFolderDrag = eventArgs.DataTransfer.Contains(FolderDragFormat);
+        if (!isSessionDrag && !isFolderDrag)
         {
             eventArgs.DragEffects = DragDropEffects.None;
             return;
@@ -380,6 +400,13 @@ public sealed partial class MainWindow : Window
 
         SessionTreeNodeViewModel? targetNode = GetTreeNode(eventArgs.Source);
         bool canDrop = targetNode is null || targetNode.IsFolder;
+        if (canDrop && isFolderDrag)
+        {
+            string draggedPath = eventArgs.DataTransfer.TryGetValue(FolderDragFormat) ?? string.Empty;
+            canDrop = targetNode is null ||
+                (!targetNode.Path.Equals(draggedPath, StringComparison.OrdinalIgnoreCase) &&
+                 !targetNode.Path.StartsWith($"{draggedPath}/", StringComparison.OrdinalIgnoreCase));
+        }
         eventArgs.DragEffects = canDrop ? DragDropEffects.Move : DragDropEffects.None;
         SetDropTarget(canDrop && targetNode?.IsFolder == true
             ? GetTreeItem(eventArgs.Source)
@@ -393,7 +420,9 @@ public sealed partial class MainWindow : Window
     private async void OnSessionTreeDrop(object? sender, DragEventArgs eventArgs)
     {
         ClearDropTarget();
-        if (!eventArgs.DataTransfer.Contains(SessionDragFormat))
+        bool isSessionDrag = eventArgs.DataTransfer.Contains(SessionDragFormat);
+        bool isFolderDrag = eventArgs.DataTransfer.Contains(FolderDragFormat);
+        if (!isSessionDrag && !isFolderDrag)
         {
             return;
         }
@@ -405,16 +434,37 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        string? sessionIdValue = eventArgs.DataTransfer.TryGetValue(SessionDragFormat);
-        if (!Guid.TryParse(sessionIdValue, out Guid sessionId))
-        {
-            eventArgs.DragEffects = DragDropEffects.None;
-            return;
-        }
         string destinationFolder = targetNode?.Path ?? string.Empty;
         if (DataContext is MainWindowViewModel viewModel)
         {
-            await viewModel.Explorer.MoveSessionAsync(sessionId, destinationFolder);
+            if (isSessionDrag)
+            {
+                string? sessionIdValue = eventArgs.DataTransfer.TryGetValue(SessionDragFormat);
+                if (!Guid.TryParse(sessionIdValue, out Guid sessionId))
+                {
+                    eventArgs.DragEffects = DragDropEffects.None;
+                    return;
+                }
+
+                await viewModel.Explorer.MoveSessionAsync(sessionId, destinationFolder);
+            }
+            else
+            {
+                string currentPath =
+                    eventArgs.DataTransfer.TryGetValue(FolderDragFormat) ?? string.Empty;
+                if (currentPath.Length == 0 ||
+                    destinationFolder.Equals(currentPath, StringComparison.OrdinalIgnoreCase) ||
+                    destinationFolder.StartsWith(
+                        $"{currentPath}/",
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    eventArgs.DragEffects = DragDropEffects.None;
+                    return;
+                }
+
+                await viewModel.Explorer.MoveFolderAsync(currentPath, destinationFolder);
+            }
+
             eventArgs.DragEffects = DragDropEffects.Move;
             eventArgs.Handled = true;
         }
@@ -447,7 +497,7 @@ public sealed partial class MainWindow : Window
     private void ClearDragStart()
     {
         sessionDragStartEvent = null;
-        draggedSessionNode = null;
+        draggedTreeNode = null;
     }
 
     private void OnSessionTreeDoubleTapped(object? sender, TappedEventArgs eventArgs)

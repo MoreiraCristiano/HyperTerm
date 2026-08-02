@@ -104,7 +104,23 @@ internal sealed class FakeFolderService : ISessionFolderService
     public Task RenameAsync(
         string currentPath,
         string newPath,
-        CancellationToken cancellationToken = default) => Task.CompletedTask;
+        CancellationToken cancellationToken = default)
+    {
+        SessionFolder[] folders = Folders.Where(folder =>
+            folder.Path.Equals(currentPath, StringComparison.OrdinalIgnoreCase) ||
+            folder.Path.StartsWith($"{currentPath}/", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        foreach (SessionFolder folder in folders)
+        {
+            Folders.Remove(folder);
+            string path = folder.Path.Equals(currentPath, StringComparison.OrdinalIgnoreCase)
+                ? newPath
+                : $"{newPath}{folder.Path[currentPath.Length..]}";
+            Folders.Add(new SessionFolder(folder.Id, path, folder.CreatedAt));
+        }
+
+        return Task.CompletedTask;
+    }
 
     public Task<FolderDeleteResult> DeleteAsync(
         IReadOnlyCollection<string> paths,
