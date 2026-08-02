@@ -30,7 +30,6 @@ public sealed partial class SessionExplorerViewModel(
     public event Action<string>? StatusRequested;
 
     public ObservableCollection<SessionTreeNodeViewModel> SessionTree { get; } = [];
-    public ObservableCollection<string> FolderOptions { get; } = [];
     public IReadOnlyList<SessionListItemViewModel> Sessions => allSessions;
     public bool HasMultipleFoldersSelected => selectedFolderPaths.Count > 1;
     public string RootFolderSortGlyph => rootFoldersDescending ? "\uE74B" : "\uE74A";
@@ -81,7 +80,6 @@ public sealed partial class SessionExplorerViewModel(
         allSessions.AddRange(sessions.Select(session => new SessionListItemViewModel(session)));
         allFolders.Clear();
         allFolders.AddRange(folders);
-        RefreshFolderOptions();
         ApplyFilter(sessionToSelect);
         SessionsReloaded?.Invoke(allSessions);
         if (sessions.Count == 0)
@@ -462,21 +460,6 @@ public sealed partial class SessionExplorerViewModel(
         {
             node.IsExpanded = node.IsFolder && expandedFolderPaths.Contains(node.Path);
             RestoreExpandedFolders(node.Children, expandedFolderPaths);
-        }
-    }
-
-    private void RefreshFolderOptions()
-    {
-        string[] paths = allFolders.Select(folder => folder.Path)
-            .Concat(allSessions.Select(session => session.Folder))
-            .Where(path => !string.IsNullOrWhiteSpace(path))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(path => path, StringComparer.CurrentCultureIgnoreCase)
-            .ToArray();
-        FolderOptions.Clear();
-        foreach (string path in paths)
-        {
-            FolderOptions.Add(path);
         }
     }
 

@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HyperTerm.Core.Abstractions.Services;
@@ -11,12 +10,11 @@ public sealed partial class SessionEditorViewModel(ISessionService sessionServic
     : ViewModelBase
 {
     private Guid? editingSessionId;
+    private string editingSessionFolder = string.Empty;
     private SessionListItemViewModel? sessionPendingDeletion;
 
     public event Action<Guid?>? SessionsChanged;
     public event Action<string>? StatusRequested;
-
-    public ObservableCollection<string> FolderOptions { get; } = [];
 
     [ObservableProperty] private bool isEditorOpen;
     [ObservableProperty] private bool isDeleteConfirmationOpen;
@@ -25,28 +23,18 @@ public sealed partial class SessionEditorViewModel(ISessionService sessionServic
     [ObservableProperty] private string editorHost = string.Empty;
     [ObservableProperty] private decimal editorPort = 22;
     [ObservableProperty] private string editorUsername = string.Empty;
-    [ObservableProperty] private string editorFolder = string.Empty;
     [ObservableProperty] private string editorNotes = string.Empty;
     [ObservableProperty] private string? editorError;
 
-    public void SetFolderOptions(IEnumerable<string> folders)
-    {
-        FolderOptions.Clear();
-        foreach (string folder in folders)
-        {
-            FolderOptions.Add(folder);
-        }
-    }
-
-    public void OpenNew(string folder)
+    public void OpenNew(string _)
     {
         editingSessionId = null;
+        editingSessionFolder = string.Empty;
         EditorTitle = "New session";
         EditorName = string.Empty;
         EditorHost = string.Empty;
         EditorPort = 22;
         EditorUsername = string.Empty;
-        EditorFolder = folder;
         EditorNotes = string.Empty;
         EditorError = null;
         IsEditorOpen = true;
@@ -55,12 +43,12 @@ public sealed partial class SessionEditorViewModel(ISessionService sessionServic
     public void OpenEdit(SessionListItemViewModel session)
     {
         editingSessionId = session.Id;
+        editingSessionFolder = session.Folder;
         EditorTitle = "Edit session";
         EditorName = session.Name;
         EditorHost = session.Host;
         EditorPort = session.Port;
         EditorUsername = session.Username;
-        EditorFolder = session.Folder;
         EditorNotes = session.Notes ?? string.Empty;
         EditorError = null;
         IsEditorOpen = true;
@@ -91,7 +79,7 @@ public sealed partial class SessionEditorViewModel(ISessionService sessionServic
                 decimal.ToInt32(EditorPort),
                 EditorUsername,
                 null,
-                EditorFolder,
+                editingSessionFolder,
                 EditorNotes);
             Session session = editingSessionId is Guid id
                 ? await sessionService.UpdateAsync(id, details)

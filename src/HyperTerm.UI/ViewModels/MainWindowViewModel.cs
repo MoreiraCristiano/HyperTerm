@@ -164,7 +164,6 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
     private async void OnSessionsReloaded(IReadOnlyList<SessionListItemViewModel> sessions)
     {
-        SessionEditor.SetFolderOptions(Explorer.FolderOptions);
         await Workspace.SynchronizeTabsAsync(sessions);
     }
 
