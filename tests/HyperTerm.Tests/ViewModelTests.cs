@@ -290,4 +290,62 @@ public sealed class ViewModelTests
         Assert.True(completed);
         Assert.False(viewModel.IsPowerShellSetupOpen);
     }
+
+    [Fact]
+    public async Task SettingsSavePowerShellCommandFromPath()
+    {
+        var settingsService = new FakeSettingsService(exists: true);
+        var viewModel = CreateSettingsViewModel(settingsService);
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+        viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.SettingsPowerShellPath = "powershell.exe";
+
+        await viewModel.SaveSettingsCommand.ExecuteAsync(null);
+
+        Assert.Equal("powershell.exe", settingsService.Value.PowerShellPath);
+        Assert.Null(viewModel.SettingsError);
+        Assert.False(viewModel.IsSettingsOpen);
+    }
+
+    [Fact]
+    public async Task SettingsBrowseUpdatesPowerShellFieldWithoutSaving()
+    {
+        var settingsService = new FakeSettingsService(exists: true);
+        var viewModel = CreateSettingsViewModel(
+            settingsService,
+            new FakeExecutablePicker(@"C:\Tools\pwsh.exe"));
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+
+        await viewModel.SelectPowerShellCommand.ExecuteAsync(null);
+
+        Assert.Equal(@"C:\Tools\pwsh.exe", viewModel.SettingsPowerShellPath);
+        Assert.Equal("pwsh.exe", settingsService.Value.PowerShellPath);
+    }
+
+    [Fact]
+    public async Task SettingsRejectNonPowerShellExecutable()
+    {
+        var settingsService = new FakeSettingsService(exists: true);
+        var viewModel = CreateSettingsViewModel(settingsService);
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+        viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.SettingsPowerShellPath = "cmd.exe";
+
+        await viewModel.SaveSettingsCommand.ExecuteAsync(null);
+
+        Assert.Contains("pwsh.exe or powershell.exe", viewModel.SettingsError);
+        Assert.True(viewModel.IsSettingsOpen);
+        Assert.Equal("pwsh.exe", settingsService.Value.PowerShellPath);
+    }
+
+    private static SettingsViewModel CreateSettingsViewModel(
+        FakeSettingsService settingsService,
+        FakeExecutablePicker? executablePicker = null) =>
+        new(
+            settingsService,
+            new FakeThemeService(),
+            executablePicker ?? new FakeExecutablePicker(),
+            new FakeArchiveService(),
+            new FakeArchiveFilePicker(),
+            new FakeSystemFontService());
 }

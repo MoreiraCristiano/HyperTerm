@@ -296,7 +296,7 @@ public sealed partial class SettingsViewModel(
         string powerShellPath = SettingsPowerShellPath.Trim().Trim('"');
         if (powerShellPath.Length == 0)
         {
-            SettingsError = "Select pwsh.exe or powershell.exe.";
+            SettingsError = "Enter or select pwsh.exe or powershell.exe.";
             return false;
         }
 
@@ -310,7 +310,7 @@ public sealed partial class SettingsViewModel(
         if (!executableName.Equals("pwsh.exe", StringComparison.OrdinalIgnoreCase) &&
             !executableName.Equals("powershell.exe", StringComparison.OrdinalIgnoreCase))
         {
-            SettingsError = "Select a PowerShell executable named pwsh.exe or powershell.exe.";
+            SettingsError = "Enter or select a PowerShell executable named pwsh.exe or powershell.exe.";
             return false;
         }
 

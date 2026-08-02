@@ -511,10 +511,13 @@
                   <TextBlock Classes="settingsSectionTitle" Text="Shell" />
                   <TextBlock
                       Classes="settingsSectionDescription"
-                      Text="Choose the PowerShell executable used by local and SSH terminals." />
+                      Text="Enter pwsh.exe or powershell.exe from PATH, or browse to the executable used by local and SSH terminals." />
                   <TextBlock Classes="settingsLabel" Text="PowerShell executable" />
                   <Grid ColumnDefinitions="*,Auto">
-                    <TextBox IsReadOnly="True" Text="{Binding Settings.SettingsPowerShellPath}" />
+                    <TextBox
+                        PlaceholderText="pwsh.exe or full path"
+                        VerticalAlignment="Center"
+                        Text="{Binding Settings.SettingsPowerShellPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                     <Button
                         Grid.Column="1"
                         Margin="{DynamicResource SettingsBrowseButtonMargin}"

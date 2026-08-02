@@ -191,10 +191,10 @@ internal sealed class FakeThemeService : IThemeService
     public void Apply(string theme) { }
 }
 
-internal sealed class FakeExecutablePicker : IExecutableFilePicker
+internal sealed class FakeExecutablePicker(string? selectedPath = null) : IExecutableFilePicker
 {
     public Task<string?> PickPowerShellAsync(CancellationToken cancellationToken = default) =>
-        Task.FromResult<string?>(null);
+        Task.FromResult(selectedPath);
 }
 
 internal sealed class FakeArchiveService : ISessionArchiveService
