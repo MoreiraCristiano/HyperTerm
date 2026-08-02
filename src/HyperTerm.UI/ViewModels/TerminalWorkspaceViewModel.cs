@@ -80,16 +80,6 @@ public sealed partial class TerminalWorkspaceViewModel(
     public async Task OpenSessionAsync(SessionListItemViewModel session)
     {
         ArgumentNullException.ThrowIfNull(session);
-        TerminalTabViewModel? existingTab = Tabs.FirstOrDefault(
-            tab => tab.SessionId == session.Id);
-
-        if (existingTab is not null)
-        {
-            SelectedTab = existingTab;
-            existingTab.RequestFocus();
-            StatusText = $"Session ‘{session.Name}’ is already open";
-            return;
-        }
 
         try
         {

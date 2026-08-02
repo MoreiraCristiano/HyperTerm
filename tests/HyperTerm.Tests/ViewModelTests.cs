@@ -185,6 +185,28 @@ public sealed class ViewModelTests
     }
 
     [Fact]
+    public async Task WorkspaceOpensSameSessionInMultipleTabs()
+    {
+        var sessions = new FakeSessionService();
+        var session = FakeSessionService.CreateSession(
+            Guid.NewGuid(),
+            new SessionDetails("Server", "host", 22, "user", null, string.Empty, null));
+        sessions.Sessions.Add(session);
+        var workspace = new TerminalWorkspaceViewModel(
+            sessions,
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory());
+        var listItem = new SessionListItemViewModel(session);
+
+        await workspace.OpenSessionAsync(listItem);
+        await workspace.OpenSessionAsync(listItem);
+
+        Assert.Equal(2, workspace.Tabs.Count);
+        Assert.All(workspace.Tabs, tab => Assert.Equal(session.Id, tab.SessionId));
+        Assert.NotEqual(workspace.Tabs[0].Id, workspace.Tabs[1].Id);
+    }
+
+    [Fact]
     public async Task SessionEditorCreatesSessionAndReportsSelection()
     {
         var service = new FakeSessionService();
