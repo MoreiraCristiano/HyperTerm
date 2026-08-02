@@ -192,6 +192,31 @@ public sealed partial class TerminalWorkspaceViewModel(
         OnPropertyChanged(nameof(HasOpenTabs));
     }
 
+    public void MoveTab(
+        TerminalTabViewModel tab,
+        TerminalTabViewModel targetTab,
+        bool insertAfter)
+    {
+        int sourceIndex = Tabs.IndexOf(tab);
+        int targetIndex = Tabs.IndexOf(targetTab);
+        if (sourceIndex < 0 || targetIndex < 0)
+        {
+            return;
+        }
+
+        int destinationIndex = targetIndex + (insertAfter ? 1 : 0);
+        if (sourceIndex < destinationIndex)
+        {
+            destinationIndex--;
+        }
+
+        destinationIndex = Math.Clamp(destinationIndex, 0, Tabs.Count - 1);
+        if (sourceIndex != destinationIndex)
+        {
+            Tabs.Move(sourceIndex, destinationIndex);
+        }
+    }
+
     private void SelectRelativeTab(int offset)
     {
         if (Tabs.Count == 0)

@@ -49,6 +49,7 @@
         </Border>
 
         <ScrollViewer
+            x:Name="TabScrollViewer"
             Grid.Column="1"
             HorizontalScrollBarVisibility="Auto"
             VerticalScrollBarVisibility="Disabled">

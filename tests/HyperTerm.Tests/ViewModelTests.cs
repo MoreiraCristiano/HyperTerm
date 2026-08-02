@@ -207,6 +207,31 @@ public sealed class ViewModelTests
     }
 
     [Fact]
+    public async Task WorkspaceReordersTabsWithoutChangingSelection()
+    {
+        var workspace = new TerminalWorkspaceViewModel(
+            new FakeSessionService(),
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory());
+        await workspace.OpenLocalTerminalCommand.ExecuteAsync(null);
+        await workspace.OpenLocalTerminalCommand.ExecuteAsync(null);
+        await workspace.OpenLocalTerminalCommand.ExecuteAsync(null);
+        TerminalTabViewModel first = workspace.Tabs[0];
+        TerminalTabViewModel second = workspace.Tabs[1];
+        TerminalTabViewModel selected = workspace.SelectedTab!;
+
+        workspace.MoveTab(first, selected, insertAfter: true);
+
+        Assert.Equal([second, selected, first], workspace.Tabs);
+        Assert.Same(selected, workspace.SelectedTab);
+
+        workspace.MoveTab(first, second, insertAfter: false);
+
+        Assert.Equal([first, second, selected], workspace.Tabs);
+        Assert.Same(selected, workspace.SelectedTab);
+    }
+
+    [Fact]
     public async Task SessionEditorCreatesSessionAndReportsSelection()
     {
         var service = new FakeSessionService();

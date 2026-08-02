@@ -277,6 +277,14 @@
   <Style Selector="TreeViewItem.dropTarget /template/ Border#PART_LayoutRoot">
     <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
   </Style>
+  <Style Selector="ListBoxItem.tabDropBefore /template/ Border#PART_LayoutRoot">
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="BorderThickness" Value="2,0,0,0" />
+  </Style>
+  <Style Selector="ListBoxItem.tabDropAfter /template/ Border#PART_LayoutRoot">
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,2,0" />
+  </Style>
   <Style Selector="GridSplitter.sidebarSplitter">
     <Setter Property="Background" Value="{DynamicResource BorderBrush}" />
   </Style>

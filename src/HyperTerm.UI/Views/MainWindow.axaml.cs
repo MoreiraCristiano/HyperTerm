@@ -16,11 +16,23 @@ public sealed partial class MainWindow : Window
         DataFormat.CreateInProcessFormat<string>("HyperTerm.SessionId");
     private static readonly DataFormat<string> FolderDragFormat =
         DataFormat.CreateInProcessFormat<string>("HyperTerm.FolderPath");
+    private static readonly DataFormat<string> TabDragFormat =
+        DataFormat.CreateInProcessFormat<string>("HyperTerm.TabId");
 
     private PointerPressedEventArgs? sessionDragStartEvent;
     private Point sessionDragStartPoint;
     private SessionTreeNodeViewModel? draggedTreeNode;
     private TreeViewItem? currentDropTarget;
+    private PointerPressedEventArgs? tabDragStartEvent;
+    private Point tabDragStartPoint;
+    private TerminalTabViewModel? draggedTab;
+    private ListBoxItem? currentTabDropTarget;
+    private bool currentTabDropAfter;
+    private double tabAutoScrollDirection;
+    private readonly DispatcherTimer tabAutoScrollTimer = new()
+    {
+        Interval = TimeSpan.FromMilliseconds(30),
+    };
     private readonly double sidebarMinimumWidth;
     private readonly double sidebarMaximumWidth;
     private readonly GridLength sidebarSplitterWidth;
@@ -44,6 +56,21 @@ public sealed partial class MainWindow : Window
             OnTerminalTabPointerPressed,
             RoutingStrategies.Tunnel,
             handledEventsToo: true);
+        TerminalTabs.AddHandler(
+            InputElement.PointerMovedEvent,
+            OnTerminalTabPointerMoved,
+            RoutingStrategies.Tunnel,
+            handledEventsToo: true);
+        TerminalTabs.AddHandler(
+            InputElement.PointerReleasedEvent,
+            OnTerminalTabPointerReleased,
+            RoutingStrategies.Tunnel,
+            handledEventsToo: true);
+        DragDrop.SetAllowDrop(TerminalTabs, true);
+        DragDrop.AddDragOverHandler(TerminalTabs, OnTerminalTabDragOver);
+        DragDrop.AddDragLeaveHandler(TerminalTabs, OnTerminalTabDragLeave);
+        DragDrop.AddDropHandler(TerminalTabs, OnTerminalTabDrop);
+        tabAutoScrollTimer.Tick += OnTabAutoScrollTick;
         SessionsTree.AddHandler(
             InputElement.PointerPressedEvent,
             OnSessionTreePointerPressed,
@@ -549,19 +576,174 @@ public sealed partial class MainWindow : Window
         object? sender,
         PointerPressedEventArgs eventArgs)
     {
-        if (!eventArgs.GetCurrentPoint(TerminalTabs).Properties.IsMiddleButtonPressed ||
-            eventArgs.Source is not Visual source ||
-            source.FindAncestorOfType<ListBoxItem>()?.DataContext is not
-                TerminalTabViewModel tab)
+        PointerPoint point = eventArgs.GetCurrentPoint(TerminalTabs);
+        if (eventArgs.Source is not Visual source ||
+            source.FindAncestorOfType<ListBoxItem>()?.DataContext is not TerminalTabViewModel tab)
         {
             return;
         }
 
-        eventArgs.Handled = true;
-        if (tab.CloseCommand.CanExecute(null))
+        if (point.Properties.IsMiddleButtonPressed)
         {
-            tab.CloseCommand.Execute(null);
+            eventArgs.Handled = true;
+            if (tab.CloseCommand.CanExecute(null))
+            {
+                tab.CloseCommand.Execute(null);
+            }
+            return;
         }
+
+        if (!point.Properties.IsLeftButtonPressed || tab.IsRenaming ||
+            source is Button or TextBox ||
+            source.FindAncestorOfType<Button>() is not null ||
+            source.FindAncestorOfType<TextBox>() is not null)
+        {
+            return;
+        }
+
+        tabDragStartEvent = eventArgs;
+        tabDragStartPoint = eventArgs.GetPosition(TerminalTabs);
+        draggedTab = tab;
+    }
+
+    private async void OnTerminalTabPointerMoved(object? sender, PointerEventArgs eventArgs)
+    {
+        if (tabDragStartEvent is null || draggedTab is null ||
+            !eventArgs.GetCurrentPoint(TerminalTabs).Properties.IsLeftButtonPressed)
+        {
+            return;
+        }
+
+        Point currentPoint = eventArgs.GetPosition(TerminalTabs);
+        if (Math.Abs(currentPoint.X - tabDragStartPoint.X) < 5 &&
+            Math.Abs(currentPoint.Y - tabDragStartPoint.Y) < 5)
+        {
+            return;
+        }
+
+        PointerPressedEventArgs dragEvent = tabDragStartEvent;
+        TerminalTabViewModel tab = draggedTab;
+        ClearTabDragStart();
+        var data = new DataTransfer();
+        data.Add(DataTransferItem.Create(TabDragFormat, tab.Id.ToString("D")));
+        await DragDrop.DoDragDropAsync(dragEvent, data, DragDropEffects.Move);
+        ClearTabDropTarget();
+        StopTabAutoScroll();
+    }
+
+    private void OnTerminalTabPointerReleased(
+        object? sender,
+        PointerReleasedEventArgs eventArgs) => ClearTabDragStart();
+
+    private void OnTerminalTabDragOver(object? sender, DragEventArgs eventArgs)
+    {
+        if (!eventArgs.DataTransfer.Contains(TabDragFormat) ||
+            GetTabItem(eventArgs.Source) is not { } target)
+        {
+            eventArgs.DragEffects = DragDropEffects.None;
+            ClearTabDropTarget();
+            StopTabAutoScroll();
+            return;
+        }
+
+        bool insertAfter = eventArgs.GetPosition(target).X >= target.Bounds.Width / 2;
+        SetTabDropTarget(target, insertAfter);
+        UpdateTabAutoScroll(eventArgs.GetPosition(TabScrollViewer).X);
+        eventArgs.DragEffects = DragDropEffects.Move;
+        eventArgs.Handled = true;
+    }
+
+    private void OnTerminalTabDragLeave(object? sender, DragEventArgs eventArgs)
+    {
+        ClearTabDropTarget();
+        StopTabAutoScroll();
+    }
+
+    private void OnTerminalTabDrop(object? sender, DragEventArgs eventArgs)
+    {
+        string? tabIdValue = eventArgs.DataTransfer.TryGetValue(TabDragFormat);
+        if (!Guid.TryParse(tabIdValue, out Guid tabId) ||
+            GetTabItem(eventArgs.Source)?.DataContext is not TerminalTabViewModel targetTab ||
+            DataContext is not MainWindowViewModel viewModel ||
+            viewModel.Workspace.Tabs.FirstOrDefault(tab => tab.Id == tabId) is not { } sourceTab)
+        {
+            eventArgs.DragEffects = DragDropEffects.None;
+            ClearTabDropTarget();
+            StopTabAutoScroll();
+            return;
+        }
+
+        bool insertAfter = eventArgs.GetPosition(GetTabItem(eventArgs.Source)!).X >=
+            GetTabItem(eventArgs.Source)!.Bounds.Width / 2;
+        viewModel.Workspace.MoveTab(sourceTab, targetTab, insertAfter);
+        eventArgs.DragEffects = DragDropEffects.Move;
+        eventArgs.Handled = true;
+        ClearTabDropTarget();
+        StopTabAutoScroll();
+    }
+
+    private static ListBoxItem? GetTabItem(object? source) =>
+        source as ListBoxItem ?? (source as Visual)?.FindAncestorOfType<ListBoxItem>();
+
+    private void SetTabDropTarget(ListBoxItem target, bool insertAfter)
+    {
+        if (ReferenceEquals(currentTabDropTarget, target) &&
+            currentTabDropAfter == insertAfter)
+        {
+            return;
+        }
+
+        ClearTabDropTarget();
+        currentTabDropTarget = target;
+        currentTabDropAfter = insertAfter;
+        target.Classes.Add(insertAfter ? "tabDropAfter" : "tabDropBefore");
+    }
+
+    private void ClearTabDropTarget()
+    {
+        currentTabDropTarget?.Classes.Remove("tabDropBefore");
+        currentTabDropTarget?.Classes.Remove("tabDropAfter");
+        currentTabDropTarget = null;
+    }
+
+    private void ClearTabDragStart()
+    {
+        tabDragStartEvent = null;
+        draggedTab = null;
+    }
+
+    private void UpdateTabAutoScroll(double pointerX)
+    {
+        const double edgeSize = 32;
+        tabAutoScrollDirection = pointerX < edgeSize
+            ? -1
+            : pointerX > TabScrollViewer.Bounds.Width - edgeSize ? 1 : 0;
+        if (tabAutoScrollDirection == 0)
+        {
+            tabAutoScrollTimer.Stop();
+        }
+        else if (!tabAutoScrollTimer.IsEnabled)
+        {
+            tabAutoScrollTimer.Start();
+        }
+    }
+
+    private void OnTabAutoScrollTick(object? sender, EventArgs eventArgs)
+    {
+        double maximumOffset = Math.Max(
+            0,
+            TabScrollViewer.Extent.Width - TabScrollViewer.Viewport.Width);
+        double nextOffset = Math.Clamp(
+            TabScrollViewer.Offset.X + tabAutoScrollDirection * 12,
+            0,
+            maximumOffset);
+        TabScrollViewer.Offset = new Vector(nextOffset, TabScrollViewer.Offset.Y);
+    }
+
+    private void StopTabAutoScroll()
+    {
+        tabAutoScrollDirection = 0;
+        tabAutoScrollTimer.Stop();
     }
 
     private void OnTabTitleEditorKeyDown(object? sender, KeyEventArgs eventArgs)
