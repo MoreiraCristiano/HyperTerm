@@ -22,6 +22,7 @@ function createTerminal({ tabId, options }) {
   const element = document.createElement('div');
   element.className = 'terminal-pane';
   element.dataset.tabId = tabId;
+  element.addEventListener('contextmenu', event => event.preventDefault());
   terminalHostElement.appendChild(element);
 
   const fitAddon = new FitAddon();
