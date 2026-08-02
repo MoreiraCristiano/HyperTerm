@@ -55,12 +55,6 @@ internal sealed class PowerShellSessionFactory(ISettingsService settingsService)
             session.Port.ToString(System.Globalization.CultureInfo.InvariantCulture),
         };
 
-        if (!string.IsNullOrWhiteSpace(session.PrivateKey))
-        {
-            arguments.Add("-i");
-            arguments.Add(session.PrivateKey);
-        }
-
         arguments.Add($"{session.Username}@{session.Host}");
         return $"& {QuotePowerShellLiteral(sshPath)} " +
                string.Join(' ', arguments.Select(QuotePowerShellLiteral));

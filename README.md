@@ -7,7 +7,7 @@ HyperTerm is a modern Windows terminal and SSH session manager built with .NET a
 ## Features
 
 - Local PowerShell terminal opened automatically at startup
-- SSH session management with host, port, username, private key, folder, and notes
+- SSH session management with host, port, username, folder, and notes
 - Nested folders with mouse-driven creation, editing, deletion, and session drag-and-drop
 - Multiple terminal tabs with isolated processes and editable titles
 - Shared WebView terminal host optimized for multiple concurrent tabs

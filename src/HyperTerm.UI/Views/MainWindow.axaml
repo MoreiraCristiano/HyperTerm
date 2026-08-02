@@ -365,7 +365,7 @@
           BorderBrush="{DynamicResource BorderBrush}"
           BorderThickness="1"
           CornerRadius="8">
-        <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+        <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
           <TextBlock FontSize="20" FontWeight="SemiBold" Text="{Binding SessionEditor.EditorTitle}" />
           <Grid Grid.Row="1" Margin="0,20,0,0" ColumnDefinitions="*,16,160">
             <StackPanel>
@@ -390,10 +390,6 @@
             <TextBox Text="{Binding SessionEditor.EditorUsername, Mode=TwoWay}" />
           </StackPanel>
           <StackPanel Grid.Row="4" Margin="0,12,0,0">
-            <TextBlock Margin="0,0,0,5" Text="Private key (optional)" />
-            <TextBox PlaceholderText="C:\path\private-key.ppk" Text="{Binding SessionEditor.EditorPrivateKey, Mode=TwoWay}" />
-          </StackPanel>
-          <StackPanel Grid.Row="5" Margin="0,12,0,0">
             <TextBlock Margin="0,0,0,5" Text="Folder" />
             <ComboBox
                 HorizontalAlignment="Stretch"
@@ -403,7 +399,7 @@
                 SelectedItem="{Binding SessionEditor.EditorFolder, Mode=TwoWay}"
                 Text="{Binding SessionEditor.EditorFolder, Mode=TwoWay}" />
           </StackPanel>
-          <StackPanel Grid.Row="6" Margin="0,12,0,0">
+          <StackPanel Grid.Row="5" Margin="0,12,0,0">
             <TextBlock Margin="0,0,0,5" Text="Notes" />
             <TextBox
                 MinHeight="72"
@@ -412,12 +408,12 @@
                 Text="{Binding SessionEditor.EditorNotes, Mode=TwoWay}" />
           </StackPanel>
           <TextBlock
-              Grid.Row="7"
+              Grid.Row="6"
               Margin="0,10,0,0"
               Foreground="{DynamicResource DangerBrush}"
               TextWrapping="Wrap"
               Text="{Binding SessionEditor.EditorError}" />
-          <StackPanel Grid.Row="8" Margin="0,20,0,0" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+          <StackPanel Grid.Row="7" Margin="0,20,0,0" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
             <Button Command="{Binding SessionEditor.CancelEditorCommand}" Content="Cancel" />
             <Button
                 Classes="accent"

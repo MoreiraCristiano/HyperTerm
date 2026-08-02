@@ -25,7 +25,6 @@ public sealed partial class SessionEditorViewModel(ISessionService sessionServic
     [ObservableProperty] private string editorHost = string.Empty;
     [ObservableProperty] private decimal editorPort = 22;
     [ObservableProperty] private string editorUsername = string.Empty;
-    [ObservableProperty] private string editorPrivateKey = string.Empty;
     [ObservableProperty] private string editorFolder = string.Empty;
     [ObservableProperty] private string editorNotes = string.Empty;
     [ObservableProperty] private string? editorError;
@@ -47,7 +46,6 @@ public sealed partial class SessionEditorViewModel(ISessionService sessionServic
         EditorHost = string.Empty;
         EditorPort = 22;
         EditorUsername = string.Empty;
-        EditorPrivateKey = string.Empty;
         EditorFolder = folder;
         EditorNotes = string.Empty;
         EditorError = null;
@@ -62,7 +60,6 @@ public sealed partial class SessionEditorViewModel(ISessionService sessionServic
         EditorHost = session.Host;
         EditorPort = session.Port;
         EditorUsername = session.Username;
-        EditorPrivateKey = session.PrivateKey ?? string.Empty;
         EditorFolder = session.Folder;
         EditorNotes = session.Notes ?? string.Empty;
         EditorError = null;
@@ -93,7 +90,7 @@ public sealed partial class SessionEditorViewModel(ISessionService sessionServic
                 EditorHost,
                 decimal.ToInt32(EditorPort),
                 EditorUsername,
-                EditorPrivateKey,
+                null,
                 EditorFolder,
                 EditorNotes);
             Session session = editingSessionId is Guid id
