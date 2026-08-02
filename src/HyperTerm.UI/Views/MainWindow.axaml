@@ -48,58 +48,71 @@
               VerticalAlignment="Center" />
         </Border>
 
-        <ListBox
-            x:Name="TerminalTabs"
+        <ScrollViewer
             Grid.Column="1"
-            Classes="terminalTabs"
-            Background="{DynamicResource HeaderBackgroundBrush}"
-            BorderThickness="0"
-            ItemsSource="{Binding Workspace.Tabs}"
-            ScrollViewer.HorizontalScrollBarVisibility="Auto"
-            ScrollViewer.VerticalScrollBarVisibility="Disabled"
-            SelectedItem="{Binding Workspace.SelectedTab, Mode=TwoWay}"
-            WindowDecorationProperties.ElementRole="None">
-          <ListBox.ItemsPanel>
-            <ItemsPanelTemplate>
-              <StackPanel Orientation="Horizontal" />
-            </ItemsPanelTemplate>
-          </ListBox.ItemsPanel>
-          <ListBox.ItemTemplate>
-            <DataTemplate x:DataType="viewModels:TerminalTabViewModel">
-              <Grid
-                  MinWidth="{DynamicResource TerminalTabMinWidth}"
-                  ColumnDefinitions="*,Auto"
-                  DoubleTapped="OnTerminalTabDoubleTapped">
-                <StackPanel Margin="8,0" VerticalAlignment="Center">
-                  <TextBlock
-                      IsVisible="{Binding !IsRenaming}"
-                      FontWeight="SemiBold"
-                      Text="{Binding Title}" />
-                  <TextBox
-                      x:Name="TabTitleEditor"
-                      MinWidth="100"
-                      Padding="3,0"
-                      IsVisible="{Binding IsRenaming}"
-                      KeyDown="OnTabTitleEditorKeyDown"
-                      LostFocus="OnTabTitleEditorLostFocus"
-                      Text="{Binding EditableTitle, Mode=TwoWay}" />
-                  <TextBlock
-                      FontSize="9"
-                      Foreground="{DynamicResource MutedTextBrush}"
-                      Text="{Binding Endpoint}" />
-                </StackPanel>
-                <Button
-                    Grid.Column="1"
-                    Classes="tabCloseButton"
-                    VerticalAlignment="Center"
-                    Command="{Binding CloseCommand}"
-                    Focusable="False"
-                    FontFamily="{DynamicResource IconFontFamily}"
-                    Content="&#xE711;" />
-              </Grid>
-            </DataTemplate>
-          </ListBox.ItemTemplate>
-        </ListBox>
+            HorizontalScrollBarVisibility="Auto"
+            VerticalScrollBarVisibility="Disabled">
+          <StackPanel Orientation="Horizontal">
+            <ListBox
+                x:Name="TerminalTabs"
+                Classes="terminalTabs"
+                Background="{DynamicResource HeaderBackgroundBrush}"
+                BorderThickness="0"
+                ItemsSource="{Binding Workspace.Tabs}"
+                ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                SelectedItem="{Binding Workspace.SelectedTab, Mode=TwoWay}"
+                WindowDecorationProperties.ElementRole="None">
+              <ListBox.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+              </ListBox.ItemsPanel>
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="viewModels:TerminalTabViewModel">
+                  <Grid
+                      MinWidth="{DynamicResource TerminalTabMinWidth}"
+                      ColumnDefinitions="*,Auto"
+                      DoubleTapped="OnTerminalTabDoubleTapped">
+                    <StackPanel Margin="8,0" VerticalAlignment="Center">
+                      <TextBlock
+                          IsVisible="{Binding !IsRenaming}"
+                          FontWeight="SemiBold"
+                          Text="{Binding Title}" />
+                      <TextBox
+                          x:Name="TabTitleEditor"
+                          MinWidth="100"
+                          Padding="3,0"
+                          IsVisible="{Binding IsRenaming}"
+                          KeyDown="OnTabTitleEditorKeyDown"
+                          LostFocus="OnTabTitleEditorLostFocus"
+                          Text="{Binding EditableTitle, Mode=TwoWay}" />
+                      <TextBlock
+                          FontSize="9"
+                          Foreground="{DynamicResource MutedTextBrush}"
+                          Text="{Binding Endpoint}" />
+                    </StackPanel>
+                    <Button
+                        Grid.Column="1"
+                        Classes="tabCloseButton"
+                        VerticalAlignment="Center"
+                        Command="{Binding CloseCommand}"
+                        Focusable="False"
+                        FontFamily="{DynamicResource IconFontFamily}"
+                        Content="&#xE711;" />
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+            <Button
+                Classes="titleBarButton"
+                Command="{Binding Workspace.OpenLocalTerminalCommand}"
+                ToolTip.Tip="New PowerShell tab"
+                WindowDecorationProperties.ElementRole="None">
+              <TextBlock Classes="icon buttonIcon" Text="&#xE710;" />
+            </Button>
+          </StackPanel>
+        </ScrollViewer>
 
         <Button
             Grid.Column="2"
@@ -151,17 +164,9 @@
           IsVisible="{Binding IsSidebarVisible}"
           Padding="12"
           Background="{DynamicResource PanelBackgroundBrush}">
-        <Grid RowDefinitions="Auto,Auto,Auto,Auto,*">
-          <TextBlock
-              Grid.Row="0"
-              MinHeight="{DynamicResource SidebarSectionHeaderHeight}"
-              Margin="4,0,0,7"
-              FontSize="{DynamicResource FontSizeCaption}"
-              FontWeight="SemiBold"
-              VerticalAlignment="Center"
-              Text="GENERAL" />
+        <Grid RowDefinitions="Auto,*">
           <Grid
-              Grid.Row="3"
+              Grid.Row="0"
               MinHeight="{DynamicResource SidebarSectionHeaderHeight}"
               Margin="4,0,0,7"
               ColumnDefinitions="*,Auto,Auto,Auto,Auto">
@@ -207,17 +212,9 @@
                 Content="{Binding Explorer.RootFolderSortGlyph}"
                 ToolTip.Tip="{Binding Explorer.RootFolderSortTooltip}" />
           </Grid>
-          <StackPanel Grid.Row="1" Spacing="5">
-            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SidebarActionSpacing}">
-              <Button Classes="iconButton" Command="{Binding Workspace.OpenLocalTerminalCommand}" ToolTip.Tip="Local PowerShell">
-                <TextBlock Classes="icon buttonIcon" Text="&#xE756;" />
-              </Button>
-            </StackPanel>
-          </StackPanel>
-          <Border Grid.Row="2" Height="1" Margin="0,7,0,9" Background="{DynamicResource BorderBrush}" />
           <TreeView
               x:Name="SessionsTree"
-              Grid.Row="4"
+              Grid.Row="1"
               Margin="{DynamicResource SessionTreeMargin}"
               Background="Transparent"
               DoubleTapped="OnSessionTreeDoubleTapped"
@@ -231,7 +228,6 @@
                 <Grid
                     Classes="sessionTreeRow"
                     Classes.batchSelected="{Binding IsSelectedForDeletion}"
-                    Classes.nestedSession="{Binding IsNestedSession}"
                     ColumnDefinitions="Auto,*,Auto"
                     ContextRequested="OnSessionTreeItemContextRequested">
                   <Grid.ContextFlyout>

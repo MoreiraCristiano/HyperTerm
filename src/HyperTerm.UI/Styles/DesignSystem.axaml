@@ -52,7 +52,6 @@
     <Thickness x:Key="TreeItemPadding">0</Thickness>
     <Thickness x:Key="SessionTreeMargin">4,0,0,0</Thickness>
     <Thickness x:Key="TreeItemContentMargin">0</Thickness>
-    <Thickness x:Key="TreeSessionContentMargin">16,0,6,0</Thickness>
     <Thickness x:Key="TreeItemEndpointMargin">8,0,0,0</Thickness>
     <Thickness x:Key="TreeItemIconMargin">0,0,6,0</Thickness>
     <x:Double x:Key="TreeItemMinHeight">28</x:Double>
@@ -228,9 +227,6 @@
   </Style>
   <Style Selector="Grid.sessionTreeRow.batchSelected">
     <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
-  </Style>
-  <Style Selector="Grid.sessionTreeRow.nestedSession">
-    <Setter Property="Margin" Value="{DynamicResource TreeSessionContentMargin}" />
   </Style>
   <Style Selector="TextBlock.sessionTreeEndpoint">
     <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
