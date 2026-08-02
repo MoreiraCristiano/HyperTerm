@@ -17,6 +17,8 @@
     </filter>
   </defs>
 
+  <g transform="translate(-26.4 -24.5) scale(1.1)">
+
   <!-- monitor -->
   <g filter="url(#shadow)">
     <rect x="82" y="116" width="348" height="242" rx="34" fill="url(#frame)" stroke="#030712" stroke-width="12"/>
@@ -51,5 +53,6 @@
     <path d="M17 46c25-23 57-23 82 0" stroke="#6B7280" stroke-width="15"/>
     <path d="M34 72c14-12 31-12 45 0" stroke="#9CA3AF" stroke-width="13"/>
     <circle cx="57" cy="104" r="17" fill="url(#blue)" stroke="#0B1220" stroke-width="8"/>
+  </g>
   </g>
 </svg>
