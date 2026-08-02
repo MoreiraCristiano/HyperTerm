@@ -164,7 +164,7 @@
           IsVisible="{Binding IsSidebarVisible}"
           Padding="12"
           Background="{DynamicResource PanelBackgroundBrush}">
-        <Grid RowDefinitions="Auto,*">
+        <Grid RowDefinitions="Auto,Auto,*">
           <Grid
               Grid.Row="0"
               MinHeight="{DynamicResource SidebarSectionHeaderHeight}"
@@ -212,9 +212,14 @@
                 Content="{Binding Explorer.RootFolderSortGlyph}"
                 ToolTip.Tip="{Binding Explorer.RootFolderSortTooltip}" />
           </Grid>
+          <TextBox
+              Grid.Row="1"
+              Margin="0,0,0,8"
+              PlaceholderText="Search sessions..."
+              Text="{Binding Explorer.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
           <TreeView
               x:Name="SessionsTree"
-              Grid.Row="1"
+              Grid.Row="2"
               Margin="{DynamicResource SessionTreeMargin}"
               Background="Transparent"
               DoubleTapped="OnSessionTreeDoubleTapped"

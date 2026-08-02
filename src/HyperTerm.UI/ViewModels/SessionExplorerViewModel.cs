@@ -17,6 +17,7 @@ public sealed partial class SessionExplorerViewModel(
     private readonly HashSet<SessionTreeNodeViewModel> selectedFolderNodes = [];
     private bool rootFoldersDescending;
     private (string CurrentPath, string NewPath, string DestinationPath)? pendingFolderMove;
+    private HashSet<string>? expandedFolderPathsBeforeSearch;
 
     public event Action<SessionListItemViewModel>? SessionOpenRequested;
     public event Action<string>? NewSessionRequested;
@@ -297,11 +298,30 @@ public sealed partial class SessionExplorerViewModel(
         if (pendingFolderMove is { } move)
         {
             expandedFolderPaths = RemapExpandedFolderPaths(expandedFolderPaths, move);
+            if (expandedFolderPathsBeforeSearch is not null)
+            {
+                expandedFolderPathsBeforeSearch = RemapExpandedFolderPaths(
+                    expandedFolderPathsBeforeSearch,
+                    move);
+            }
+
             pendingFolderMove = null;
         }
+
         string filter = SearchText.Trim();
+        bool isSearching = filter.Length > 0;
+        if (isSearching)
+        {
+            expandedFolderPathsBeforeSearch ??= expandedFolderPaths;
+        }
+        else if (expandedFolderPathsBeforeSearch is not null)
+        {
+            expandedFolderPaths = expandedFolderPathsBeforeSearch;
+            expandedFolderPathsBeforeSearch = null;
+        }
+
         IEnumerable<SessionListItemViewModel> filteredSessions = allSessions;
-        if (filter.Length > 0)
+        if (isSearching)
         {
             filteredSessions = filteredSessions.Where(session =>
                 session.Name.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
@@ -314,9 +334,12 @@ public sealed partial class SessionExplorerViewModel(
         HashSet<string> foldersWithItems = GetFoldersWithItems();
         var foldersByPath = new Dictionary<string, SessionTreeNodeViewModel>(
             StringComparer.OrdinalIgnoreCase);
-        foreach (SessionFolder folder in allFolders)
+        if (!isSearching)
         {
-            EnsureFolderPath(folder.Path, foldersByPath, foldersWithItems);
+            foreach (SessionFolder folder in allFolders)
+            {
+                EnsureFolderPath(folder.Path, foldersByPath, foldersWithItems);
+            }
         }
 
         int visibleSessionCount = 0;
@@ -328,13 +351,30 @@ public sealed partial class SessionExplorerViewModel(
         }
 
         SortNodes(SessionTree, rootFoldersDescending);
-        RestoreExpandedFolders(SessionTree, expandedFolderPaths);
+        if (isSearching)
+        {
+            SetAllFoldersExpanded(SessionTree);
+        }
+        else
+        {
+            RestoreExpandedFolders(SessionTree, expandedFolderPaths);
+        }
         SessionCountText = visibleSessionCount == 1
             ? "1 session"
             : $"{visibleSessionCount} sessions";
         SelectedTreeNode = sessionToSelect.HasValue
             ? FindSessionNode(SessionTree, sessionToSelect.Value)
             : null;
+    }
+
+    private static void SetAllFoldersExpanded(
+        IEnumerable<SessionTreeNodeViewModel> nodes)
+    {
+        foreach (SessionTreeNodeViewModel node in nodes)
+        {
+            node.IsExpanded = node.IsFolder;
+            SetAllFoldersExpanded(node.Children);
+        }
     }
 
     private HashSet<string> GetFoldersWithItems()

@@ -53,10 +53,56 @@ public sealed class ViewModelTests
             node => node.Name == "WithSession");
         Assert.False(withSession.IsEmptyFolder);
 
-        explorer.SearchText = "no-match";
+        explorer.SearchText = "Server";
 
         Assert.False(explorer.SessionTree.Single(
             node => node.Name == "WithSession").IsEmptyFolder);
+    }
+
+    [Fact]
+    public async Task ExplorerSearchesSessionsAndRestoresExpandedFolders()
+    {
+        var sessions = new FakeSessionService();
+        var folders = new FakeFolderService();
+        folders.Folders.Add(new(Guid.NewGuid(), "Production/Apps", DateTime.UtcNow));
+        folders.Folders.Add(new(Guid.NewGuid(), "Development", DateTime.UtcNow));
+        folders.Folders.Add(new(Guid.NewGuid(), "Empty", DateTime.UtcNow));
+        sessions.Sessions.Add(FakeSessionService.CreateSession(
+            Guid.NewGuid(),
+            new SessionDetails(
+                "Web", "prod.example.test", 22, "user", null, "Production/Apps", null)));
+        sessions.Sessions.Add(FakeSessionService.CreateSession(
+            Guid.NewGuid(),
+            new SessionDetails(
+                "Database", "dev.example.test", 22, "user", null, "Development", null)));
+        var explorer = new SessionExplorerViewModel(sessions, folders);
+
+        await explorer.InitializeAsync(TestContext.Current.CancellationToken);
+        SessionTreeNodeViewModel production = explorer.SessionTree.Single(
+            node => node.Name == "Production");
+        SessionTreeNodeViewModel development = explorer.SessionTree.Single(
+            node => node.Name == "Development");
+        production.IsExpanded = false;
+        development.IsExpanded = true;
+
+        explorer.SearchText = "  PROD.EXAMPLE  ";
+
+        SessionTreeNodeViewModel resultFolder = Assert.Single(explorer.SessionTree);
+        Assert.Equal("Production", resultFolder.Name);
+        Assert.True(resultFolder.IsExpanded);
+        SessionTreeNodeViewModel apps = Assert.Single(resultFolder.Children);
+        Assert.True(apps.IsExpanded);
+        Assert.Equal("Web", Assert.Single(apps.Children).Name);
+        Assert.Equal("1 session", explorer.SessionCountText);
+
+        explorer.SearchText = string.Empty;
+
+        Assert.Equal(3, explorer.SessionTree.Count);
+        Assert.False(explorer.SessionTree.Single(
+            node => node.Name == "Production").IsExpanded);
+        Assert.True(explorer.SessionTree.Single(
+            node => node.Name == "Development").IsExpanded);
+        Assert.Equal("2 sessions", explorer.SessionCountText);
     }
 
     [Fact]
