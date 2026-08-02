@@ -234,6 +234,7 @@
               DoubleTapped="OnSessionTreeDoubleTapped"
               ItemsSource="{Binding Explorer.SessionTree}"
               ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+              ScrollViewer.VerticalScrollBarVisibility="Hidden"
               SelectedItem="{Binding Explorer.SelectedTreeNode, Mode=TwoWay}">
             <TreeView.ItemTemplate>
               <TreeDataTemplate
