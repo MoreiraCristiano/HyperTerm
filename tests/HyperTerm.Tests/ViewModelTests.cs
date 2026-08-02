@@ -338,6 +338,20 @@ public sealed class ViewModelTests
         Assert.Equal("pwsh.exe", settingsService.Value.PowerShellPath);
     }
 
+    [Fact]
+    public async Task SettingsAlwaysOpenOnGeneralTab()
+    {
+        var viewModel = CreateSettingsViewModel(new FakeSettingsService(exists: true));
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+        viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.SelectedSettingsTabIndex = 2;
+        viewModel.CancelSettingsCommand.Execute(null);
+
+        viewModel.OpenSettingsCommand.Execute(null);
+
+        Assert.Equal(0, viewModel.SelectedSettingsTabIndex);
+    }
+
     private static SettingsViewModel CreateSettingsViewModel(
         FakeSettingsService settingsService,
         FakeExecutablePicker? executablePicker = null) =>

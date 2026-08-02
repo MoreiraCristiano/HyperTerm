@@ -46,6 +46,9 @@ public sealed partial class SettingsViewModel(
     private bool isSettingsOpen;
 
     [ObservableProperty]
+    private int selectedSettingsTabIndex;
+
+    [ObservableProperty]
     private bool isPowerShellSetupOpen;
 
     [ObservableProperty]
@@ -156,6 +159,7 @@ public sealed partial class SettingsViewModel(
 
         LoadEditorValues();
         LoadSystemFonts();
+        SelectedSettingsTabIndex = 0;
         SettingsError = null;
         SettingsDataStatus = null;
         IsSettingsOpen = true;

@@ -37,7 +37,7 @@
         Background="{DynamicResource HeaderBackgroundBrush}"
         BorderBrush="{DynamicResource BorderBrush}"
         BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto">
         <Border
             Width="{DynamicResource TitleBarIdentityWidth}"
             Padding="{DynamicResource TitleBarIdentityPadding}">
@@ -118,13 +118,21 @@
         <Button
             Grid.Column="2"
             Classes="titleBarButton"
+            Command="{Binding OpenShortcutsCommand}"
+            ToolTip.Tip="Keyboard shortcuts"
+            WindowDecorationProperties.ElementRole="None">
+          <TextBlock Classes="icon buttonIcon" Text="&#xE765;" />
+        </Button>
+        <Button
+            Grid.Column="3"
+            Classes="titleBarButton"
             Command="{Binding Settings.OpenSettingsCommand}"
             ToolTip.Tip="Settings"
             WindowDecorationProperties.ElementRole="None">
           <TextBlock Classes="icon buttonIcon" Text="&#xE713;" />
         </Button>
         <Button
-            Grid.Column="3"
+            Grid.Column="4"
             Classes="captionButton"
             Click="OnMinimizeButtonClick"
             ToolTip.Tip="Minimize"
@@ -133,14 +141,14 @@
         </Button>
         <Button
             x:Name="MaximizeRestoreButton"
-            Grid.Column="4"
+            Grid.Column="5"
             Classes="captionButton"
             Click="OnMaximizeRestoreButtonClick"
             WindowDecorationProperties.ElementRole="MaximizeButton">
           <TextBlock x:Name="MaximizeRestoreIcon" />
         </Button>
         <Button
-            Grid.Column="5"
+            Grid.Column="6"
             Classes="captionButton closeCaptionButton"
             Click="OnCloseButtonClick"
             ToolTip.Tip="Close"
@@ -490,6 +498,7 @@
       <Border Background="{DynamicResource OverlayBrush}" />
       <Border
           Width="{DynamicResource SettingsDialogWidth}"
+          Height="{DynamicResource SettingsDialogHeight}"
           MaxHeight="{DynamicResource SettingsDialogMaxHeight}"
           Padding="{DynamicResource DialogPadding}"
           HorizontalAlignment="Center"
@@ -498,160 +507,163 @@
           BorderBrush="{DynamicResource BorderBrush}"
           BorderThickness="1"
           CornerRadius="{DynamicResource RadiusL}">
-        <Grid RowDefinitions="Auto,*,Auto">
+        <Grid RowDefinitions="Auto,*,Auto,Auto">
           <StackPanel>
             <TextBlock FontSize="{DynamicResource FontSizeTitle}" FontWeight="SemiBold" Text="Settings" />
             <TextBlock Classes="secondary" Text="Configure the shell and terminal appearance." />
           </StackPanel>
 
-          <ScrollViewer Grid.Row="1" Margin="{DynamicResource SettingsBodyMargin}">
-            <StackPanel Spacing="{DynamicResource SettingsSectionSpacing}">
-              <Border Classes="settingsSection">
-                <StackPanel>
-                  <TextBlock Classes="settingsSectionTitle" Text="Shell" />
-                  <TextBlock
-                      Classes="settingsSectionDescription"
-                      Text="Enter pwsh.exe or powershell.exe from PATH, or browse to the executable used by local and SSH terminals." />
-                  <TextBlock Classes="settingsLabel" Text="PowerShell executable" />
-                  <Grid ColumnDefinitions="*,Auto">
-                    <TextBox
-                        PlaceholderText="pwsh.exe or full path"
-                        VerticalAlignment="Center"
-                        Text="{Binding Settings.SettingsPowerShellPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                    <Button
-                        Grid.Column="1"
-                        Margin="{DynamicResource SettingsBrowseButtonMargin}"
-                        Command="{Binding Settings.SelectPowerShellCommand}"
-                        Content="Browse..." />
-                  </Grid>
-                </StackPanel>
-              </Border>
-
-              <Border Classes="settingsSection">
-                <StackPanel>
-                  <TextBlock Classes="settingsSectionTitle" Text="Session data" />
-                  <TextBlock
-                      Classes="settingsSectionDescription"
-                      Text="Back up or transfer all saved sessions and folders using a versioned HyperTerm JSON archive." />
-                  <StackPanel
-                      Orientation="Horizontal"
-                      Spacing="{DynamicResource SettingsActionSpacing}">
-                    <Button
-                        Command="{Binding Settings.ExportSessionsCommand}"
-                        Content="Export..." />
-                    <Button
-                        Command="{Binding Settings.ImportSessionsCommand}"
-                        Content="Import..." />
-                  </StackPanel>
-                  <TextBlock
-                      Margin="{DynamicResource SettingsStatusMargin}"
-                      Foreground="{DynamicResource SuccessBrush}"
-                      IsVisible="{Binding Settings.HasSettingsDataStatus}"
-                      TextWrapping="Wrap"
-                      Text="{Binding Settings.SettingsDataStatus}" />
-                </StackPanel>
-              </Border>
-
-              <Border Classes="settingsSection">
-                <StackPanel>
-                  <TextBlock Classes="settingsSectionTitle" Text="Interface" />
-                  <TextBlock
-                      Classes="settingsSectionDescription"
-                      Text="Control workspace visibility and view available keyboard shortcuts." />
-                  <StackPanel
-                      Orientation="Horizontal"
-                      Spacing="{DynamicResource SettingsActionSpacing}">
-                    <Button
-                        Command="{Binding ToggleStatusBarCommand}"
-                        Content="Toggle status bar" />
-                    <Button
-                        Command="{Binding OpenShortcutsCommand}"
-                        Content="Keyboard shortcuts" />
-                  </StackPanel>
-                </StackPanel>
-              </Border>
-
-              <Border Classes="settingsSection">
-                <StackPanel>
-                  <TextBlock Classes="settingsSectionTitle" Text="Terminal appearance" />
-                  <TextBlock
-                      Classes="settingsSectionDescription"
-                      Text="Select an installed font, adjust its size, and customize text selection." />
-                  <Grid ColumnDefinitions="*,16,180">
+          <TabControl
+              Grid.Row="1"
+              Margin="0,20,0,0"
+              Classes="settingsTabs"
+              SelectedIndex="{Binding Settings.SelectedSettingsTabIndex, Mode=TwoWay}">
+            <TabItem Header="General">
+              <ScrollViewer Classes="settingsTabContent">
+                <StackPanel Spacing="{DynamicResource SettingsSectionSpacing}">
+                  <Border Classes="settingsSection">
                     <StackPanel>
-                      <TextBlock Classes="settingsLabel" Text="Font family" />
-                      <ComboBox
-                          IsEditable="True"
-                          ItemsSource="{Binding Settings.SystemFontFamilies}"
-                          SelectedItem="{Binding Settings.SettingsTerminalFontFamily, Mode=TwoWay}"
-                          Text="{Binding Settings.SettingsTerminalFontFamily, Mode=TwoWay}" />
+                      <TextBlock Classes="settingsSectionTitle" Text="Shell" />
+                      <TextBlock
+                          Classes="settingsSectionDescription"
+                          Text="Enter pwsh.exe or powershell.exe from PATH, or browse to the executable used by local and SSH terminals." />
+                      <TextBlock Classes="settingsLabel" Text="PowerShell executable" />
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBox
+                            PlaceholderText="pwsh.exe or full path"
+                            VerticalAlignment="Center"
+                            Text="{Binding Settings.SettingsPowerShellPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <Button
+                            Grid.Column="1"
+                            Margin="{DynamicResource SettingsBrowseButtonMargin}"
+                            Command="{Binding Settings.SelectPowerShellCommand}"
+                            Content="Browse..." />
+                      </Grid>
                     </StackPanel>
-                    <StackPanel Grid.Column="2">
-                      <TextBlock Classes="settingsLabel" Text="Font size" />
-                      <NumericUpDown
-                          Minimum="8"
-                          Maximum="32"
-                          ShowButtonSpinner="False"
-                          Value="{Binding Settings.SettingsTerminalFontSize, Mode=TwoWay}" />
-                    </StackPanel>
-                  </Grid>
-                  <StackPanel Margin="{DynamicResource SettingsNestedFieldMargin}">
-                    <TextBlock Classes="settingsLabel" Text="Selection color" />
-                    <ComboBox
-                        Width="{DynamicResource SettingsColorPickerWidth}"
-                        HorizontalAlignment="Left"
-                        ItemsSource="{Binding Settings.TerminalSelectionColors}"
-                        SelectedItem="{Binding Settings.SettingsTerminalSelectionColor, Mode=TwoWay}">
-                      <ComboBox.ItemTemplate>
-                        <DataTemplate x:DataType="viewModels:TerminalSelectionColorOption">
-                          <StackPanel Orientation="Horizontal">
-                            <Border
-                                Width="{DynamicResource ColorSwatchSize}"
-                                Height="{DynamicResource ColorSwatchSize}"
-                                Margin="{DynamicResource ColorSwatchMargin}"
-                                VerticalAlignment="Center"
-                                Background="{Binding PreviewBrush}"
-                                CornerRadius="{DynamicResource RadiusS}" />
-                            <TextBlock VerticalAlignment="Center" Text="{Binding Name}" />
-                          </StackPanel>
-                        </DataTemplate>
-                      </ComboBox.ItemTemplate>
-                    </ComboBox>
-                  </StackPanel>
-                </StackPanel>
-              </Border>
-
-              <Border Classes="settingsSection">
-                <StackPanel>
-                  <TextBlock Classes="settingsSectionTitle" Text="Cursor" />
-                  <TextBlock
-                      Classes="settingsSectionDescription"
-                      Text="Control the cursor shape and animation." />
-                  <Grid ColumnDefinitions="*,16,*">
+                  </Border>
+                  <Border Classes="settingsSection">
                     <StackPanel>
-                      <TextBlock Classes="settingsLabel" Text="Cursor style" />
-                      <ComboBox
-                          ItemsSource="{Binding Settings.TerminalCursorStyles}"
-                          SelectedItem="{Binding Settings.SettingsTerminalCursorStyle, Mode=TwoWay}" />
+                      <TextBlock Classes="settingsSectionTitle" Text="Interface" />
+                      <TextBlock
+                          Classes="settingsSectionDescription"
+                          Text="Control workspace visibility." />
+                      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SettingsActionSpacing}">
+                        <Button Command="{Binding ToggleStatusBarCommand}" Content="Toggle status bar" />
+                      </StackPanel>
                     </StackPanel>
-                    <CheckBox
-                        Grid.Column="2"
-                        VerticalAlignment="Bottom"
-                        IsChecked="{Binding Settings.SettingsTerminalCursorBlink, Mode=TwoWay}"
-                        Content="Blink cursor" />
-                  </Grid>
+                  </Border>
                 </StackPanel>
-              </Border>
+              </ScrollViewer>
+            </TabItem>
 
-              <TextBlock
-                  Foreground="{DynamicResource DangerBrush}"
-                  TextWrapping="Wrap"
-                  Text="{Binding Settings.SettingsError}" />
-            </StackPanel>
-          </ScrollViewer>
+            <TabItem Header="Terminal">
+              <ScrollViewer Classes="settingsTabContent">
+                <StackPanel Spacing="{DynamicResource SettingsSectionSpacing}">
+                  <Border Classes="settingsSection">
+                    <StackPanel>
+                      <TextBlock Classes="settingsSectionTitle" Text="Terminal appearance" />
+                      <TextBlock
+                          Classes="settingsSectionDescription"
+                          Text="Select an installed font, adjust its size, and customize text selection." />
+                      <Grid ColumnDefinitions="*,16,180">
+                        <StackPanel>
+                          <TextBlock Classes="settingsLabel" Text="Font family" />
+                          <ComboBox
+                              IsEditable="True"
+                              ItemsSource="{Binding Settings.SystemFontFamilies}"
+                              SelectedItem="{Binding Settings.SettingsTerminalFontFamily, Mode=TwoWay}"
+                              Text="{Binding Settings.SettingsTerminalFontFamily, Mode=TwoWay}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                          <TextBlock Classes="settingsLabel" Text="Font size" />
+                          <NumericUpDown
+                              Minimum="8"
+                              Maximum="32"
+                              ShowButtonSpinner="False"
+                              Value="{Binding Settings.SettingsTerminalFontSize, Mode=TwoWay}" />
+                        </StackPanel>
+                      </Grid>
+                      <StackPanel Margin="{DynamicResource SettingsNestedFieldMargin}">
+                        <TextBlock Classes="settingsLabel" Text="Selection color" />
+                        <ComboBox
+                            Width="{DynamicResource SettingsColorPickerWidth}"
+                            HorizontalAlignment="Left"
+                            ItemsSource="{Binding Settings.TerminalSelectionColors}"
+                            SelectedItem="{Binding Settings.SettingsTerminalSelectionColor, Mode=TwoWay}">
+                          <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="viewModels:TerminalSelectionColorOption">
+                              <StackPanel Orientation="Horizontal">
+                                <Border
+                                    Width="{DynamicResource ColorSwatchSize}"
+                                    Height="{DynamicResource ColorSwatchSize}"
+                                    Margin="{DynamicResource ColorSwatchMargin}"
+                                    VerticalAlignment="Center"
+                                    Background="{Binding PreviewBrush}"
+                                    CornerRadius="{DynamicResource RadiusS}" />
+                                <TextBlock VerticalAlignment="Center" Text="{Binding Name}" />
+                              </StackPanel>
+                            </DataTemplate>
+                          </ComboBox.ItemTemplate>
+                        </ComboBox>
+                      </StackPanel>
+                    </StackPanel>
+                  </Border>
+                  <Border Classes="settingsSection">
+                    <StackPanel>
+                      <TextBlock Classes="settingsSectionTitle" Text="Cursor" />
+                      <TextBlock Classes="settingsSectionDescription" Text="Control the cursor shape and animation." />
+                      <Grid ColumnDefinitions="*,16,*">
+                        <StackPanel>
+                          <TextBlock Classes="settingsLabel" Text="Cursor style" />
+                          <ComboBox
+                              ItemsSource="{Binding Settings.TerminalCursorStyles}"
+                              SelectedItem="{Binding Settings.SettingsTerminalCursorStyle, Mode=TwoWay}" />
+                        </StackPanel>
+                        <CheckBox
+                            Grid.Column="2"
+                            VerticalAlignment="Bottom"
+                            IsChecked="{Binding Settings.SettingsTerminalCursorBlink, Mode=TwoWay}"
+                            Content="Blink cursor" />
+                      </Grid>
+                    </StackPanel>
+                  </Border>
+                </StackPanel>
+              </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="Data">
+              <ScrollViewer Classes="settingsTabContent">
+                <Border Classes="settingsSection">
+                  <StackPanel>
+                    <TextBlock Classes="settingsSectionTitle" Text="Session data" />
+                    <TextBlock
+                        Classes="settingsSectionDescription"
+                        Text="Back up or transfer all saved sessions and folders using a versioned HyperTerm JSON archive." />
+                    <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SettingsActionSpacing}">
+                      <Button Command="{Binding Settings.ExportSessionsCommand}" Content="Export..." />
+                      <Button Command="{Binding Settings.ImportSessionsCommand}" Content="Import..." />
+                    </StackPanel>
+                    <TextBlock
+                        Margin="{DynamicResource SettingsStatusMargin}"
+                        Foreground="{DynamicResource SuccessBrush}"
+                        IsVisible="{Binding Settings.HasSettingsDataStatus}"
+                        TextWrapping="Wrap"
+                        Text="{Binding Settings.SettingsDataStatus}" />
+                  </StackPanel>
+                </Border>
+              </ScrollViewer>
+            </TabItem>
+          </TabControl>
+
+          <TextBlock
+              Grid.Row="2"
+              Margin="0,0,0,12"
+              Foreground="{DynamicResource DangerBrush}"
+              TextWrapping="Wrap"
+              Text="{Binding Settings.SettingsError}" />
 
           <Border
-              Grid.Row="2"
+              Grid.Row="3"
               Padding="{DynamicResource SettingsFooterPadding}"
               BorderBrush="{DynamicResource BorderBrush}"
               BorderThickness="0,1,0,0">
