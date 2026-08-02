@@ -113,11 +113,6 @@ function handleKeyEvent(state, event) {
     return false;
   }
 
-  if (event.type === 'keydown' && event.ctrlKey && event.shiftKey && event.code === 'KeyV') {
-    send({ type: 'paste', tabId: state.tabId });
-    return false;
-  }
-
   return true;
 }
 

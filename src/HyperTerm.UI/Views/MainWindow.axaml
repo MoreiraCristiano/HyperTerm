@@ -687,7 +687,7 @@
           CornerRadius="{DynamicResource RadiusL}">
         <StackPanel Spacing="16">
           <TextBlock FontSize="{DynamicResource FontSizeTitle}" FontWeight="SemiBold" Text="Keyboard shortcuts" />
-          <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+          <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
             <TextBlock Text="Toggle sidebar" /><TextBlock Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+B" />
             <TextBlock Grid.Row="1" Text="New session" /><TextBlock Grid.Row="1" Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+N" />
             <TextBlock Grid.Row="2" Text="Open selected session" /><TextBlock Grid.Row="2" Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+O" />
@@ -698,9 +698,8 @@
             <TextBlock Grid.Row="7" Text="Open settings" /><TextBlock Grid.Row="7" Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+," />
             <TextBlock Grid.Row="8" Text="Show shortcuts" /><TextBlock Grid.Row="8" Grid.Column="1" Classes="secondary" Text="F1" />
             <TextBlock Grid.Row="9" Text="Copy terminal selection" /><TextBlock Grid.Row="9" Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+C" />
-            <TextBlock Grid.Row="10" Text="Paste into terminal" /><TextBlock Grid.Row="10" Grid.Column="1" Classes="secondary" Text="Ctrl+Shift+V" />
-            <TextBlock Grid.Row="11" Text="Close active screen" /><TextBlock Grid.Row="11" Grid.Column="1" Classes="secondary" Text="Esc" />
-            <TextBlock Grid.Row="12" Text="Close HyperTerm" /><TextBlock Grid.Row="12" Grid.Column="1" Classes="secondary" Text="Alt+F4" />
+            <TextBlock Grid.Row="10" Text="Close active screen" /><TextBlock Grid.Row="10" Grid.Column="1" Classes="secondary" Text="Esc" />
+            <TextBlock Grid.Row="11" Text="Close HyperTerm" /><TextBlock Grid.Row="11" Grid.Column="1" Classes="secondary" Text="Alt+F4" />
           </Grid>
           <Button HorizontalAlignment="Right" Command="{Binding CloseShortcutsCommand}" Content="Close" />
         </StackPanel>
