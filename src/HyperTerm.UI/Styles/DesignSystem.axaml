@@ -253,10 +253,6 @@
   <Style Selector="Grid.sessionTreeRow.batchSelected">
     <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
   </Style>
-  <Style Selector="TextBlock.sessionTreeEndpoint">
-    <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
-    <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
-  </Style>
   <Style Selector="TextBlock.sessionTreeEmpty">
     <Setter Property="Margin" Value="{DynamicResource TreeItemEndpointMargin}" />
     <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />

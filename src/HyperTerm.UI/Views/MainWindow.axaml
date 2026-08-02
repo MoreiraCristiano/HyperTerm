@@ -312,14 +312,6 @@
                       Text="{Binding Name}"
                       TextTrimming="CharacterEllipsis"
                       VerticalAlignment="Center" />
-                  <TextBlock
-                      Grid.Column="2"
-                      Margin="{DynamicResource TreeItemEndpointMargin}"
-                      Classes="sessionTreeEndpoint"
-                      IsVisible="{Binding IsSession}"
-                      Text="{Binding Endpoint}"
-                      TextTrimming="CharacterEllipsis"
-                      VerticalAlignment="Center" />
                 </Grid>
               </TreeDataTemplate>
             </TreeView.ItemTemplate>
