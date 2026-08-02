@@ -291,6 +291,12 @@
                       TextTrimming="CharacterEllipsis"
                       VerticalAlignment="Center" />
                   <TextBlock
+                      Grid.Column="2"
+                      Classes="sessionTreeEmpty"
+                      IsVisible="{Binding IsEmptyFolder}"
+                      Text="empty"
+                      VerticalAlignment="Center" />
+                  <TextBlock
                       Grid.Column="1"
                       IsVisible="{Binding IsSession}"
                       Text="{Binding Name}"

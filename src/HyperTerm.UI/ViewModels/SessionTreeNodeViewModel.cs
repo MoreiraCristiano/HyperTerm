@@ -8,11 +8,13 @@ public sealed partial class SessionTreeNodeViewModel : ViewModelBase
     private SessionTreeNodeViewModel(
         string name,
         string path,
-        SessionListItemViewModel? session)
+        SessionListItemViewModel? session,
+        bool hasItems = false)
     {
         Name = name;
         Path = path;
         Session = session;
+        HasItems = hasItems;
     }
 
     public string Name { get; }
@@ -27,6 +29,10 @@ public sealed partial class SessionTreeNodeViewModel : ViewModelBase
 
     public bool IsSession => Session is not null;
 
+    public bool HasItems { get; }
+
+    public bool IsEmptyFolder => IsFolder && !HasItems;
+
     public bool IsNestedSession =>
         Session is not null && !string.IsNullOrWhiteSpace(Session.Folder);
 
@@ -38,8 +44,11 @@ public sealed partial class SessionTreeNodeViewModel : ViewModelBase
     [ObservableProperty]
     private bool isExpanded;
 
-    public static SessionTreeNodeViewModel CreateFolder(string name, string path) =>
-        new(name, path, null);
+    public static SessionTreeNodeViewModel CreateFolder(
+        string name,
+        string path,
+        bool hasItems) =>
+        new(name, path, null, hasItems);
 
     public static SessionTreeNodeViewModel CreateSession(SessionListItemViewModel session) =>
         new(session.Name, session.Folder, session);

@@ -29,6 +29,37 @@ public sealed class ViewModelTests
     }
 
     [Fact]
+    public async Task ExplorerMarksOnlyFoldersWithoutRealItemsAsEmpty()
+    {
+        var sessions = new FakeSessionService();
+        var folders = new FakeFolderService();
+        folders.Folders.Add(new(Guid.NewGuid(), "Empty", DateTime.UtcNow));
+        folders.Folders.Add(new(Guid.NewGuid(), "Parent/EmptyChild", DateTime.UtcNow));
+        folders.Folders.Add(new(Guid.NewGuid(), "WithSession", DateTime.UtcNow));
+        sessions.Sessions.Add(FakeSessionService.CreateSession(
+            Guid.NewGuid(),
+            new SessionDetails(
+                "Server", "host", 22, "user", null, "WithSession", null)));
+        var explorer = new SessionExplorerViewModel(sessions, folders);
+
+        await explorer.InitializeAsync(TestContext.Current.CancellationToken);
+
+        Assert.True(explorer.SessionTree.Single(node => node.Name == "Empty").IsEmptyFolder);
+        SessionTreeNodeViewModel parent = explorer.SessionTree.Single(
+            node => node.Name == "Parent");
+        Assert.False(parent.IsEmptyFolder);
+        Assert.True(parent.Children.Single(node => node.Name == "EmptyChild").IsEmptyFolder);
+        SessionTreeNodeViewModel withSession = explorer.SessionTree.Single(
+            node => node.Name == "WithSession");
+        Assert.False(withSession.IsEmptyFolder);
+
+        explorer.SearchText = "no-match";
+
+        Assert.False(explorer.SessionTree.Single(
+            node => node.Name == "WithSession").IsEmptyFolder);
+    }
+
+    [Fact]
     public async Task ExplorerPreservesExpandedFoldersWhenMovingSession()
     {
         var sessions = new FakeSessionService();

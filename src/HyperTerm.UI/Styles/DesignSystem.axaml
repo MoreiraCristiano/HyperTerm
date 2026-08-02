@@ -236,6 +236,11 @@
     <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
     <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
   </Style>
+  <Style Selector="TextBlock.sessionTreeEmpty">
+    <Setter Property="Margin" Value="{DynamicResource TreeItemEndpointMargin}" />
+    <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
+    <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
+  </Style>
   <Style Selector="TextBlock.sessionTreeIcon">
     <Setter Property="Width" Value="{DynamicResource TreeItemIconWidth}" />
     <Setter Property="Margin" Value="{DynamicResource TreeItemIconMargin}" />

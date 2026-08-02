@@ -311,17 +311,18 @@ public sealed partial class SessionExplorerViewModel(
 
         ClearFolderDeletionSelection();
         SessionTree.Clear();
+        HashSet<string> foldersWithItems = GetFoldersWithItems();
         var foldersByPath = new Dictionary<string, SessionTreeNodeViewModel>(
             StringComparer.OrdinalIgnoreCase);
         foreach (SessionFolder folder in allFolders)
         {
-            EnsureFolderPath(folder.Path, foldersByPath);
+            EnsureFolderPath(folder.Path, foldersByPath, foldersWithItems);
         }
 
         int visibleSessionCount = 0;
         foreach (SessionListItemViewModel session in filteredSessions)
         {
-            EnsureFolderPath(session.Folder, foldersByPath)
+            EnsureFolderPath(session.Folder, foldersByPath, foldersWithItems)
                 .Add(SessionTreeNodeViewModel.CreateSession(session));
             visibleSessionCount++;
         }
@@ -335,6 +336,44 @@ public sealed partial class SessionExplorerViewModel(
             ? FindSessionNode(SessionTree, sessionToSelect.Value)
             : null;
     }
+
+    private HashSet<string> GetFoldersWithItems()
+    {
+        var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (SessionFolder folder in allFolders)
+        {
+            AddParentPaths(folder.Path, paths);
+        }
+
+        foreach (SessionListItemViewModel session in allSessions)
+        {
+            AddParentPaths(session.Folder, paths);
+            string normalizedPath = NormalizeFolderPath(session.Folder);
+            if (normalizedPath.Length > 0)
+            {
+                paths.Add(normalizedPath);
+            }
+        }
+
+        return paths;
+    }
+
+    private static void AddParentPaths(string folderPath, ISet<string> paths)
+    {
+        string[] segments = GetFolderPathSegments(folderPath);
+        for (int length = 1; length < segments.Length; length++)
+        {
+            paths.Add(string.Join('/', segments.Take(length)));
+        }
+    }
+
+    private static string NormalizeFolderPath(string folderPath) =>
+        string.Join('/', GetFolderPathSegments(folderPath));
+
+    private static string[] GetFolderPathSegments(string folderPath) =>
+        folderPath.Replace('\\', '/').Split(
+            '/',
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
     private static HashSet<string> RemapExpandedFolderPaths(
         IEnumerable<string> paths,
@@ -403,11 +442,10 @@ public sealed partial class SessionExplorerViewModel(
 
     private ObservableCollection<SessionTreeNodeViewModel> EnsureFolderPath(
         string folderPath,
-        IDictionary<string, SessionTreeNodeViewModel> foldersByPath)
+        IDictionary<string, SessionTreeNodeViewModel> foldersByPath,
+        ISet<string> foldersWithItems)
     {
-        string[] segments = folderPath.Replace('\\', '/').Split(
-            '/',
-            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        string[] segments = GetFolderPathSegments(folderPath);
         ObservableCollection<SessionTreeNodeViewModel> parentNodes = SessionTree;
         string currentPath = string.Empty;
         foreach (string segment in segments)
@@ -415,7 +453,10 @@ public sealed partial class SessionExplorerViewModel(
             currentPath = currentPath.Length == 0 ? segment : $"{currentPath}/{segment}";
             if (!foldersByPath.TryGetValue(currentPath, out SessionTreeNodeViewModel? folderNode))
             {
-                folderNode = SessionTreeNodeViewModel.CreateFolder(segment, currentPath);
+                folderNode = SessionTreeNodeViewModel.CreateFolder(
+                    segment,
+                    currentPath,
+                    foldersWithItems.Contains(currentPath));
                 foldersByPath.Add(currentPath, folderNode);
                 parentNodes.Add(folderNode);
             }
