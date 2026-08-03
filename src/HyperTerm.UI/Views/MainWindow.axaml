@@ -229,12 +229,15 @@
           <TreeView
               x:Name="SessionsTree"
               Grid.Row="2"
+              Classes="sessionsTree"
+              FlowDirection="RightToLeft"
               Margin="{DynamicResource SessionTreeMargin}"
               Background="Transparent"
               DoubleTapped="OnSessionTreeDoubleTapped"
               ItemsSource="{Binding Explorer.SessionTree}"
+              ScrollViewer.AllowAutoHide="False"
               ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-              ScrollViewer.VerticalScrollBarVisibility="Hidden"
+              ScrollViewer.VerticalScrollBarVisibility="{Binding SidebarScrollBarVisibility}"
               SelectedItem="{Binding Explorer.SelectedTreeNode, Mode=TwoWay}">
             <TreeView.ItemTemplate>
               <TreeDataTemplate
@@ -540,8 +543,13 @@
                       <TextBlock
                           Classes="settingsSectionDescription"
                           Text="Control workspace visibility." />
-                      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SettingsActionSpacing}">
-                        <Button Command="{Binding ToggleStatusBarCommand}" Content="Toggle status bar" />
+                      <StackPanel Spacing="{DynamicResource SettingsActionSpacing}">
+                        <CheckBox
+                            IsChecked="{Binding Settings.SettingsShowSidebarScrollbar, Mode=TwoWay}"
+                            Content="Show sidebar scrollbar" />
+                        <CheckBox
+                            IsChecked="{Binding IsStatusBarVisible, Mode=TwoWay}"
+                            Content="Show status bar" />
                       </StackPanel>
                     </StackPanel>
                   </Border>

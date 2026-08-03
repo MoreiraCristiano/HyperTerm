@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using Avalonia.Controls.Primitives;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HyperTerm.Core.Models;
@@ -33,6 +34,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     public string Title => Workspace.Title;
     public WindowSettings WindowSettings => Settings.WindowSettings;
     public bool IsTabAreaEmpty => !Workspace.HasOpenTabs;
+    public ScrollBarVisibility SidebarScrollBarVisibility =>
+        showSidebarScrollbar ? ScrollBarVisibility.Auto : ScrollBarVisibility.Hidden;
     public bool AreTerminalHostsVisible =>
         Workspace.HasOpenTabs &&
         !SessionEditor.IsEditorOpen &&
@@ -49,6 +52,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private bool isSidebarVisible = true;
 
+    private bool showSidebarScrollbar;
+
     [ObservableProperty]
     private bool isShortcutsOpen;
 
@@ -58,6 +63,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         await Settings.InitializeAsync(cancellationToken);
+        ApplySidebarScrollbarSetting(Settings.Current);
         Workspace.ApplySettings(Settings.Current);
         await Explorer.InitializeAsync(cancellationToken);
         if (!Settings.RequiresInitialPowerShellSelection)
@@ -144,7 +150,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         FolderEditor.FoldersChanged += OnFoldersChanged;
         FolderEditor.StatusRequested += Workspace.SetStatus;
 
-        Settings.SettingsSaved += Workspace.ApplySettings;
+        Settings.SettingsSaved += OnSettingsSaved;
         Settings.InitialSetupCompleted += OnInitialSetupCompleted;
         Settings.SessionsImported += OnSessionsImported;
         Settings.StatusRequested += Workspace.SetStatus;
@@ -179,6 +185,18 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     {
         Workspace.ApplySettings(Settings.Current);
         await Workspace.OpenLocalTerminalCommand.ExecuteAsync(null);
+    }
+
+    private void OnSettingsSaved(ApplicationSettings settings)
+    {
+        Workspace.ApplySettings(settings);
+        ApplySidebarScrollbarSetting(settings);
+    }
+
+    private void ApplySidebarScrollbarSetting(ApplicationSettings settings)
+    {
+        showSidebarScrollbar = settings.ShowSidebarScrollbar;
+        OnPropertyChanged(nameof(SidebarScrollBarVisibility));
     }
 
     private async void OnSessionsRefreshRequested() => await Explorer.ReloadAsync();

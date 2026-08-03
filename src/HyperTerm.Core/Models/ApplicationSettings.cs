@@ -16,6 +16,8 @@ public sealed record ApplicationSettings
 
     public bool TerminalCursorBlink { get; init; } = true;
 
+    public bool ShowSidebarScrollbar { get; init; }
+
     public WindowSettings Window { get; init; } = new();
 }
 

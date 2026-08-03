@@ -308,6 +308,36 @@ public sealed class ViewModelTests
     }
 
     [Fact]
+    public async Task SettingsSaveSidebarScrollbarPreference()
+    {
+        var settingsService = new FakeSettingsService(exists: true);
+        var viewModel = CreateSettingsViewModel(settingsService);
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+        viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.SettingsShowSidebarScrollbar = true;
+
+        await viewModel.SaveSettingsCommand.ExecuteAsync(null);
+
+        Assert.True(settingsService.Value.ShowSidebarScrollbar);
+    }
+
+    [Fact]
+    public async Task SettingsCancelDoesNotSaveSidebarScrollbarPreference()
+    {
+        var settingsService = new FakeSettingsService(exists: true);
+        var viewModel = CreateSettingsViewModel(settingsService);
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+        viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.SettingsShowSidebarScrollbar = true;
+
+        viewModel.CancelSettingsCommand.Execute(null);
+        viewModel.OpenSettingsCommand.Execute(null);
+
+        Assert.False(settingsService.Value.ShowSidebarScrollbar);
+        Assert.False(viewModel.SettingsShowSidebarScrollbar);
+    }
+
+    [Fact]
     public async Task SettingsBrowseUpdatesPowerShellFieldWithoutSaving()
     {
         var settingsService = new FakeSettingsService(exists: true);

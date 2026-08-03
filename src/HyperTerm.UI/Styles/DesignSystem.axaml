@@ -35,6 +35,7 @@
     <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource ColorSuccess}" />
     <SolidColorBrush x:Key="OverlayBrush" Color="{StaticResource ColorOverlay}" />
     <SolidColorBrush x:Key="TransparentBrush" Color="Transparent" />
+    <SolidColorBrush x:Key="SidebarScrollBarHoverBrush" Color="#484848" />
 
     <FontFamily x:Key="AppFontFamily">Segoe UI, Inter</FontFamily>
     <FontFamily x:Key="IconFontFamily">Segoe Fluent Icons</FontFamily>
@@ -272,6 +273,34 @@
   </Style>
   <Style Selector="TreeViewItem:selected:pointerover /template/ Border#PART_LayoutRoot, ListBoxItem:selected:pointerover /template/ Border#PART_LayoutRoot">
     <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
+  </Style>
+  <Style Selector="TreeView.sessionsTree ScrollBar:vertical">
+    <Setter Property="Width" Value="6" />
+    <Setter Property="MinWidth" Value="6" />
+    <Setter Property="MaxWidth" Value="6" />
+    <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+    <Setter Property="Effect" Value="{x:Null}" />
+    <Setter Property="Opacity" Value="0.65" />
+  </Style>
+  <Style Selector="TreeView.sessionsTree TreeViewItem">
+    <Setter Property="FlowDirection" Value="LeftToRight" />
+  </Style>
+  <Style Selector="TreeView.sessionsTree ScrollBar:vertical /template/ Thumb">
+    <Setter Property="Width" Value="4" />
+    <Setter Property="MinWidth" Value="4" />
+    <Setter Property="MaxWidth" Value="4" />
+    <Setter Property="Margin" Value="1,0" />
+    <Setter Property="Background" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="2" />
+    <Setter Property="Effect" Value="{x:Null}" />
+  </Style>
+  <Style Selector="TreeView.sessionsTree ScrollBar:vertical /template/ Thumb:pointerover">
+    <Setter Property="Background" Value="{DynamicResource SidebarScrollBarHoverBrush}" />
+  </Style>
+  <Style Selector="TreeView.sessionsTree ScrollBar:vertical:pointerover">
+    <Setter Property="Opacity" Value="0.85" />
   </Style>
   <Style Selector="TreeViewItem.dropTarget /template/ Border#PART_LayoutRoot">
     <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />

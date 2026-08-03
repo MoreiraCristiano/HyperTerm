@@ -77,6 +77,9 @@ public sealed partial class SettingsViewModel(
     private bool settingsTerminalCursorBlink = true;
 
     [ObservableProperty]
+    private bool settingsShowSidebarScrollbar;
+
+    [ObservableProperty]
     private string? settingsError;
 
     [ObservableProperty]
@@ -336,6 +339,7 @@ public sealed partial class SettingsViewModel(
                 TerminalSelectionColor = selectionColor.Value,
                 TerminalCursorStyle = cursorStyle,
                 TerminalCursorBlink = SettingsTerminalCursorBlink,
+                ShowSidebarScrollbar = SettingsShowSidebarScrollbar,
             };
             await settingsService.SaveAsync(applicationSettings);
             LoadEditorValues();
@@ -378,6 +382,7 @@ public sealed partial class SettingsViewModel(
         SettingsTerminalCursorStyle = NormalizeCursorStyle(
             applicationSettings.TerminalCursorStyle);
         SettingsTerminalCursorBlink = applicationSettings.TerminalCursorBlink;
+        SettingsShowSidebarScrollbar = applicationSettings.ShowSidebarScrollbar;
     }
 
     private void LoadSystemFonts()
