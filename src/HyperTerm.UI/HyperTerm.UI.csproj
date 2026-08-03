@@ -5,7 +5,7 @@
     <AssemblyTitle>HyperTerm</AssemblyTitle>
     <Product>HyperTerm</Product>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <ApplicationIcon>..\..\assets\HyperTerm.ico</ApplicationIcon>
+    <ApplicationIcon>..\..\assets\hyperterm_minimal.ico</ApplicationIcon>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
   <ItemGroup>
@@ -17,7 +17,7 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" />
   </ItemGroup>
   <ItemGroup>
-    <AvaloniaResource Include="..\..\assets\HyperTerm.ico" Link="Assets\HyperTerm.ico" />
+    <AvaloniaResource Include="..\..\assets\hyperterm_minimal.ico" Link="Assets\hyperterm_minimal.ico" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="WebTerminal\dist\**\*">

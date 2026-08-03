@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1024" height="1024" viewBox="0 0 1024 1024"
+     fill="none">
+  <defs>
+    <linearGradient id="panel" x1="512" y1="350" x2="512" y2="670" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#263849"/>
+      <stop offset="1" stop-color="#09121B"/>
+    </linearGradient>
+    <linearGradient id="prompt" x1="360" y1="420" x2="565" y2="555" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F8FAFC"/>
+      <stop offset="1" stop-color="#C9D1D9"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Transparent background -->
+
+  <g transform="translate(512 504) scale(1.9) translate(-512 -504)">
+  <!-- Terminal body -->
+  <rect x="250" y="350" width="524" height="308" rx="42"
+        fill="url(#panel)"
+        stroke="#05090D"
+        stroke-width="8"/>
+
+  <!-- Prompt chevron -->
+  <path d="M365 429 L458 486 L365 543"
+        stroke="url(#prompt)"
+        stroke-width="28"
+        stroke-linecap="round"
+        stroke-linejoin="round"/>
+
+  <!-- Underscore -->
+  <path d="M489 543 H568"
+        stroke="url(#prompt)"
+        stroke-width="28"
+        stroke-linecap="round"/>
+  </g>
+</svg>
