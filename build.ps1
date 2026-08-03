@@ -67,6 +67,13 @@ Invoke-CheckedCommand 'Building the xterm.js bundle...' {
     & $npmCommand.Source run build --prefix $webTerminalPath
 }
 
+Invoke-CheckedCommand "Cleaning HyperTerm $Runtime intermediates..." {
+    & $dotnetPath clean $projectPath `
+        --configuration Release `
+        --runtime $Runtime `
+        --nologo
+}
+
 Invoke-CheckedCommand "Publishing HyperTerm $Version for $Runtime..." {
     & $dotnetPath publish $projectPath `
         --configuration Release `
@@ -83,6 +90,29 @@ $executablePath = Join-Path $publishPath 'HyperTerm.exe'
 if (-not (Test-Path -LiteralPath $executablePath)) {
     throw "Published executable was not found: $executablePath"
 }
+
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+
+public static class HyperTermShellChangeNotifier
+{
+    private const uint UpdateItem = 0x00002000;
+    private const uint PathW = 0x0005;
+    private const uint Flush = 0x1000;
+
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    private static extern void SHChangeNotify(
+        uint eventId,
+        uint flags,
+        [MarshalAs(UnmanagedType.LPWStr)] string item1,
+        IntPtr item2);
+
+    public static void RefreshIcon(string path) =>
+        SHChangeNotify(UpdateItem, PathW | Flush, path, IntPtr.Zero);
+}
+'@
+[HyperTermShellChangeNotifier]::RefreshIcon($executablePath)
 
 Write-Host 'Creating portable ZIP package...'
 Compress-Archive -LiteralPath $publishPath -DestinationPath $archivePath -CompressionLevel Optimal
