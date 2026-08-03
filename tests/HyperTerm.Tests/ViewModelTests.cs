@@ -236,6 +236,26 @@ public sealed class ViewModelTests
     }
 
     [Fact]
+    public async Task WorkspaceRestoresSelectionAndFocusAfterTabDrag()
+    {
+        var workspace = new TerminalWorkspaceViewModel(
+            new FakeSessionService(),
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory());
+        await workspace.OpenLocalTerminalCommand.ExecuteAsync(null);
+        TerminalTabViewModel selected = workspace.SelectedTab!;
+        int focusRequests = 0;
+        selected.FocusRequested += (_, _) => focusRequests++;
+        workspace.SelectedTab = null;
+
+        workspace.RestoreTabAfterDrag(selected);
+
+        Assert.Same(selected, workspace.SelectedTab);
+        Assert.True(selected.IsSelected);
+        Assert.Equal(1, focusRequests);
+    }
+
+    [Fact]
     public async Task MainWindowReleasesLoadingStateAfterInitialization()
     {
         var sessions = new FakeSessionService();

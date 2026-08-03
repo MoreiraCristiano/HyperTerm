@@ -217,6 +217,24 @@ public sealed partial class TerminalWorkspaceViewModel(
         }
     }
 
+    public void RestoreTabAfterDrag(TerminalTabViewModel tab)
+    {
+        ArgumentNullException.ThrowIfNull(tab);
+        if (!Tabs.Contains(tab))
+        {
+            return;
+        }
+
+        if (ReferenceEquals(SelectedTab, tab))
+        {
+            tab.RequestFocus();
+        }
+        else
+        {
+            SelectedTab = tab;
+        }
+    }
+
     private void SelectRelativeTab(int offset)
     {
         if (Tabs.Count == 0)

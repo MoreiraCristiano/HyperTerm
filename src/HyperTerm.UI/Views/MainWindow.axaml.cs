@@ -647,12 +647,21 @@ public sealed partial class MainWindow : Window
 
         PointerPressedEventArgs dragEvent = tabDragStartEvent;
         TerminalTabViewModel tab = draggedTab;
+        MainWindowViewModel? viewModel = DataContext as MainWindowViewModel;
+        TerminalTabViewModel activeTab = viewModel?.Workspace.SelectedTab ?? tab;
         ClearTabDragStart();
         var data = new DataTransfer();
         data.Add(DataTransferItem.Create(TabDragFormat, tab.Id.ToString("D")));
-        await DragDrop.DoDragDropAsync(dragEvent, data, DragDropEffects.Move);
-        ClearTabDropTarget();
-        StopTabAutoScroll();
+        try
+        {
+            await DragDrop.DoDragDropAsync(dragEvent, data, DragDropEffects.Move);
+        }
+        finally
+        {
+            ClearTabDropTarget();
+            StopTabAutoScroll();
+            viewModel?.Workspace.RestoreTabAfterDrag(activeTab);
+        }
     }
 
     private void OnTerminalTabPointerReleased(
