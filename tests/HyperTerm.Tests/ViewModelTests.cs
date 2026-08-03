@@ -85,7 +85,11 @@ public sealed class ViewModelTests
         production.IsExpanded = false;
         development.IsExpanded = true;
 
+        int unfilteredRootCount = explorer.SessionTree.Count;
+        explorer.SearchText = "no-match";
+        Assert.Equal(unfilteredRootCount, explorer.SessionTree.Count);
         explorer.SearchText = "  PROD.EXAMPLE  ";
+        await Task.Delay(300, TestContext.Current.CancellationToken);
 
         SessionTreeNodeViewModel resultFolder = Assert.Single(explorer.SessionTree);
         Assert.Equal("Production", resultFolder.Name);
@@ -229,6 +233,37 @@ public sealed class ViewModelTests
 
         Assert.Equal([first, second, selected], workspace.Tabs);
         Assert.Same(selected, workspace.SelectedTab);
+    }
+
+    [Fact]
+    public async Task MainWindowReleasesLoadingStateAfterInitialization()
+    {
+        var sessions = new FakeSessionService();
+        var folders = new FakeFolderService();
+        var settings = CreateSettingsViewModel(new FakeSettingsService(exists: true));
+        var explorer = new SessionExplorerViewModel(sessions, folders);
+        var workspace = new TerminalWorkspaceViewModel(
+            sessions,
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory());
+        var viewModel = new MainWindowViewModel(
+            explorer,
+            workspace,
+            settings,
+            new SessionEditorViewModel(sessions),
+            new FolderEditorViewModel(folders));
+        bool initializationCompleted = false;
+        viewModel.InitializationCompleted += (_, _) => initializationCompleted = true;
+
+        Assert.True(viewModel.IsInitializing);
+        Assert.False(viewModel.IsInitialized);
+
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+
+        Assert.False(viewModel.IsInitializing);
+        Assert.True(viewModel.IsInitialized);
+        Assert.True(initializationCompleted);
+        Assert.Single(workspace.Tabs);
     }
 
     [Fact]

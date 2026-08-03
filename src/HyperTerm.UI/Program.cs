@@ -2,7 +2,6 @@ using Avalonia;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using HyperTerm.Core;
-using HyperTerm.Core.Abstractions.Persistence;
 using HyperTerm.Infrastructure;
 using HyperTerm.UI.ViewModels;
 using HyperTerm.UI.Views;
@@ -18,18 +17,12 @@ internal static class Program
         using IHost host = CreateHost(args);
         host.StartAsync().GetAwaiter().GetResult();
 
-        IDatabaseInitializer databaseInitializer =
-            host.Services.GetRequiredService<IDatabaseInitializer>();
-        databaseInitializer.InitializeAsync().GetAwaiter().GetResult();
-
-        MainWindowViewModel mainWindowViewModel =
-            host.Services.GetRequiredService<MainWindowViewModel>();
-        mainWindowViewModel.InitializeAsync().GetAwaiter().GetResult();
-
         App.Services = host.Services;
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
 
         SynchronizationContext.SetSynchronizationContext(null);
+        MainWindowViewModel mainWindowViewModel =
+            host.Services.GetRequiredService<MainWindowViewModel>();
         mainWindowViewModel.ShutdownAsync().GetAwaiter().GetResult();
         using var stopTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
         try

@@ -56,7 +56,17 @@ internal sealed class TerminalOutputBuffer
                 return null;
             }
 
-            var batch = new StringBuilder();
+            string firstChunk = chunks.Dequeue();
+            bufferedCharacters -= firstChunk.Length;
+            if (chunks.Count == 0 || firstChunk.Length >= MaxBatchCharacters)
+            {
+                Monitor.PulseAll(gate);
+                return firstChunk;
+            }
+
+            var batch = new StringBuilder(
+                Math.Min(MaxBatchCharacters, firstChunk.Length + bufferedCharacters));
+            batch.Append(firstChunk);
             while (chunks.Count > 0 && batch.Length < MaxBatchCharacters)
             {
                 string chunk = chunks.Dequeue();

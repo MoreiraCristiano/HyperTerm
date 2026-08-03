@@ -220,10 +220,13 @@ public sealed partial class MainWindow : Window
             activationFocusGeneration++;
             TerminalHost.CancelWindowActivationFocus();
         };
-        Opened += (_, _) =>
+        viewModel.InitializationCompleted += (_, _) =>
         {
             RestoreWindowState(viewModel.WindowSettings);
-            viewModel.ShowFirstRunSetup();
+            if (viewModel.IsInitialized)
+            {
+                viewModel.ShowFirstRunSetup();
+            }
         };
         Closing += (_, _) =>
         {

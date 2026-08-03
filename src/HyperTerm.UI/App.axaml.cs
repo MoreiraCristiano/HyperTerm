@@ -1,10 +1,12 @@
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
+using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
+using HyperTerm.Core.Abstractions.Persistence;
 using HyperTerm.UI.Views;
-using HyperTerm.UI.Services;
 using HyperTerm.UI.ViewModels;
 
 namespace HyperTerm.UI;
@@ -12,6 +14,9 @@ namespace HyperTerm.UI;
 public sealed partial class App : Application
 {
     internal static IServiceProvider Services { private get; set; } = null!;
+    private CancellationTokenSource? startupCancellation;
+    private Task? startupTask;
+    private MainWindowViewModel? mainWindowViewModel;
 
     public override void Initialize()
     {
@@ -23,12 +28,58 @@ public sealed partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            MainWindowViewModel viewModel = Services.GetRequiredService<MainWindowViewModel>();
-            Services.GetRequiredService<IThemeService>().Apply(
-                viewModel.Settings.SettingsTheme);
-            desktop.MainWindow = Services.GetRequiredService<MainWindow>();
+            mainWindowViewModel = Services.GetRequiredService<MainWindowViewModel>();
+            MainWindow mainWindow = Services.GetRequiredService<MainWindow>();
+            mainWindow.Opened += OnMainWindowOpened;
+            desktop.Exit += (_, _) => startupCancellation?.Cancel();
+            desktop.MainWindow = mainWindow;
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private void OnMainWindowOpened(object? sender, EventArgs eventArgs)
+    {
+        if (startupTask is not null || mainWindowViewModel is null)
+        {
+            return;
+        }
+
+        if (sender is Window window)
+        {
+            window.Opened -= OnMainWindowOpened;
+        }
+
+        startupCancellation = new CancellationTokenSource();
+        Dispatcher.UIThread.Post(
+            () => startupTask = InitializeApplicationAsync(
+                mainWindowViewModel,
+                startupCancellation.Token),
+            DispatcherPriority.Background);
+    }
+
+    private static async Task InitializeApplicationAsync(
+        MainWindowViewModel viewModel,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            Task databaseInitialization = Task.Run(
+                () => Services
+                    .GetRequiredService<IDatabaseInitializer>()
+                    .InitializeAsync(cancellationToken),
+                cancellationToken);
+            await viewModel.InitializeSettingsAsync(cancellationToken);
+            await databaseInitialization;
+            await viewModel.InitializeWorkspaceAsync(cancellationToken);
+            viewModel.CompleteInitialization();
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception)
+        {
+            viewModel.ReportStartupFailure(exception);
+        }
     }
 }

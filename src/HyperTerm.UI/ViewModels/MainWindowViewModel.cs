@@ -24,6 +24,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     }
 
     public event EventHandler? CloseWindowRequested;
+    public event EventHandler? InitializationCompleted;
 
     public SessionExplorerViewModel Explorer { get; }
     public TerminalWorkspaceViewModel Workspace { get; }
@@ -57,19 +58,51 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private bool isShortcutsOpen;
 
+    [ObservableProperty]
+    private bool isInitializing = true;
+
+    public bool IsInitialized { get; private set; }
+
     partial void OnIsShortcutsOpenChanged(bool value) =>
         NotifyTerminalVisibilityChanged();
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
+        await InitializeSettingsAsync(cancellationToken);
+        await InitializeWorkspaceAsync(cancellationToken);
+        CompleteInitialization();
+    }
+
+    internal async Task InitializeSettingsAsync(CancellationToken cancellationToken = default)
+    {
         await Settings.InitializeAsync(cancellationToken);
         ApplySidebarScrollbarSetting(Settings.Current);
         Workspace.ApplySettings(Settings.Current);
+    }
+
+    internal async Task InitializeWorkspaceAsync(CancellationToken cancellationToken = default)
+    {
         await Explorer.InitializeAsync(cancellationToken);
         if (!Settings.RequiresInitialPowerShellSelection)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             await Workspace.OpenLocalTerminalCommand.ExecuteAsync(null);
         }
+    }
+
+    internal void CompleteInitialization()
+    {
+        IsInitialized = true;
+        IsInitializing = false;
+        InitializationCompleted?.Invoke(this, EventArgs.Empty);
+    }
+
+    internal void ReportStartupFailure(Exception exception)
+    {
+        IsInitializing = false;
+        Workspace.SetStatus($"Startup failed: {exception.Message}");
+        Settings.OpenWithError($"HyperTerm could not finish starting: {exception.Message}");
+        InitializationCompleted?.Invoke(this, EventArgs.Empty);
     }
 
     public void ShowFirstRunSetup() => Settings.ShowFirstRunSetup();
@@ -81,7 +114,15 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     }
 
     public void CaptureWindowState(double width, double height, int x, int y) =>
-        Settings.CaptureWindowState(width, height, x, y);
+        CaptureWindowStateIfInitialized(width, height, x, y);
+
+    private void CaptureWindowStateIfInitialized(double width, double height, int x, int y)
+    {
+        if (IsInitialized)
+        {
+            Settings.CaptureWindowState(width, height, x, y);
+        }
+    }
 
     [RelayCommand]
     private void RequestCloseWindow() =>

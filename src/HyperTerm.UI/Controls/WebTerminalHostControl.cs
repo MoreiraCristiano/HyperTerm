@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Specialized;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
@@ -408,38 +407,30 @@ public sealed class WebTerminalHostControl : NativeWebView
             return;
         }
 
-        HostedTerminal[] candidates = terminals.Values
-            .OrderByDescending(hosted => ReferenceEquals(hosted.Tab, ActiveTab))
-            .ToArray();
         int writesStarted = 0;
-        foreach (HostedTerminal hosted in candidates)
+        HostedTerminal? activeHosted = ActiveTab is { } activeTab &&
+                                       terminals.TryGetValue(activeTab.Id, out HostedTerminal? match)
+            ? match
+            : null;
+        if (activeHosted is not null && await TryStartOutputWriteAsync(activeHosted))
         {
-            if (writesStarted >= 4 || !hosted.Created || hosted.WriteInFlight)
+            writesStarted++;
+        }
+
+        foreach (HostedTerminal hosted in terminals.Values)
+        {
+            if (writesStarted >= 4)
+            {
+                break;
+            }
+
+            if (ReferenceEquals(hosted, activeHosted) ||
+                !await TryStartOutputWriteAsync(hosted))
             {
                 continue;
             }
 
-            string? output = hosted.Output.TryDrainBatch();
-            if (output is null)
-            {
-                continue;
-            }
-
-            long token = ++hosted.WriteToken;
-            hosted.WriteInFlight = true;
-            try
-            {
-                string base64 = Convert.ToBase64String(
-                    Encoding.UTF8.GetBytes(output));
-                await InvokeScript(
-                    $"window.terminalHost.write('{GetTerminalId(hosted.Tab)}', {token}, '{base64}')");
-                writesStarted++;
-            }
-            catch (Exception exception)
-            {
-                hosted.WriteInFlight = false;
-                hosted.Tab.ReportLaunchFailed(exception.Message);
-            }
+            writesStarted++;
         }
 
         if (terminals.Values.Any(hosted =>
@@ -516,6 +507,36 @@ public sealed class WebTerminalHostControl : NativeWebView
             exception is InvalidOperationException or COMException)
         {
             tab.ReportLaunchFailed(exception.Message);
+        }
+    }
+
+    private async Task<bool> TryStartOutputWriteAsync(HostedTerminal hosted)
+    {
+        if (!hosted.Created || hosted.WriteInFlight)
+        {
+            return false;
+        }
+
+        string? output = hosted.Output.TryDrainBatch();
+        if (output is null)
+        {
+            return false;
+        }
+
+        long token = ++hosted.WriteToken;
+        hosted.WriteInFlight = true;
+        try
+        {
+            string jsonOutput = JsonSerializer.Serialize(output);
+            await InvokeScript(
+                $"window.terminalHost.write('{GetTerminalId(hosted.Tab)}', {token}, {jsonOutput})");
+            return true;
+        }
+        catch (Exception exception)
+        {
+            hosted.WriteInFlight = false;
+            hosted.Tab.ReportLaunchFailed(exception.Message);
+            return false;
         }
     }
 

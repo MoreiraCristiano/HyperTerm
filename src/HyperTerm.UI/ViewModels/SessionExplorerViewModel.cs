@@ -10,12 +10,16 @@ public sealed partial class SessionExplorerViewModel(
     ISessionService sessionService,
     ISessionFolderService sessionFolderService) : ViewModelBase
 {
+    private static readonly TimeSpan SearchDebounceDelay = TimeSpan.FromMilliseconds(175);
     private readonly List<SessionListItemViewModel> allSessions = [];
     private readonly List<SessionFolder> allFolders = [];
+    private readonly HashSet<string> foldersWithItems =
+        new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> selectedFolderPaths =
         new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<SessionTreeNodeViewModel> selectedFolderNodes = [];
     private bool rootFoldersDescending;
+    private CancellationTokenSource? searchDebounceCancellation;
     private (string CurrentPath, string NewPath, string DestinationPath)? pendingFolderMove;
     private HashSet<string>? expandedFolderPathsBeforeSearch;
 
@@ -29,7 +33,6 @@ public sealed partial class SessionExplorerViewModel(
     public event Action<IReadOnlyList<SessionListItemViewModel>>? SessionsReloaded;
     public event Action<string>? StatusRequested;
 
-    public ObservableCollection<SessionTreeNodeViewModel> SessionTree { get; } = [];
     public IReadOnlyList<SessionListItemViewModel> Sessions => allSessions;
     public bool HasMultipleFoldersSelected => selectedFolderPaths.Count > 1;
     public string RootFolderSortGlyph => rootFoldersDescending ? "\uE74B" : "\uE74A";
@@ -44,12 +47,27 @@ public sealed partial class SessionExplorerViewModel(
     private string searchText = string.Empty;
 
     [ObservableProperty]
+    private ObservableCollection<SessionTreeNodeViewModel> sessionTree = [];
+
+    [ObservableProperty]
     private SessionListItemViewModel? selectedSession;
 
     [ObservableProperty]
     private SessionTreeNodeViewModel? selectedTreeNode;
 
-    partial void OnSearchTextChanged(string value) => ApplyFilter(SelectedSession?.Id);
+    partial void OnSearchTextChanged(string value)
+    {
+        CancelPendingSearch();
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            ApplyFilter(SelectedSession?.Id);
+            return;
+        }
+
+        var cancellation = new CancellationTokenSource();
+        searchDebounceCancellation = cancellation;
+        _ = ApplySearchAfterDelayAsync(cancellation);
+    }
 
     partial void OnSelectedTreeNodeChanged(SessionTreeNodeViewModel? value)
     {
@@ -80,6 +98,8 @@ public sealed partial class SessionExplorerViewModel(
         allSessions.AddRange(sessions.Select(session => new SessionListItemViewModel(session)));
         allFolders.Clear();
         allFolders.AddRange(folders);
+        RefreshFoldersWithItems();
+        CancelPendingSearch();
         ApplyFilter(sessionToSelect);
         SessionsReloaded?.Invoke(allSessions);
         if (sessions.Count == 0)
@@ -258,6 +278,7 @@ public sealed partial class SessionExplorerViewModel(
         rootFoldersDescending = !rootFoldersDescending;
         OnPropertyChanged(nameof(RootFolderSortGlyph));
         OnPropertyChanged(nameof(RootFolderSortTooltip));
+        CancelPendingSearch();
         ApplyFilter(SelectedSession?.Id);
     }
 
@@ -288,6 +309,33 @@ public sealed partial class SessionExplorerViewModel(
 
         selectedFolderNodes.Clear();
         selectedFolderPaths.Clear();
+    }
+
+    private async Task ApplySearchAfterDelayAsync(CancellationTokenSource cancellation)
+    {
+        try
+        {
+            await Task.Delay(SearchDebounceDelay, cancellation.Token);
+            if (ReferenceEquals(searchDebounceCancellation, cancellation))
+            {
+                searchDebounceCancellation = null;
+                ApplyFilter(SelectedSession?.Id);
+            }
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            cancellation.Dispose();
+        }
+    }
+
+    private void CancelPendingSearch()
+    {
+        CancellationTokenSource? cancellation = searchDebounceCancellation;
+        searchDebounceCancellation = null;
+        cancellation?.Cancel();
     }
 
     private void ApplyFilter(Guid? sessionToSelect)
@@ -328,41 +376,42 @@ public sealed partial class SessionExplorerViewModel(
         }
 
         ClearFolderDeletionSelection();
-        SessionTree.Clear();
-        HashSet<string> foldersWithItems = GetFoldersWithItems();
+        var newTree = new ObservableCollection<SessionTreeNodeViewModel>();
         var foldersByPath = new Dictionary<string, SessionTreeNodeViewModel>(
             StringComparer.OrdinalIgnoreCase);
         if (!isSearching)
         {
             foreach (SessionFolder folder in allFolders)
             {
-                EnsureFolderPath(folder.Path, foldersByPath, foldersWithItems);
+                EnsureFolderPath(folder.Path, newTree, foldersByPath, foldersWithItems);
             }
         }
 
         int visibleSessionCount = 0;
         foreach (SessionListItemViewModel session in filteredSessions)
         {
-            EnsureFolderPath(session.Folder, foldersByPath, foldersWithItems)
+            EnsureFolderPath(session.Folder, newTree, foldersByPath, foldersWithItems)
                 .Add(SessionTreeNodeViewModel.CreateSession(session));
             visibleSessionCount++;
         }
 
-        SortNodes(SessionTree, rootFoldersDescending);
+        SortNodes(newTree, rootFoldersDescending);
         if (isSearching)
         {
-            SetAllFoldersExpanded(SessionTree);
+            SetAllFoldersExpanded(newTree);
         }
         else
         {
-            RestoreExpandedFolders(SessionTree, expandedFolderPaths);
+            RestoreExpandedFolders(newTree, expandedFolderPaths);
         }
         SessionCountText = visibleSessionCount == 1
             ? "1 session"
             : $"{visibleSessionCount} sessions";
-        SelectedTreeNode = sessionToSelect.HasValue
-            ? FindSessionNode(SessionTree, sessionToSelect.Value)
+        SessionTreeNodeViewModel? newSelection = sessionToSelect.HasValue
+            ? FindSessionNode(newTree, sessionToSelect.Value)
             : null;
+        SessionTree = newTree;
+        SelectedTreeNode = newSelection;
     }
 
     private static void SetAllFoldersExpanded(
@@ -375,25 +424,23 @@ public sealed partial class SessionExplorerViewModel(
         }
     }
 
-    private HashSet<string> GetFoldersWithItems()
+    private void RefreshFoldersWithItems()
     {
-        var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foldersWithItems.Clear();
         foreach (SessionFolder folder in allFolders)
         {
-            AddParentPaths(folder.Path, paths);
+            AddParentPaths(folder.Path, foldersWithItems);
         }
 
         foreach (SessionListItemViewModel session in allSessions)
         {
-            AddParentPaths(session.Folder, paths);
+            AddParentPaths(session.Folder, foldersWithItems);
             string normalizedPath = NormalizeFolderPath(session.Folder);
             if (normalizedPath.Length > 0)
             {
-                paths.Add(normalizedPath);
+                foldersWithItems.Add(normalizedPath);
             }
         }
-
-        return paths;
     }
 
     private static void AddParentPaths(string folderPath, ISet<string> paths)
@@ -465,11 +512,12 @@ public sealed partial class SessionExplorerViewModel(
 
     private ObservableCollection<SessionTreeNodeViewModel> EnsureFolderPath(
         string folderPath,
+        ObservableCollection<SessionTreeNodeViewModel> rootNodes,
         IDictionary<string, SessionTreeNodeViewModel> foldersByPath,
         ISet<string> foldersWithItems)
     {
         string[] segments = GetFolderPathSegments(folderPath);
-        ObservableCollection<SessionTreeNodeViewModel> parentNodes = SessionTree;
+        ObservableCollection<SessionTreeNodeViewModel> parentNodes = rootNodes;
         string currentPath = string.Empty;
         foreach (string segment in segments)
         {

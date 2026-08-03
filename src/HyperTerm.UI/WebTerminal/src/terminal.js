@@ -4,7 +4,6 @@ import { WebglAddon } from '@xterm/addon-webgl';
 
 const terminalHostElement = document.getElementById('terminal-host');
 const terminals = new Map();
-const textDecoder = new TextDecoder();
 let activeTabId = null;
 let resizeFrame = null;
 
@@ -48,6 +47,7 @@ function createTerminal({ tabId, options }) {
     terminal,
     fitAddon,
     webglAddon: null,
+    webglContextLossDisposable: null,
     webglDisabled: false,
     started: false,
     lastColumns: 0,
@@ -126,6 +126,7 @@ function activateTerminal(tabId) {
   if (activeTabId && activeTabId !== tabId) {
     const previous = terminals.get(activeTabId);
     if (previous) {
+      disableWebgl(previous);
       previous.element.classList.remove('active');
     }
   }
@@ -179,10 +180,7 @@ function writeTerminal(tabId, token, value) {
     return;
   }
 
-  const bytes = Uint8Array.from(
-    atob(value),
-    character => character.charCodeAt(0));
-  state.terminal.write(textDecoder.decode(bytes), () => {
+  state.terminal.write(value, () => {
     send({ type: 'writeComplete', tabId, token });
   });
 }
@@ -201,7 +199,11 @@ function enableWebgl(state) {
   try {
     const webglAddon = new WebglAddon();
     state.webglAddon = webglAddon;
-    webglAddon.onContextLoss(() => {
+    state.webglContextLossDisposable = webglAddon.onContextLoss(() => {
+      if (state.webglAddon !== webglAddon) {
+        return;
+      }
+
       state.webglDisabled = true;
       disableWebgl(state);
       state.terminal.refresh(0, state.terminal.rows - 1);
@@ -214,16 +216,20 @@ function enableWebgl(state) {
 }
 
 function disableWebgl(state) {
-  if (!state.webglAddon) {
+  const webglAddon = state.webglAddon;
+  if (!webglAddon) {
     return;
   }
 
+  state.webglAddon = null;
+  state.webglContextLossDisposable?.dispose();
+  state.webglContextLossDisposable = null;
+
   try {
-    state.webglAddon.dispose();
+    webglAddon.dispose();
   } catch {
     // The renderer may already be disposed after a context loss.
   }
-  state.webglAddon = null;
 }
 
 function scheduleFitActiveTerminal() {

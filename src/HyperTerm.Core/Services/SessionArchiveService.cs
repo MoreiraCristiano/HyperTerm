@@ -8,7 +8,8 @@ namespace HyperTerm.Core.Services;
 
 internal sealed class SessionArchiveService(
     ISessionRepository sessionRepository,
-    ISessionFolderRepository folderRepository) : ISessionArchiveService
+    ISessionFolderRepository folderRepository,
+    ISessionImportRepository importRepository) : ISessionArchiveService
 {
     private const string FormatName = "HyperTerm.SessionArchive";
     private const int CurrentVersion = 1;
@@ -83,13 +84,14 @@ internal sealed class SessionArchiveService(
         }
 
         ValidatedArchive archive = Validate(document);
-        IReadOnlyList<SessionFolder> existingFolders =
-            await folderRepository.GetAllAsync(cancellationToken);
-        var knownFolders = existingFolders
+        SessionImportSnapshot snapshot =
+            await importRepository.GetSnapshotAsync(cancellationToken);
+        var knownFolders = snapshot.Folders
             .Select(folder => folder.Path)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        int addedFolders = 0;
+        var addedFolders = new List<SessionFolder>();
+        DateTime importedAtUtc = DateTime.UtcNow;
         foreach (string path in archive.Folders
                      .OrderBy(path => path.Count(character => character == '/'))
                      .ThenBy(path => path, StringComparer.OrdinalIgnoreCase))
@@ -99,18 +101,13 @@ internal sealed class SessionArchiveService(
                 continue;
             }
 
-            await folderRepository.AddAsync(
-                new SessionFolder(Guid.NewGuid(), path, DateTime.UtcNow),
-                cancellationToken);
-            addedFolders++;
+            addedFolders.Add(new SessionFolder(Guid.NewGuid(), path, importedAtUtc));
         }
 
-        IReadOnlyList<Session> existingSessions =
-            await sessionRepository.GetAllAsync(cancellationToken);
         Dictionary<Guid, Session> sessionsById =
-            existingSessions.ToDictionary(session => session.Id);
-        int addedSessions = 0;
-        int updatedSessions = 0;
+            snapshot.Sessions.ToDictionary(session => session.Id);
+        var addedSessions = new List<Session>();
+        var updatedSessions = new List<Session>();
 
         foreach (ValidatedSession imported in archive.Sessions)
         {
@@ -126,8 +123,7 @@ internal sealed class SessionArchiveService(
                     imported.Details.Notes,
                     imported.CreatedAtUtc,
                     imported.UpdatedAtUtc);
-                await sessionRepository.UpdateAsync(existing, cancellationToken);
-                updatedSessions++;
+                updatedSessions.Add(existing);
                 continue;
             }
 
@@ -142,12 +138,20 @@ internal sealed class SessionArchiveService(
                 imported.Details.Notes,
                 imported.CreatedAtUtc,
                 imported.UpdatedAtUtc);
-            await sessionRepository.AddAsync(session, cancellationToken);
+            addedSessions.Add(session);
             sessionsById.Add(session.Id, session);
-            addedSessions++;
         }
 
-        return new SessionImportResult(addedSessions, updatedSessions, addedFolders);
+        await importRepository.ApplyAsync(
+            addedFolders,
+            addedSessions,
+            updatedSessions,
+            cancellationToken);
+
+        return new SessionImportResult(
+            addedSessions.Count,
+            updatedSessions.Count,
+            addedFolders.Count);
     }
 
     private static ValidatedArchive Validate(ArchiveDocument document)

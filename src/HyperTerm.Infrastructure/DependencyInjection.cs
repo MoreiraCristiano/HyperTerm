@@ -28,6 +28,7 @@ public static class DependencyInjection
         services.AddSingleton<IDatabaseInitializer, DatabaseInitializer>();
         services.AddSingleton<ISessionRepository, SessionRepository>();
         services.AddSingleton<ISessionFolderRepository, SessionFolderRepository>();
+        services.AddSingleton<ISessionImportRepository, SessionImportRepository>();
         services.AddSingleton<ISettingsService, JsonSettingsService>();
         services.AddSingleton<ITerminalSessionFactory, PowerShellSessionFactory>();
         services.AddSingleton<IPtySessionFactory, PortaPtySessionFactory>();
