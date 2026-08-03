@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Specialized;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using Avalonia;
@@ -7,6 +8,7 @@ using Avalonia.Controls;
 using Avalonia.Input.Platform;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using HyperTerm.UI.Services;
 using HyperTerm.UI.ViewModels;
 
 namespace HyperTerm.UI.Controls;
@@ -26,6 +28,7 @@ public sealed class WebTerminalHostControl : NativeWebView
     private bool hostReady;
     private bool navigated;
     private int flushScheduled;
+    private bool focusAfterActivationPending;
 
     public WebTerminalHostControl()
     {
@@ -106,6 +109,7 @@ public sealed class WebTerminalHostControl : NativeWebView
                 await CreateExistingTerminalsAsync();
                 await ActivateTerminalAsync(ActiveTab);
                 ScheduleOutputFlush();
+                await FocusAfterWindowActivationIfReadyAsync();
                 return;
             }
 
@@ -480,6 +484,39 @@ public sealed class WebTerminalHostControl : NativeWebView
         await InvokeTerminalScriptAsync(
             $"window.terminalHost.focus('{GetTerminalId(tab)}')",
             tab);
+    }
+
+    public void FocusAfterWindowActivation()
+    {
+        focusAfterActivationPending = true;
+        _ = FocusAfterWindowActivationIfReadyAsync();
+    }
+
+    public void CancelWindowActivationFocus() =>
+        focusAfterActivationPending = false;
+
+    private async Task FocusAfterWindowActivationIfReadyAsync()
+    {
+        TerminalTabViewModel? tab = ActiveTab;
+        if (!focusAfterActivationPending || !hostReady || !IsVisible || tab is null)
+        {
+            return;
+        }
+
+        focusAfterActivationPending = false;
+        try
+        {
+            Focus();
+            WindowsWebViewFocus.TryMoveFocus(this);
+            await InvokeTerminalScriptAsync(
+                $"window.terminalHost.focus('{GetTerminalId(tab)}')",
+                tab);
+        }
+        catch (Exception exception) when (
+            exception is InvalidOperationException or COMException)
+        {
+            tab.ReportLaunchFailed(exception.Message);
+        }
     }
 
     private async void OnAppearanceChanged(object? sender, EventArgs eventArgs)

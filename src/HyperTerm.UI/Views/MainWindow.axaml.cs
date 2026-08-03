@@ -29,6 +29,7 @@ public sealed partial class MainWindow : Window
     private ListBoxItem? currentTabDropTarget;
     private bool currentTabDropAfter;
     private double tabAutoScrollDirection;
+    private int activationFocusGeneration;
     private readonly DispatcherTimer tabAutoScrollTimer = new()
     {
         Interval = TimeSpan.FromMilliseconds(30),
@@ -198,6 +199,26 @@ public sealed partial class MainWindow : Window
             {
                 UpdateSidebarVisibility(viewModel.IsSidebarVisible);
             }
+        };
+        Activated += (_, _) =>
+        {
+            int generation = ++activationFocusGeneration;
+            Dispatcher.UIThread.Post(
+                () =>
+                {
+                    if (generation == activationFocusGeneration &&
+                        IsActive &&
+                        viewModel.AreTerminalHostsVisible)
+                    {
+                        TerminalHost.FocusAfterWindowActivation();
+                    }
+                },
+                DispatcherPriority.Background);
+        };
+        Deactivated += (_, _) =>
+        {
+            activationFocusGeneration++;
+            TerminalHost.CancelWindowActivationFocus();
         };
         Opened += (_, _) =>
         {
