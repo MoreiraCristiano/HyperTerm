@@ -377,6 +377,53 @@ public sealed class ViewModelTests
     }
 
     [Fact]
+    public async Task SettingsSavesAndAppliesLogCapturePreference()
+    {
+        var settingsService = new FakeSettingsService(exists: true);
+        var logs = new FakeApplicationLogService();
+        var viewModel = new SettingsViewModel(
+            settingsService,
+            new FakeThemeService(),
+            new FakeExecutablePicker(),
+            new FakeArchiveService(),
+            new FakeArchiveFilePicker(),
+            new FakeSystemFontService(),
+            logs,
+            new FakeLogInteractionService());
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+        viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.SettingsCaptureLogs = false;
+
+        await viewModel.SaveSettingsCommand.ExecuteAsync(null);
+
+        Assert.False(settingsService.Value.CaptureLogs);
+        Assert.False(logs.IsEnabled);
+    }
+
+    [Fact]
+    public async Task SettingsRefreshesAndCopiesLogTail()
+    {
+        var logs = new FakeApplicationLogService { Content = "diagnostic entry" };
+        var interactions = new FakeLogInteractionService();
+        var viewModel = new SettingsViewModel(
+            new FakeSettingsService(exists: true),
+            new FakeThemeService(),
+            new FakeExecutablePicker(),
+            new FakeArchiveService(),
+            new FakeArchiveFilePicker(),
+            new FakeSystemFontService(),
+            logs,
+            interactions);
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+
+        await viewModel.RefreshLogsCommand.ExecuteAsync(null);
+        await viewModel.CopyLogsCommand.ExecuteAsync(null);
+
+        Assert.Equal("diagnostic entry", viewModel.LogContent);
+        Assert.Equal("diagnostic entry", interactions.CopiedText);
+    }
+
+    [Fact]
     public async Task SettingsCancelDoesNotSaveSidebarScrollbarPreference()
     {
         var settingsService = new FakeSettingsService(exists: true);

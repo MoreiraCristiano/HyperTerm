@@ -7,4 +7,5 @@ internal interface IApplicationPathProvider
     string DatabasePath { get; }
 
     string SettingsPath { get; }
+    string LogsDirectory { get; }
 }

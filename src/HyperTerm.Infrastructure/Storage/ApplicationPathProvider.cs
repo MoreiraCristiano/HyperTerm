@@ -14,6 +14,7 @@ internal sealed class ApplicationPathProvider : IApplicationPathProvider
 
         DatabasePath = Path.Combine(ApplicationDirectory, "hyperterm.db");
         SettingsPath = Path.Combine(ApplicationDirectory, "settings.json");
+        LogsDirectory = Path.Combine(ApplicationDirectory, "logs");
 
         CopyFirstAvailableIfNeeded(
             [
@@ -34,6 +35,7 @@ internal sealed class ApplicationPathProvider : IApplicationPathProvider
     public string DatabasePath { get; }
 
     public string SettingsPath { get; }
+    public string LogsDirectory { get; }
 
     private static void CopyFirstAvailableIfNeeded(
         IEnumerable<string> sourcePaths,

@@ -2,10 +2,12 @@ using System.Text;
 using Porta.Pty;
 using HyperTerm.Core.Abstractions.Terminal;
 using HyperTerm.Core.Models;
+using Microsoft.Extensions.Logging;
 
 namespace HyperTerm.Infrastructure.Terminal;
 
-internal sealed class PortaPtySessionFactory : IPtySessionFactory
+internal sealed class PortaPtySessionFactory(
+    ILogger<PortaPtySessionFactory> logger) : IPtySessionFactory
 {
     public async Task<IPtySession> CreateAsync(
         TerminalSessionDefinition definition,
@@ -14,6 +16,7 @@ internal sealed class PortaPtySessionFactory : IPtySessionFactory
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(definition);
+        logger.LogInformation("Starting a PTY process.");
 
         var options = new PtyOptions
         {
@@ -26,7 +29,8 @@ internal sealed class PortaPtySessionFactory : IPtySessionFactory
         };
 
         IPtyConnection connection = await PtyProvider.SpawnAsync(options, cancellationToken);
-        return new PortaPtySession(connection);
+        logger.LogInformation("PTY process started.");
+        return new PortaPtySession(connection, logger);
     }
 
     private sealed class PortaPtySession : IPtySession
@@ -38,9 +42,12 @@ internal sealed class PortaPtySessionFactory : IPtySessionFactory
         private readonly Task readTask;
         private int disposed;
 
-        public PortaPtySession(IPtyConnection connection)
+        private readonly ILogger logger;
+
+        public PortaPtySession(IPtyConnection connection, ILogger logger)
         {
             this.connection = connection;
+            this.logger = logger;
             connection.ProcessExited += OnProcessExited;
             readTask = Task.Run(() => ReadOutputAsync(lifetime.Token));
         }
@@ -124,40 +131,58 @@ internal sealed class PortaPtySessionFactory : IPtySessionFactory
 
         private async Task ReadOutputAsync(CancellationToken cancellationToken)
         {
-            byte[] buffer = new byte[64 * 1024];
-            char[] characters = new char[Utf8.GetMaxCharCount(buffer.Length)];
-            Decoder decoder = Utf8.GetDecoder();
-            while (!cancellationToken.IsCancellationRequested)
+            try
             {
-                int count = await connection.ReaderStream.ReadAsync(buffer, cancellationToken);
-                if (count == 0)
+                byte[] buffer = new byte[64 * 1024];
+                char[] characters = new char[Utf8.GetMaxCharCount(buffer.Length)];
+                Decoder decoder = Utf8.GetDecoder();
+                while (!cancellationToken.IsCancellationRequested)
                 {
-                    int remaining = decoder.GetChars(
-                        ReadOnlySpan<byte>.Empty,
-                        characters,
-                        flush: true);
-                    if (remaining > 0)
+                    int count = await connection.ReaderStream.ReadAsync(
+                        buffer,
+                        cancellationToken);
+                    if (count == 0)
                     {
-                        OutputReceived?.Invoke(this, new string(characters, 0, remaining));
+                        int remaining = decoder.GetChars(
+                            ReadOnlySpan<byte>.Empty,
+                            characters,
+                            flush: true);
+                        if (remaining > 0)
+                        {
+                            OutputReceived?.Invoke(
+                                this,
+                                new string(characters, 0, remaining));
+                        }
+
+                        return;
                     }
 
-                    return;
+                    int characterCount = decoder.GetChars(
+                        buffer.AsSpan(0, count),
+                        characters,
+                        flush: false);
+                    if (characterCount > 0)
+                    {
+                        OutputReceived?.Invoke(
+                            this,
+                            new string(characters, 0, characterCount));
+                    }
                 }
-
-                int characterCount = decoder.GetChars(
-                    buffer.AsSpan(0, count),
-                    characters,
-                    flush: false);
-                if (characterCount > 0)
-                {
-                    OutputReceived?.Invoke(
-                        this,
-                        new string(characters, 0, characterCount));
-                }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+            }
+            catch (Exception exception) when (
+                exception is IOException or ObjectDisposedException)
+            {
+                logger.LogError(exception, "PTY output reader failed.");
             }
         }
 
-        private void OnProcessExited(object? sender, PtyExitedEventArgs eventArgs) =>
+        private void OnProcessExited(object? sender, PtyExitedEventArgs eventArgs)
+        {
+            logger.LogInformation("PTY process exited with code {ExitCode}.", eventArgs.ExitCode);
             Exited?.Invoke(this, eventArgs.ExitCode);
+        }
     }
 }

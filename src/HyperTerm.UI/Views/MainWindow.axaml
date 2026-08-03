@@ -654,6 +654,67 @@
                 </Border>
               </ScrollViewer>
             </TabItem>
+
+            <TabItem Header="Logs">
+              <Grid RowDefinitions="Auto,Auto,*,Auto">
+                <Border Classes="settingsSection">
+                  <StackPanel>
+                    <TextBlock Classes="settingsSectionTitle" Text="Diagnostics" />
+                    <TextBlock
+                        Classes="settingsSectionDescription"
+                        Text="Capture local diagnostic events and unexpected failures. Terminal input, output, passwords, and keys are never recorded." />
+                    <CheckBox
+                        IsChecked="{Binding Settings.SettingsCaptureLogs, Mode=TwoWay}"
+                        Content="Capture diagnostic logs" />
+                    <TextBlock
+                        Margin="0,8,0,0"
+                        Classes="secondary"
+                        Text="Up to 7 files of 5 MB are retained locally." />
+                  </StackPanel>
+                </Border>
+
+                <Border
+                    Grid.Row="1"
+                    Margin="0,10,0,10"
+                    Padding="10"
+                    Background="{DynamicResource PanelBackgroundBrush}"
+                    BorderBrush="{DynamicResource WarningBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{DynamicResource RadiusM}"
+                    IsVisible="{Binding Settings.HasPreviousRunCrash}">
+                  <TextBlock
+                      Foreground="{DynamicResource WarningBrush}"
+                      Text="The previous HyperTerm run appears to have ended unexpectedly."
+                      TextWrapping="Wrap" />
+                </Border>
+
+                <TextBox
+                    Grid.Row="2"
+                    AcceptsReturn="True"
+                    FontFamily="Cascadia Mono, Consolas, monospace"
+                    FontSize="12"
+                    IsReadOnly="True"
+                    Text="{Binding Settings.LogContent}"
+                    TextWrapping="NoWrap"
+                    VerticalContentAlignment="Top"
+                    PlaceholderText="No logs captured yet." />
+
+                <Grid Grid.Row="3" Margin="0,10,0,0" ColumnDefinitions="*,Auto">
+                  <TextBlock
+                      VerticalAlignment="Center"
+                      Classes="secondary"
+                      Text="{Binding Settings.LogStatus}"
+                      TextTrimming="CharacterEllipsis" />
+                  <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                    <Button Command="{Binding Settings.RefreshLogsCommand}" Content="Refresh" />
+                    <Button Command="{Binding Settings.CopyLogsCommand}" Content="Copy" />
+                    <Button
+                        Command="{Binding Settings.OpenLogsFolderCommand}"
+                        Content="Open folder" />
+                  </StackPanel>
+                </Grid>
+              </Grid>
+            </TabItem>
           </TabControl>
 
           <TextBlock

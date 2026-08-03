@@ -7,15 +7,20 @@ using HyperTerm.Core.Abstractions.Terminal;
 using HyperTerm.Core.Entities;
 using HyperTerm.Core.Exceptions;
 using HyperTerm.Core.Models;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace HyperTerm.UI.ViewModels;
 
 public sealed partial class TerminalWorkspaceViewModel(
     ISessionService sessionService,
     ITerminalSessionFactory terminalSessionFactory,
-    IPtySessionFactory ptySessionFactory) : ViewModelBase
+    IPtySessionFactory ptySessionFactory,
+    ILogger<TerminalWorkspaceViewModel>? logger = null) : ViewModelBase
 {
     private ApplicationSettings settings = new();
+    private readonly ILogger<TerminalWorkspaceViewModel> diagnostics =
+        logger ?? NullLogger<TerminalWorkspaceViewModel>.Instance;
 
     public event Action<string>? ApplicationCommandRequested;
 
@@ -103,11 +108,13 @@ public sealed partial class TerminalWorkspaceViewModel(
         }
         catch (TerminalLaunchException exception)
         {
+            diagnostics.LogError(exception, "Failed to prepare an SSH terminal.");
             StatusText = exception.Message;
             SettingsRequested?.Invoke(exception.Message);
         }
         catch (KeyNotFoundException exception)
         {
+            diagnostics.LogWarning(exception, "A requested saved session was not found.");
             StatusText = exception.Message;
             SessionsRefreshRequested?.Invoke();
         }
@@ -137,6 +144,7 @@ public sealed partial class TerminalWorkspaceViewModel(
         }
         catch (TerminalLaunchException exception)
         {
+            diagnostics.LogError(exception, "Failed to prepare a local terminal.");
             StatusText = exception.Message;
             SettingsRequested?.Invoke(exception.Message);
         }
@@ -266,6 +274,7 @@ public sealed partial class TerminalWorkspaceViewModel(
         catch (Exception exception) when (
             exception is InvalidOperationException or Win32Exception)
         {
+            diagnostics.LogError(exception, "Failed to stop a terminal.");
             StatusText = $"Failed to stop PowerShell: {exception.Message}";
             return;
         }

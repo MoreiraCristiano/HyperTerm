@@ -2,9 +2,12 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HyperTerm.Core.Abstractions.Services;
+using HyperTerm.Core.Abstractions.Logging;
 using HyperTerm.Core.Abstractions.Settings;
 using HyperTerm.Core.Models;
 using HyperTerm.UI.Services;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace HyperTerm.UI.ViewModels;
 
@@ -14,10 +17,16 @@ public sealed partial class SettingsViewModel(
     IExecutableFilePicker executableFilePicker,
     ISessionArchiveService sessionArchiveService,
     ISessionArchiveFilePicker sessionArchiveFilePicker,
-    ISystemFontService systemFontService) : ViewModelBase
+    ISystemFontService systemFontService,
+    IApplicationLogService? applicationLogService = null,
+    ILogInteractionService? logInteractionService = null,
+    ILogger<SettingsViewModel>? logger = null) : ViewModelBase
 {
     private ApplicationSettings applicationSettings = new();
     private bool windowStateChanged;
+    private CancellationTokenSource? logPollingCancellation;
+    private readonly ILogger<SettingsViewModel> diagnostics =
+        logger ?? NullLogger<SettingsViewModel>.Instance;
 
     public event Action<ApplicationSettings>? SettingsSaved;
     public event Action? InitialSetupCompleted;
@@ -41,6 +50,9 @@ public sealed partial class SettingsViewModel(
     ];
     public ObservableCollection<string> SystemFontFamilies { get; } = [];
     public bool HasSettingsDataStatus => !string.IsNullOrWhiteSpace(SettingsDataStatus);
+    public bool HasLogContent => !string.IsNullOrEmpty(LogContent);
+    public bool HasPreviousRunCrash => applicationLogService?.PreviousRunCrashed == true;
+    public string LogsDirectory => applicationLogService?.LogsDirectory ?? string.Empty;
 
     [ObservableProperty]
     private bool isSettingsOpen;
@@ -80,6 +92,15 @@ public sealed partial class SettingsViewModel(
     private bool settingsShowSidebarScrollbar;
 
     [ObservableProperty]
+    private bool settingsCaptureLogs = true;
+
+    [ObservableProperty]
+    private string logContent = string.Empty;
+
+    [ObservableProperty]
+    private string? logStatus;
+
+    [ObservableProperty]
     private string? settingsError;
 
     [ObservableProperty]
@@ -87,6 +108,16 @@ public sealed partial class SettingsViewModel(
 
     partial void OnSettingsDataStatusChanged(string? value) =>
         OnPropertyChanged(nameof(HasSettingsDataStatus));
+
+    partial void OnLogContentChanged(string value)
+    {
+        OnPropertyChanged(nameof(HasLogContent));
+        CopyLogsCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnIsSettingsOpenChanged(bool value) => UpdateLogPolling();
+
+    partial void OnSelectedSettingsTabIndexChanged(int value) => UpdateLogPolling();
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
@@ -106,6 +137,7 @@ public sealed partial class SettingsViewModel(
         catch (Exception exception) when (
             exception is IOException or System.Text.Json.JsonException)
         {
+            diagnostics.LogError(exception, "Failed to load application settings.");
             SettingsError = $"Failed to load settings: {exception.Message}";
             IsSettingsOpen = true;
         }
@@ -173,6 +205,7 @@ public sealed partial class SettingsViewModel(
     {
         IsSettingsOpen = false;
         SettingsError = null;
+        StopLogPolling();
     }
 
     [RelayCommand]
@@ -230,6 +263,7 @@ public sealed partial class SettingsViewModel(
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
+            diagnostics.LogError(exception, "Session archive export failed.");
             SettingsDataStatus = null;
             SettingsError = $"Export failed: {exception.Message}";
         }
@@ -262,8 +296,71 @@ public sealed partial class SettingsViewModel(
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
+            diagnostics.LogError(exception, "Session archive import failed.");
             SettingsDataStatus = null;
             SettingsError = $"Import failed: {exception.Message}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task RefreshLogsAsync()
+    {
+        if (applicationLogService is null)
+        {
+            LogContent = string.Empty;
+            return;
+        }
+
+        try
+        {
+            LogContent = await applicationLogService.ReadTailAsync();
+            LogStatus = LogContent.Length == 0 ? "No logs captured yet." : null;
+        }
+        catch (Exception exception) when (
+            exception is IOException or UnauthorizedAccessException)
+        {
+            LogStatus = "Could not read logs: " + exception.Message;
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(HasLogContent))]
+    private async Task CopyLogsAsync()
+    {
+        if (logInteractionService is null || !HasLogContent)
+        {
+            return;
+        }
+
+        try
+        {
+            await logInteractionService.CopyAsync(LogContent);
+            LogStatus = "Logs copied to clipboard.";
+        }
+        catch (Exception exception) when (
+            exception is InvalidOperationException or IOException)
+        {
+            LogStatus = "Could not copy logs: " + exception.Message;
+        }
+    }
+
+    [RelayCommand]
+    private async Task OpenLogsFolderAsync()
+    {
+        if (applicationLogService is null || logInteractionService is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await logInteractionService.OpenFolderAsync(applicationLogService.LogsDirectory);
+            LogStatus = null;
+        }
+        catch (Exception exception) when (
+            exception is InvalidOperationException or IOException or
+                UnauthorizedAccessException or System.ComponentModel.Win32Exception)
+        {
+            LogStatus = "Could not open the logs folder: " + exception.Message;
         }
     }
 
@@ -340,8 +437,10 @@ public sealed partial class SettingsViewModel(
                 TerminalCursorStyle = cursorStyle,
                 TerminalCursorBlink = SettingsTerminalCursorBlink,
                 ShowSidebarScrollbar = SettingsShowSidebarScrollbar,
+                CaptureLogs = SettingsCaptureLogs,
             };
             await settingsService.SaveAsync(applicationSettings);
+            applicationLogService?.Configure(applicationSettings.CaptureLogs);
             LoadEditorValues();
             themeService.Apply("Dark");
             SettingsError = null;
@@ -352,6 +451,7 @@ public sealed partial class SettingsViewModel(
         }
         catch (IOException exception)
         {
+            diagnostics.LogError(exception, "Failed to save application settings.");
             SettingsError = $"Failed to save settings: {exception.Message}";
             return false;
         }
@@ -366,6 +466,7 @@ public sealed partial class SettingsViewModel(
         catch (Exception exception) when (
             exception is InvalidOperationException or IOException)
         {
+            diagnostics.LogWarning(exception, "PowerShell executable selection failed.");
             SettingsError = $"Could not select the executable: {exception.Message}";
             return null;
         }
@@ -383,6 +484,41 @@ public sealed partial class SettingsViewModel(
             applicationSettings.TerminalCursorStyle);
         SettingsTerminalCursorBlink = applicationSettings.TerminalCursorBlink;
         SettingsShowSidebarScrollbar = applicationSettings.ShowSidebarScrollbar;
+        SettingsCaptureLogs = applicationSettings.CaptureLogs;
+    }
+
+    private void UpdateLogPolling()
+    {
+        StopLogPolling();
+        if (!IsSettingsOpen || SelectedSettingsTabIndex != 3)
+        {
+            return;
+        }
+
+        logPollingCancellation = new CancellationTokenSource();
+        _ = PollLogsAsync(logPollingCancellation.Token);
+    }
+
+    private void StopLogPolling()
+    {
+        logPollingCancellation?.Cancel();
+        logPollingCancellation?.Dispose();
+        logPollingCancellation = null;
+    }
+
+    private async Task PollLogsAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                await RefreshLogsAsync();
+                await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
     }
 
     private void LoadSystemFonts()

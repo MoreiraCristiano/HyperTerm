@@ -4,15 +4,19 @@ using HyperTerm.Core.Abstractions.Terminal;
 using HyperTerm.Core.Entities;
 using HyperTerm.Core.Exceptions;
 using HyperTerm.Core.Models;
+using Microsoft.Extensions.Logging;
 
 namespace HyperTerm.Infrastructure.Terminal;
 
-internal sealed class PowerShellSessionFactory(ISettingsService settingsService)
+internal sealed class PowerShellSessionFactory(
+    ISettingsService settingsService,
+    ILogger<PowerShellSessionFactory> logger)
     : ITerminalSessionFactory
 {
     public async Task<TerminalSessionDefinition> CreateLocalAsync(
         CancellationToken cancellationToken = default)
     {
+        logger.LogInformation("Preparing a local terminal definition.");
         ApplicationSettings settings = await settingsService.LoadAsync(cancellationToken);
         string configuredPath = NormalizePowerShellPath(settings.PowerShellPath);
         string powerShellPath = ResolveExecutable(
@@ -31,6 +35,7 @@ internal sealed class PowerShellSessionFactory(ISettingsService settingsService)
     {
         ArgumentNullException.ThrowIfNull(session);
         cancellationToken.ThrowIfCancellationRequested();
+        logger.LogInformation("Preparing an SSH terminal definition.");
 
         ApplicationSettings settings = await settingsService.LoadAsync(cancellationToken);
         string configuredPath = NormalizePowerShellPath(settings.PowerShellPath);

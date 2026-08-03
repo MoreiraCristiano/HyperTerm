@@ -1,4 +1,5 @@
 using HyperTerm.Core.Abstractions.Services;
+using HyperTerm.Core.Abstractions.Logging;
 using HyperTerm.Core.Abstractions.Settings;
 using HyperTerm.Core.Abstractions.Terminal;
 using HyperTerm.Core.Entities;
@@ -218,4 +219,42 @@ internal sealed class FakeArchiveFilePicker : ISessionArchiveFilePicker
 internal sealed class FakeSystemFontService : ISystemFontService
 {
     public IReadOnlyList<string> GetInstalledFontFamilies() => ["Cascadia Mono"];
+}
+
+internal sealed class FakeApplicationLogService : IApplicationLogService
+{
+    public bool IsEnabled { get; private set; } = true;
+    public bool PreviousRunCrashed { get; init; }
+    public string LogsDirectory { get; } = @"C:\Logs";
+    public string Content { get; set; } = string.Empty;
+    public event EventHandler? LogChanged;
+
+    public void Configure(bool enabled) => IsEnabled = enabled;
+
+    public Task<string> ReadTailAsync(
+        int maximumBytes = 512 * 1024,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult(Content);
+
+    public void CompleteRun() { }
+
+    public void RaiseChanged() => LogChanged?.Invoke(this, EventArgs.Empty);
+}
+
+internal sealed class FakeLogInteractionService : ILogInteractionService
+{
+    public string? CopiedText { get; private set; }
+    public string? OpenedPath { get; private set; }
+
+    public Task CopyAsync(string text, CancellationToken cancellationToken = default)
+    {
+        CopiedText = text;
+        return Task.CompletedTask;
+    }
+
+    public Task OpenFolderAsync(string path, CancellationToken cancellationToken = default)
+    {
+        OpenedPath = path;
+        return Task.CompletedTask;
+    }
 }

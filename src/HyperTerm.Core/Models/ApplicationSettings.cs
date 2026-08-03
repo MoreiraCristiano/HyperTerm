@@ -18,6 +18,8 @@ public sealed record ApplicationSettings
 
     public bool ShowSidebarScrollbar { get; init; }
 
+    public bool CaptureLogs { get; init; } = true;
+
     public WindowSettings Window { get; init; } = new();
 }
 

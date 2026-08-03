@@ -5,6 +5,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using HyperTerm.Core.Abstractions.Persistence;
 using HyperTerm.UI.Views;
 using HyperTerm.UI.ViewModels;
@@ -64,6 +65,9 @@ public sealed partial class App : Application
     {
         try
         {
+            ILogger logger = Services.GetRequiredService<ILoggerFactory>()
+                .CreateLogger("HyperTerm.Startup");
+            logger.LogInformation("Application initialization started.");
             Task databaseInitialization = Task.Run(
                 () => Services
                     .GetRequiredService<IDatabaseInitializer>()
@@ -73,12 +77,16 @@ public sealed partial class App : Application
             await databaseInitialization;
             await viewModel.InitializeWorkspaceAsync(cancellationToken);
             viewModel.CompleteInitialization();
+            logger.LogInformation("Application initialization completed.");
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
         }
         catch (Exception exception)
         {
+            Services.GetRequiredService<ILoggerFactory>()
+                .CreateLogger("HyperTerm.Startup")
+                .LogError(exception, "Application initialization failed.");
             viewModel.ReportStartupFailure(exception);
         }
     }
