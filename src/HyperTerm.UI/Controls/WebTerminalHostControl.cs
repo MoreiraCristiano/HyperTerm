@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Specialized;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using Avalonia;
@@ -53,14 +54,40 @@ public sealed class WebTerminalHostControl : NativeWebView
 
         if (!navigated)
         {
-            string pagePath = Path.Combine(
-                AppContext.BaseDirectory,
-                "WebTerminal",
-                "dist",
-                "index.html");
+            string pagePath = ResolveWebTerminalPagePath();
             Navigate(new Uri(pagePath));
             navigated = true;
         }
+    }
+
+    private static string ResolveWebTerminalPagePath()
+    {
+        string relativePath = Path.Combine("WebTerminal", "dist", "index.html");
+        string deployedPath = Path.Combine(AppContext.BaseDirectory, relativePath);
+        if (File.Exists(deployedPath))
+        {
+            return deployedPath;
+        }
+
+        using Process process = Process.GetCurrentProcess();
+        foreach (ProcessModule module in process.Modules)
+        {
+            string? moduleDirectory = Path.GetDirectoryName(module.FileName);
+            if (string.IsNullOrEmpty(moduleDirectory))
+            {
+                continue;
+            }
+
+            string extractedPath = Path.Combine(moduleDirectory, relativePath);
+            if (File.Exists(extractedPath))
+            {
+                return extractedPath;
+            }
+        }
+
+        throw new FileNotFoundException(
+            "The web terminal page was not found in the application or bundle extraction directories.",
+            deployedPath);
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs eventArgs)

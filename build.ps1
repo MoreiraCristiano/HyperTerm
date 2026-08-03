@@ -14,8 +14,11 @@ $projectPath = Join-Path $repositoryRoot 'src\HyperTerm.UI\HyperTerm.UI.csproj'
 $webTerminalPath = Join-Path $repositoryRoot 'src\HyperTerm.UI\WebTerminal'
 $releaseRoot = Join-Path $repositoryRoot 'artifacts\releases'
 $packageName = "HyperTerm-$Version-$Runtime"
-$publishPath = Join-Path $releaseRoot $packageName
+$releaseStagingRoot = Join-Path $repositoryRoot "artifacts\staging\release-$PID"
+$releasePublishPath = Join-Path $releaseStagingRoot $packageName
 $archivePath = Join-Path $releaseRoot "$packageName.zip"
+$portableRoot = Join-Path $repositoryRoot 'artifacts\portable'
+$portablePublishPath = Join-Path $portableRoot 'win-x64'
 $dotnetPath = 'C:\Program Files\dotnet\dotnet.exe'
 
 function Invoke-CheckedCommand {
@@ -50,13 +53,15 @@ if ($null -eq $npmCommand) {
 }
 
 New-Item -ItemType Directory -Path $releaseRoot -Force | Out-Null
-
-if (Test-Path -LiteralPath $publishPath) {
-    Remove-Item -LiteralPath $publishPath -Recurse -Force
-}
+New-Item -ItemType Directory -Path $releaseStagingRoot -Force | Out-Null
+New-Item -ItemType Directory -Path $portableRoot -Force | Out-Null
 
 if (Test-Path -LiteralPath $archivePath) {
     Remove-Item -LiteralPath $archivePath -Force
+}
+
+if (Test-Path -LiteralPath $portablePublishPath) {
+    Remove-Item -LiteralPath $portablePublishPath -Recurse -Force
 }
 
 Invoke-CheckedCommand 'Installing web terminal dependencies...' {
@@ -67,28 +72,50 @@ Invoke-CheckedCommand 'Building the xterm.js bundle...' {
     & $npmCommand.Source run build --prefix $webTerminalPath
 }
 
-Invoke-CheckedCommand "Cleaning HyperTerm $Runtime intermediates..." {
+Invoke-CheckedCommand "Cleaning HyperTerm intermediates..." {
     & $dotnetPath clean $projectPath `
         --configuration Release `
-        --runtime $Runtime `
         --nologo
 }
 
-Invoke-CheckedCommand "Publishing HyperTerm $Version for $Runtime..." {
+Invoke-CheckedCommand "Publishing standard HyperTerm $Version for $Runtime..." {
     & $dotnetPath publish $projectPath `
         --configuration Release `
         --runtime $Runtime `
         --self-contained true `
-        --output $publishPath `
+        --output $releasePublishPath `
         --nologo `
         -p:Version=$Version `
         -p:DebugType=None `
         -p:DebugSymbols=false
 }
 
-$executablePath = Join-Path $publishPath 'HyperTerm.exe'
-if (-not (Test-Path -LiteralPath $executablePath)) {
-    throw "Published executable was not found: $executablePath"
+$releaseExecutablePath = Join-Path $releasePublishPath 'HyperTerm.exe'
+if (-not (Test-Path -LiteralPath $releaseExecutablePath)) {
+    throw "Standard executable was not found: $releaseExecutablePath"
+}
+
+Write-Host 'Creating standard portable ZIP package...'
+Compress-Archive -LiteralPath $releasePublishPath -DestinationPath $archivePath -CompressionLevel Optimal
+
+if (-not (Test-Path -LiteralPath $archivePath)) {
+    throw "ZIP package was not created: $archivePath"
+}
+
+Remove-Item -LiteralPath $releaseStagingRoot -Recurse -Force
+
+Invoke-CheckedCommand "Publishing single-file HyperTerm $Version for win-x64..." {
+    & $dotnetPath publish $projectPath `
+        --configuration Release `
+        --output $portablePublishPath `
+        --nologo `
+        -p:Version=$Version `
+        -p:PublishProfile=win-x64-portable
+}
+
+$portableExecutablePath = Join-Path $portablePublishPath 'HyperTerm.exe'
+if (-not (Test-Path -LiteralPath $portableExecutablePath)) {
+    throw "Portable executable was not found: $portableExecutablePath"
 }
 
 Add-Type -TypeDefinition @'
@@ -112,19 +139,26 @@ public static class HyperTermShellChangeNotifier
         SHChangeNotify(UpdateItem, PathW | Flush, path, IntPtr.Zero);
 }
 '@
-[HyperTermShellChangeNotifier]::RefreshIcon($executablePath)
+[HyperTermShellChangeNotifier]::RefreshIcon($releaseExecutablePath)
+[HyperTermShellChangeNotifier]::RefreshIcon($portableExecutablePath)
 
-Write-Host 'Creating portable ZIP package...'
-Compress-Archive -LiteralPath $publishPath -DestinationPath $archivePath -CompressionLevel Optimal
+Get-ChildItem -LiteralPath $portablePublishPath -Filter '*.pdb' -File -Recurse |
+    Remove-Item -Force
 
-if (-not (Test-Path -LiteralPath $archivePath)) {
-    throw "ZIP package was not created: $archivePath"
+$publishedFiles = @(Get-ChildItem -LiteralPath $portablePublishPath -File -Recurse)
+if ($publishedFiles.Count -ne 1 -or $publishedFiles[0].Name -ne 'HyperTerm.exe') {
+    $publishedNames = $publishedFiles.Name -join ', '
+    throw "Portable output must contain only HyperTerm.exe. Found: $publishedNames"
 }
 
 $archive = Get-Item -LiteralPath $archivePath
 $archiveSizeMb = [Math]::Round($archive.Length / 1MB, 2)
+$portableExecutable = Get-Item -LiteralPath $portableExecutablePath
+$portableSizeMb = [Math]::Round($portableExecutable.Length / 1MB, 2)
 
 Write-Host ''
-Write-Host 'Portable package created successfully:'
-Write-Host "  $archivePath"
-Write-Host "  Size: $archiveSizeMb MB"
+Write-Host 'Build outputs created successfully:'
+Write-Host "  Standard ZIP: $archivePath"
+Write-Host "  ZIP size: $archiveSizeMb MB"
+Write-Host "  Single-file executable: $portableExecutablePath"
+Write-Host "  Executable size: $portableSizeMb MB"

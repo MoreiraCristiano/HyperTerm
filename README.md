@@ -52,26 +52,30 @@ To build without launching the application:
 .\bootstrap.ps1 -BuildOnly
 ```
 
-## Portable release
+## Release builds
 
-Create a self-contained Windows package that does not require .NET on the
-destination computer:
+Create both self-contained release formats with one command:
 
 ```powershell
 .\build.ps1
 ```
 
-The resulting ZIP is written to:
+The standard multi-file ZIP and single-file Windows x64 executable are written to:
 
 ```text
 artifacts\releases\HyperTerm-1.0.0-win-x64.zip
+artifacts\portable\win-x64\HyperTerm.exe
 ```
 
-An alternative version or Windows architecture can be selected explicitly:
+The standard ZIP supports an alternative version or Windows architecture. The
+single-file executable remains Windows x64:
 
 ```powershell
 .\build.ps1 -Version 1.1.0 -Runtime win-arm64
 ```
+
+Native libraries and web terminal assets are bundled into the executable and
+extracted to the user's temporary directory when needed.
 
 The destination computer still needs PowerShell (`pwsh.exe` or `powershell.exe`) and Microsoft Edge WebView2
 Runtime. Windows OpenSSH Client is also required for SSH sessions.
