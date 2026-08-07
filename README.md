@@ -7,6 +7,7 @@ HyperTerm is a modern Windows terminal and SSH session manager built with .NET a
 ## Features
 
 - Local PowerShell terminal opened automatically at startup
+- Optional native psmux sessions with create, attach, detach, and explicit shutdown controls
 - SSH session management with host, port, username, folder, and notes
 - Nested folders with mouse-driven creation, editing, deletion, and session drag-and-drop
 - Multiple terminal tabs with isolated processes and editable titles
@@ -26,6 +27,7 @@ HyperTerm is a modern Windows terminal and SSH session manager built with .NET a
 - PowerShell (`pwsh.exe` or Windows `powershell.exe`)
 - Windows OpenSSH Client (`ssh.exe`) for SSH sessions
 - Microsoft Edge WebView2 Runtime
+- [psmux](https://github.com/psmux/psmux) on `PATH` (optional, only for persistent multiplexed sessions)
 
 HyperTerm targets `net9.0`. A newer installed SDK, including .NET 10, can build the project as long as it supports that target.
 
@@ -123,6 +125,12 @@ Application shortcuts use `Ctrl+Shift` where possible so regular `Ctrl` combinat
 | Close active non-terminal screen | `Esc` |
 
 Double-click a saved session to open it. Double-click a terminal tab to rename it.
+
+The `+` button in the tab bar opens either a regular PowerShell terminal or a
+persistent psmux session. HyperTerm keeps its psmux sessions isolated in the
+`hyperterm` namespace. Closing a psmux tab detaches it. End persistent sessions
+from psmux itself or its CLI. The `psmux` submenu also lists active sessions so
+they can be refreshed and attached to a new tab.
 
 ## Data storage
 

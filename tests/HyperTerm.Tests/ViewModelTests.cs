@@ -256,6 +256,248 @@ public sealed class ViewModelTests
     }
 
     [Fact]
+    public async Task WorkspaceListsAndAttachesPsmuxSessionOnlyOnce()
+    {
+        var psmux = new FakePsmuxService();
+        psmux.Sessions.Add(new PsmuxSessionInfo("work", 2, false));
+        var workspace = new TerminalWorkspaceViewModel(
+            new FakeSessionService(),
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory(),
+            psmux);
+
+        await workspace.RefreshPsmuxSessionsAsync(TestContext.Current.CancellationToken);
+        PsmuxSessionItemViewModel session = Assert.Single(workspace.PsmuxSessions);
+        await workspace.OpenPsmuxSessionCommand.ExecuteAsync(session);
+        await workspace.OpenPsmuxSessionCommand.ExecuteAsync(session);
+
+        TerminalTabViewModel tab = Assert.Single(workspace.Tabs);
+        Assert.True(tab.IsPsmux);
+        Assert.Equal("work", tab.PsmuxSessionName);
+        Assert.Same(tab, workspace.SelectedTab);
+    }
+
+    [Fact]
+    public async Task WorkspaceOpensPsmuxSessionsDialogAndSelectsFirstSession()
+    {
+        var psmux = new FakePsmuxService();
+        psmux.Sessions.Add(new PsmuxSessionInfo("alpha", 1, false));
+        psmux.Sessions.Add(new PsmuxSessionInfo("beta", 2, true));
+        var workspace = new TerminalWorkspaceViewModel(
+            new FakeSessionService(),
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory(),
+            psmux);
+
+        await workspace.OpenPsmuxSessionsCommand.ExecuteAsync(null);
+
+        Assert.True(workspace.IsPsmuxSessionsOpen);
+        Assert.Equal(2, workspace.PsmuxSessions.Count);
+        Assert.Equal("alpha", workspace.SelectedPsmuxSession?.Name);
+        Assert.True(workspace.HasSelectedPsmuxSession);
+        Assert.False(workspace.HasPsmuxSessionsMessage);
+    }
+
+    [Fact]
+    public async Task WorkspaceRefreshesPsmuxSessionsAndPreservesSelectionByName()
+    {
+        var psmux = new FakePsmuxService();
+        psmux.Sessions.Add(new PsmuxSessionInfo("alpha", 1, false));
+        psmux.Sessions.Add(new PsmuxSessionInfo("beta", 1, false));
+        var workspace = new TerminalWorkspaceViewModel(
+            new FakeSessionService(),
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory(),
+            psmux);
+        await workspace.OpenPsmuxSessionsCommand.ExecuteAsync(null);
+        workspace.SelectedPsmuxSession = workspace.PsmuxSessions[1];
+        psmux.Sessions.Clear();
+        psmux.Sessions.Add(new PsmuxSessionInfo("beta", 3, true));
+        psmux.Sessions.Add(new PsmuxSessionInfo("gamma", 1, false));
+
+        await workspace.RefreshPsmuxSessionsCommand.ExecuteAsync(null);
+
+        Assert.Equal("beta", workspace.SelectedPsmuxSession?.Name);
+        Assert.Equal(3, workspace.SelectedPsmuxSession?.WindowCount);
+    }
+
+    [Fact]
+    public async Task WorkspaceAttachesSelectedPsmuxSessionAndClosesDialog()
+    {
+        var psmux = new FakePsmuxService();
+        psmux.Sessions.Add(new PsmuxSessionInfo("work", 2, false));
+        var workspace = new TerminalWorkspaceViewModel(
+            new FakeSessionService(),
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory(),
+            psmux);
+        await workspace.OpenPsmuxSessionsCommand.ExecuteAsync(null);
+
+        await workspace.AttachSelectedPsmuxSessionCommand.ExecuteAsync(null);
+
+        Assert.False(workspace.IsPsmuxSessionsOpen);
+        Assert.Equal("work", Assert.Single(workspace.Tabs).PsmuxSessionName);
+    }
+
+    [Fact]
+    public async Task WorkspaceShowsEmptyPsmuxSessionsMessage()
+    {
+        var workspace = new TerminalWorkspaceViewModel(
+            new FakeSessionService(),
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory(),
+            new FakePsmuxService());
+
+        await workspace.OpenPsmuxSessionsCommand.ExecuteAsync(null);
+
+        Assert.False(workspace.HasPsmuxSessions);
+        Assert.False(workspace.HasSelectedPsmuxSession);
+        Assert.Equal("No active psmux sessions.", workspace.PsmuxSessionsMessage);
+    }
+
+    [Fact]
+    public async Task ClosingPsmuxTabDetachesWithoutKillingSession()
+    {
+        var psmux = new FakePsmuxService();
+        psmux.Sessions.Add(new PsmuxSessionInfo("work", 1, true));
+        var workspace = new TerminalWorkspaceViewModel(
+            new FakeSessionService(),
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory(),
+            psmux);
+        await workspace.RefreshPsmuxSessionsAsync(TestContext.Current.CancellationToken);
+        await workspace.OpenPsmuxSessionCommand.ExecuteAsync(workspace.PsmuxSessions[0]);
+
+        await workspace.CloseSelectedTabCommand.ExecuteAsync(null);
+
+        Assert.Empty(workspace.Tabs);
+        Assert.Empty(psmux.KilledSessions);
+        Assert.Single(psmux.Sessions);
+    }
+
+    [Fact]
+    public async Task WorkspaceConfirmsAndEndsPsmuxSessionWithMatchingTab()
+    {
+        var psmux = new FakePsmuxService();
+        psmux.Sessions.Add(new PsmuxSessionInfo("work", 1, true));
+        var workspace = new TerminalWorkspaceViewModel(
+            new FakeSessionService(),
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory(),
+            psmux);
+        await workspace.OpenPsmuxSessionsCommand.ExecuteAsync(null);
+        PsmuxSessionItemViewModel session = Assert.Single(workspace.PsmuxSessions);
+        await workspace.OpenLocalTerminalCommand.ExecuteAsync(null);
+        await workspace.OpenPsmuxSessionCommand.ExecuteAsync(session);
+
+        workspace.RequestKillPsmuxSessionCommand.Execute(session);
+
+        Assert.True(workspace.IsPsmuxKillConfirmationOpen);
+        Assert.Equal("work", workspace.PsmuxSessionPendingKill?.Name);
+        Assert.Equal(2, workspace.Tabs.Count);
+
+        await workspace.ConfirmKillPsmuxSessionCommand.ExecuteAsync(null);
+
+        Assert.Equal(["work"], psmux.KilledSessions);
+        Assert.Empty(psmux.Sessions);
+        TerminalTabViewModel remainingTab = Assert.Single(workspace.Tabs);
+        Assert.True(remainingTab.IsLocal);
+        Assert.Empty(workspace.PsmuxSessions);
+        Assert.False(workspace.IsPsmuxKillConfirmationOpen);
+        Assert.Null(workspace.PsmuxSessionPendingKill);
+    }
+
+    [Fact]
+    public async Task WorkspaceKeepsPsmuxSessionAndTabWhenKillFails()
+    {
+        var psmux = new FakePsmuxService
+        {
+            KillError = new InvalidOperationException("kill failed")
+        };
+        psmux.Sessions.Add(new PsmuxSessionInfo("work", 1, true));
+        var workspace = new TerminalWorkspaceViewModel(
+            new FakeSessionService(),
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory(),
+            psmux);
+        await workspace.OpenPsmuxSessionsCommand.ExecuteAsync(null);
+        PsmuxSessionItemViewModel session = Assert.Single(workspace.PsmuxSessions);
+        await workspace.OpenPsmuxSessionCommand.ExecuteAsync(session);
+        workspace.RequestKillPsmuxSessionCommand.Execute(session);
+
+        await workspace.ConfirmKillPsmuxSessionCommand.ExecuteAsync(null);
+
+        Assert.Empty(psmux.KilledSessions);
+        Assert.Single(psmux.Sessions);
+        Assert.Single(workspace.Tabs);
+        Assert.True(workspace.IsPsmuxKillConfirmationOpen);
+        Assert.Equal("kill failed", workspace.PsmuxKillError);
+    }
+
+    [Fact]
+    public async Task WorkspaceCancelsPsmuxKillConfirmation()
+    {
+        var psmux = new FakePsmuxService();
+        psmux.Sessions.Add(new PsmuxSessionInfo("work", 1, false));
+        var workspace = new TerminalWorkspaceViewModel(
+            new FakeSessionService(),
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory(),
+            psmux);
+        await workspace.OpenPsmuxSessionsCommand.ExecuteAsync(null);
+
+        workspace.RequestKillPsmuxSessionCommand.Execute(workspace.PsmuxSessions[0]);
+        workspace.CancelKillPsmuxSessionCommand.Execute(null);
+
+        Assert.False(workspace.IsPsmuxKillConfirmationOpen);
+        Assert.Null(workspace.PsmuxSessionPendingKill);
+        Assert.Single(psmux.Sessions);
+    }
+
+    [Fact]
+    public async Task WorkspaceConfirmsDuplicateBeforeAttachingPsmuxSession()
+    {
+        var psmux = new FakePsmuxService();
+        psmux.Sessions.Add(new PsmuxSessionInfo("work", 1, false));
+        var workspace = new TerminalWorkspaceViewModel(
+            new FakeSessionService(),
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory(),
+            psmux);
+        await workspace.OpenPsmuxCreateCommand.ExecuteAsync(null);
+        workspace.PsmuxSessionName = "work";
+
+        await workspace.ConfirmPsmuxCreateCommand.ExecuteAsync(null);
+
+        Assert.True(workspace.IsPsmuxDuplicate);
+        Assert.Empty(workspace.Tabs);
+
+        await workspace.ConfirmPsmuxCreateCommand.ExecuteAsync(null);
+
+        Assert.Single(workspace.Tabs);
+        Assert.False(workspace.IsPsmuxCreateOpen);
+    }
+
+    [Fact]
+    public async Task WorkspaceListsNewPsmuxSessionBeforePtyStarts()
+    {
+        var psmux = new FakePsmuxService();
+        var workspace = new TerminalWorkspaceViewModel(
+            new FakeSessionService(),
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory(),
+            psmux);
+        await workspace.OpenPsmuxCreateCommand.ExecuteAsync(null);
+        workspace.PsmuxSessionName = "work";
+
+        await workspace.ConfirmPsmuxCreateCommand.ExecuteAsync(null);
+
+        PsmuxSessionItemViewModel session = Assert.Single(workspace.PsmuxSessions);
+        Assert.Equal("work", session.Name);
+        Assert.Single(workspace.Tabs);
+    }
+
+    [Fact]
     public async Task MainWindowReleasesLoadingStateAfterInitialization()
     {
         var sessions = new FakeSessionService();

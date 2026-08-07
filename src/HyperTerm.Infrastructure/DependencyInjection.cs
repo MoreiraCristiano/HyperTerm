@@ -38,6 +38,7 @@ public static class DependencyInjection
         services.AddSingleton<ISessionImportRepository, SessionImportRepository>();
         services.AddSingleton<ISettingsService, JsonSettingsService>();
         services.AddSingleton<ITerminalSessionFactory, PowerShellSessionFactory>();
+        services.AddSingleton<IPsmuxService, PsmuxService>();
         services.AddSingleton<IPtySessionFactory, PortaPtySessionFactory>();
 
         return services;

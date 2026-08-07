@@ -107,9 +107,23 @@
             </ListBox>
             <Button
                 Classes="titleBarButton"
-                Command="{Binding Workspace.OpenLocalTerminalCommand}"
-                ToolTip.Tip="New PowerShell tab"
+                ToolTip.Tip="New terminal"
                 WindowDecorationProperties.ElementRole="None">
+              <Button.Flyout>
+                <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                  <MenuItem
+                      Header="New PowerShell"
+                      Command="{Binding Workspace.OpenLocalTerminalCommand}" />
+                  <MenuItem Header="psmux">
+                    <MenuItem
+                        Header="Create session"
+                        Command="{Binding Workspace.OpenPsmuxCreateCommand}" />
+                    <MenuItem
+                        Header="List sessions"
+                        Command="{Binding Workspace.OpenPsmuxSessionsCommand}" />
+                  </MenuItem>
+                </MenuFlyout>
+              </Button.Flyout>
               <TextBlock Classes="icon buttonIcon" Text="&#xE710;" />
             </Button>
           </StackPanel>
@@ -320,6 +334,7 @@
               </TreeDataTemplate>
             </TreeView.ItemTemplate>
           </TreeView>
+
         </Grid>
       </Border>
 
@@ -834,6 +849,211 @@
                 Command="{Binding FolderEditor.ConfirmDeleteFolderCommand}"
                 Content="Delete"
                 IsDefault="{Binding FolderEditor.IsFolderDeleteConfirmationOpen}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Panel>
+
+    <Panel
+        Grid.Row="1"
+        Grid.RowSpan="2"
+        IsVisible="{Binding Workspace.IsPsmuxSessionsOpen}"
+        KeyDown="OnPsmuxSessionsDialogKeyDown">
+      <Border Background="{DynamicResource OverlayBrush}" />
+      <Border
+          Width="520"
+          MaxHeight="560"
+          Padding="{DynamicResource DialogPadding}"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Center"
+          Background="{DynamicResource PanelBackgroundBrush}"
+          BorderBrush="{DynamicResource BorderBrush}"
+          BorderThickness="1"
+          CornerRadius="{DynamicResource RadiusL}">
+        <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
+          <StackPanel>
+            <TextBlock
+                FontSize="{DynamicResource FontSizeTitle}"
+                FontWeight="SemiBold"
+                Text="Active psmux sessions" />
+            <TextBlock
+                Classes="secondary"
+                Text="Sessions from the HyperTerm namespace." />
+          </StackPanel>
+
+          <ProgressBar
+              Grid.Row="1"
+              Height="3"
+              Margin="0,14,0,8"
+              IsIndeterminate="True"
+              IsVisible="{Binding Workspace.IsRefreshingPsmuxSessions}" />
+
+          <ListBox
+              x:Name="ActivePsmuxSessionsList"
+              Grid.Row="2"
+              MinHeight="180"
+              MaxHeight="360"
+              Background="Transparent"
+              BorderThickness="0"
+              DoubleTapped="OnActivePsmuxSessionDoubleTapped"
+              IsVisible="{Binding Workspace.HasPsmuxSessions}"
+              ItemsSource="{Binding Workspace.PsmuxSessions}"
+              SelectedItem="{Binding Workspace.SelectedPsmuxSession, Mode=TwoWay}">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="viewModels:PsmuxSessionItemViewModel">
+                <Grid Margin="4,6" ColumnDefinitions="*,Auto">
+                  <StackPanel>
+                    <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
+                    <TextBlock
+                        FontSize="10"
+                        Foreground="{DynamicResource MutedTextBrush}"
+                        Text="{Binding Details}" />
+                  </StackPanel>
+                  <Button
+                      Grid.Column="1"
+                      Margin="12,0,0,0"
+                      VerticalAlignment="Center"
+                      Classes="tabCloseButton"
+                      Click="OnRequestKillPsmuxSession"
+                      Content="&#xE711;"
+                      FontFamily="{DynamicResource IconFontFamily}"
+                      ToolTip.Tip="End psmux session" />
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+
+          <TextBlock
+              Grid.Row="3"
+              Margin="0,12,0,0"
+              HorizontalAlignment="Center"
+              Classes="secondary"
+              IsVisible="{Binding Workspace.HasPsmuxSessionsMessage}"
+              Text="{Binding Workspace.PsmuxSessionsMessage}"
+              TextAlignment="Center"
+              TextWrapping="Wrap" />
+
+          <StackPanel
+              Grid.Row="4"
+              Margin="0,18,0,0"
+              HorizontalAlignment="Right"
+              Orientation="Horizontal"
+              Spacing="8">
+            <Button
+                Command="{Binding Workspace.ClosePsmuxSessionsCommand}"
+                Content="Close"
+                ToolTip.Tip="Esc" />
+            <Button
+                x:Name="RefreshPsmuxSessionsButton"
+                Command="{Binding Workspace.RefreshPsmuxSessionsCommand}"
+                Content="Refresh"
+                IsEnabled="{Binding !Workspace.IsRefreshingPsmuxSessions}" />
+            <Button
+                Classes="accent"
+                Command="{Binding Workspace.AttachSelectedPsmuxSessionCommand}"
+                Content="Attach"
+                IsEnabled="{Binding Workspace.HasSelectedPsmuxSession}" />
+          </StackPanel>
+        </Grid>
+      </Border>
+    </Panel>
+
+    <Panel
+        Grid.Row="1"
+        Grid.RowSpan="2"
+        IsVisible="{Binding Workspace.IsPsmuxKillConfirmationOpen}"
+        KeyDown="OnPsmuxKillConfirmationKeyDown">
+      <Border Background="{DynamicResource OverlayBrush}" />
+      <Border
+          Width="440"
+          Padding="{DynamicResource DialogPadding}"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Center"
+          Background="{DynamicResource PanelBackgroundBrush}"
+          BorderBrush="{DynamicResource BorderBrush}"
+          BorderThickness="1"
+          CornerRadius="{DynamicResource RadiusL}">
+        <StackPanel Spacing="16">
+          <TextBlock FontSize="19" FontWeight="SemiBold" Text="End psmux session?" />
+          <TextBlock TextWrapping="Wrap">
+            <Run Text="Session ‘" />
+            <Run FontWeight="SemiBold" Text="{Binding Workspace.PsmuxSessionPendingKill.Name}" />
+            <Run Text="’ and all processes running in it will be permanently ended." />
+          </TextBlock>
+          <TextBlock
+              Foreground="{DynamicResource DangerBrush}"
+              IsVisible="{Binding Workspace.HasPsmuxKillError}"
+              Text="{Binding Workspace.PsmuxKillError}"
+              TextWrapping="Wrap" />
+          <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+            <Button
+                x:Name="CancelPsmuxKillButton"
+                Command="{Binding Workspace.CancelKillPsmuxSessionCommand}"
+                Content="Cancel"
+                IsEnabled="{Binding !Workspace.IsKillingPsmuxSession}"
+                ToolTip.Tip="Esc" />
+            <Button
+                Classes="danger"
+                Command="{Binding Workspace.ConfirmKillPsmuxSessionCommand}"
+                Content="End session"
+                IsDefault="{Binding Workspace.IsPsmuxKillConfirmationOpen}"
+                IsEnabled="{Binding !Workspace.IsKillingPsmuxSession}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Panel>
+
+    <Panel
+        Grid.Row="1"
+        Grid.RowSpan="2"
+        IsVisible="{Binding Workspace.IsPsmuxCreateOpen}"
+        KeyDown="OnPsmuxDialogKeyDown">
+      <Border Background="{DynamicResource OverlayBrush}" />
+      <Border
+          Width="440"
+          Padding="{DynamicResource DialogPadding}"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Center"
+          Background="{DynamicResource PanelBackgroundBrush}"
+          BorderBrush="{DynamicResource BorderBrush}"
+          BorderThickness="1"
+          CornerRadius="{DynamicResource RadiusL}">
+        <StackPanel Spacing="14">
+          <TextBlock
+              FontSize="{DynamicResource FontSizeTitle}"
+              FontWeight="SemiBold"
+              Text="New psmux session" />
+          <TextBlock
+              Classes="secondary"
+              Text="Session remains active after its HyperTerm tab closes."
+              TextWrapping="Wrap" />
+          <TextBlock Text="Session name" />
+          <TextBox
+              x:Name="PsmuxSessionNameEditor"
+              MaxLength="64"
+              PlaceholderText="work"
+              Text="{Binding Workspace.PsmuxSessionName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+          <TextBlock
+              Foreground="{DynamicResource DangerBrush}"
+              Text="{Binding Workspace.PsmuxError}"
+              TextWrapping="Wrap" />
+          <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+            <Button
+                Command="{Binding Workspace.CancelPsmuxCreateCommand}"
+                Content="Cancel"
+                ToolTip.Tip="Esc" />
+            <Button
+                Classes="accent"
+                Command="{Binding Workspace.ConfirmPsmuxCreateCommand}"
+                Content="Create"
+                IsDefault="{Binding Workspace.IsPsmuxCreateOpen}"
+                IsVisible="{Binding !Workspace.IsPsmuxDuplicate}" />
+            <Button
+                Classes="accent"
+                Command="{Binding Workspace.ConfirmPsmuxCreateCommand}"
+                Content="Attach existing"
+                IsDefault="{Binding Workspace.IsPsmuxCreateOpen}"
+                IsVisible="{Binding Workspace.IsPsmuxDuplicate}" />
           </StackPanel>
         </StackPanel>
       </Border>

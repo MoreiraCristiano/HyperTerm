@@ -172,6 +172,62 @@ internal sealed class FakePtySession : IPtySession
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 }
 
+internal sealed class FakePsmuxService : IPsmuxService
+{
+    public List<PsmuxSessionInfo> Sessions { get; } = [];
+    public List<string> KilledSessions { get; } = [];
+    public bool IsAvailable { get; set; } = true;
+    public string? Error { get; set; }
+    public Exception? KillError { get; set; }
+
+    public Task<PsmuxAvailability> ProbeAsync(
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult(new PsmuxAvailability(
+            IsAvailable,
+            IsAvailable ? @"C:\Tools\psmux.exe" : null,
+            IsAvailable ? "psmux 3.3.7" : null,
+            Error));
+
+    public Task<IReadOnlyList<PsmuxSessionInfo>> ListSessionsAsync(
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<PsmuxSessionInfo>>(Sessions.ToArray());
+
+    public Task<TerminalSessionDefinition> CreateSessionDefinitionAsync(
+        string name,
+        CancellationToken cancellationToken = default)
+    {
+        Sessions.Add(new PsmuxSessionInfo(name, 2, true));
+        return Task.FromResult(CreateDefinition(name));
+    }
+
+    public Task<TerminalSessionDefinition> CreateAttachDefinitionAsync(
+        string name,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult(CreateDefinition(name));
+
+    public Task KillSessionAsync(
+        string name,
+        CancellationToken cancellationToken = default)
+    {
+        if (KillError is not null)
+        {
+            return Task.FromException(KillError);
+        }
+
+        KilledSessions.Add(name);
+        Sessions.RemoveAll(session => session.Name == name);
+        return Task.CompletedTask;
+    }
+
+    private static TerminalSessionDefinition CreateDefinition(string name) =>
+        new(
+            @"C:\Tools\psmux.exe",
+            ["-L", "hyperterm", "attach-session", "-t", name],
+            string.Empty,
+            TerminalSessionKind.Psmux,
+            name);
+}
+
 internal sealed class FakeSettingsService(bool exists) : ISettingsService
 {
     public ApplicationSettings Value { get; private set; } = new();

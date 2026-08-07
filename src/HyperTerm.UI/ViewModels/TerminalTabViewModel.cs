@@ -38,7 +38,21 @@ public sealed partial class TerminalTabViewModel : ViewModelBase
         string cursorStyle,
         bool cursorBlink,
         Func<TerminalTabViewModel, Task> closeAction)
-        : this(null, title, "Local terminal", string.Empty, definition, ptySessionFactory, fontFamily, fontSize, selectionColor, cursorStyle, cursorBlink, closeAction)
+        : this(
+            null,
+            title,
+            definition.Kind == TerminalSessionKind.Psmux
+                ? "psmux · persistent"
+                : "Local terminal",
+            string.Empty,
+            definition,
+            ptySessionFactory,
+            fontFamily,
+            fontSize,
+            selectionColor,
+            cursorStyle,
+            cursorBlink,
+            closeAction)
     {
     }
 
@@ -80,7 +94,11 @@ public sealed partial class TerminalTabViewModel : ViewModelBase
 
     public Guid? SessionId { get; }
 
-    public bool IsLocal => SessionId is null;
+    public bool IsLocal => Definition.Kind != TerminalSessionKind.Ssh;
+
+    public bool IsPsmux => Definition.Kind == TerminalSessionKind.Psmux;
+
+    public string? PsmuxSessionName => Definition.PsmuxSessionName;
 
     public TerminalSessionDefinition Definition { get; }
 
@@ -102,6 +120,8 @@ public sealed partial class TerminalTabViewModel : ViewModelBase
 
     public event EventHandler? Terminating;
 
+    public event EventHandler? PtyStarted;
+
     public event EventHandler<string>? ApplicationCommandRequested;
 
     [ObservableProperty]
@@ -120,7 +140,7 @@ public sealed partial class TerminalTabViewModel : ViewModelBase
     private string folder = string.Empty;
 
     [ObservableProperty]
-    private string connectionStatus = "Preparing PowerShell";
+    private string connectionStatus = "Preparing terminal";
 
     [ObservableProperty]
     private bool isSelected;
@@ -193,7 +213,10 @@ public sealed partial class TerminalTabViewModel : ViewModelBase
             ptySession = await ptySessionFactory.CreateAsync(Definition, columns, rows);
             ptySession.OutputReceived += OnPtyOutputReceived;
             ptySession.Exited += OnPtyExited;
-            ConnectionStatus = "PowerShell via xterm.js/WebGL";
+            ConnectionStatus = Definition.Kind == TerminalSessionKind.Psmux
+                ? "psmux via xterm.js/WebGL"
+                : "PowerShell via xterm.js/WebGL";
+            PtyStarted?.Invoke(this, EventArgs.Empty);
         }
         catch (Exception exception)
         {
@@ -289,7 +312,14 @@ public sealed partial class TerminalTabViewModel : ViewModelBase
     internal void ReportProcessExited(int exitCode)
     {
         killProcess = null;
-        ConnectionStatus = $"PowerShell exited — code {exitCode}";
+        ConnectionStatus = $"Terminal exited — code {exitCode}";
+        if (IsPsmux)
+        {
+            TerminalOutputReceived?.Invoke(
+                this,
+                $"\r\n\u001b[31m[HyperTerm] psmux exited with code {exitCode}. " +
+                "Check the status bar or application logs for details.\u001b[0m\r\n");
+        }
     }
 
     internal void ReportLaunchFailed(string message)

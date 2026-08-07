@@ -39,6 +39,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         showSidebarScrollbar ? ScrollBarVisibility.Auto : ScrollBarVisibility.Hidden;
     public bool AreTerminalHostsVisible =>
         Workspace.HasOpenTabs &&
+        !Workspace.IsPsmuxCreateOpen &&
+        !Workspace.IsPsmuxSessionsOpen &&
         !SessionEditor.IsEditorOpen &&
         !SessionEditor.IsDeleteConfirmationOpen &&
         !Settings.IsSettingsOpen &&
@@ -83,6 +85,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     internal async Task InitializeWorkspaceAsync(CancellationToken cancellationToken = default)
     {
         await Explorer.InitializeAsync(cancellationToken);
+        await Workspace.RefreshPsmuxSessionsAsync(cancellationToken);
         if (!Settings.RequiresInitialPowerShellSelection)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -171,6 +174,18 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         else if (IsShortcutsOpen)
         {
             IsShortcutsOpen = false;
+        }
+        else if (Workspace.IsPsmuxCreateOpen)
+        {
+            Workspace.CancelPsmuxCreateCommand.Execute(null);
+        }
+        else if (Workspace.IsPsmuxKillConfirmationOpen)
+        {
+            Workspace.CancelKillPsmuxSessionCommand.Execute(null);
+        }
+        else if (Workspace.IsPsmuxSessionsOpen)
+        {
+            Workspace.ClosePsmuxSessionsCommand.Execute(null);
         }
     }
 
@@ -275,6 +290,9 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         bool terminalVisibilityChanged =
             ReferenceEquals(sender, Workspace) &&
             eventArgs.PropertyName == nameof(TerminalWorkspaceViewModel.HasOpenTabs) ||
+            ReferenceEquals(sender, Workspace) &&
+            eventArgs.PropertyName is nameof(TerminalWorkspaceViewModel.IsPsmuxCreateOpen) or
+                nameof(TerminalWorkspaceViewModel.IsPsmuxSessionsOpen) ||
             ReferenceEquals(sender, Settings) &&
             eventArgs.PropertyName is nameof(SettingsViewModel.IsSettingsOpen) or
                 nameof(SettingsViewModel.IsPowerShellSetupOpen) ||
