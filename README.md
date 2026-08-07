@@ -27,7 +27,7 @@ HyperTerm is a modern Windows terminal and SSH session manager built with .NET a
 - PowerShell (`pwsh.exe` or Windows `powershell.exe`)
 - Windows OpenSSH Client (`ssh.exe`) for SSH sessions
 - Microsoft Edge WebView2 Runtime
-- [psmux](https://github.com/psmux/psmux) on `PATH` (optional, only for persistent multiplexed sessions)
+- [psmux](https://github.com/psmux/psmux) is included in the complete release ZIP; development builds can use `psmux.exe` on `PATH`
 
 HyperTerm targets `net9.0`. A newer installed SDK, including .NET 10, can build the project as long as it supports that target.
 
@@ -56,28 +56,32 @@ To build without launching the application:
 
 ## Release builds
 
-Create both self-contained release formats with one command:
+Create the complete self-contained release ZIP with one command:
 
 ```powershell
 .\build.ps1
 ```
 
-The standard multi-file ZIP and single-file Windows x64 executable are written to:
+The complete ZIP is written to:
 
 ```text
 artifacts\releases\HyperTerm-1.0.0-win-x64.zip
-artifacts\portable\win-x64\HyperTerm.exe
 ```
 
-The standard ZIP supports an alternative version or Windows architecture. The
-single-file executable remains Windows x64:
+The complete ZIP includes the tested psmux binary and its MIT license. It works
+without a separate psmux installation and supports an alternative HyperTerm
+version or Windows architecture:
 
 ```powershell
 .\build.ps1 -Version 1.1.0 -Runtime win-arm64
 ```
 
-Native libraries and web terminal assets are bundled into the executable and
-extracted to the user's temporary directory when needed.
+Extract the complete ZIP before running HyperTerm. The package contains the
+.NET runtime, native libraries, web terminal assets, and matching psmux binary.
+
+Release builds download the pinned psmux 3.3.7 archive from the official GitHub
+release on first use, verify its SHA-256 hash, and reuse the validated copy under
+`artifacts\cache\`. HyperTerm never downloads or updates psmux at runtime.
 
 The destination computer still needs PowerShell (`pwsh.exe` or `powershell.exe`) and Microsoft Edge WebView2
 Runtime. Windows OpenSSH Client is also required for SSH sessions.
@@ -129,8 +133,12 @@ Double-click a saved session to open it. Double-click a terminal tab to rename i
 The `+` button in the tab bar opens either a regular PowerShell terminal or a
 persistent psmux session. HyperTerm keeps its psmux sessions isolated in the
 `hyperterm` namespace. Closing a psmux tab detaches it. End persistent sessions
-from psmux itself or its CLI. The `psmux` submenu also lists active sessions so
-they can be refreshed and attached to a new tab.
+from the active-session list after confirming the action. The `psmux` submenu
+also lists active sessions so they can be refreshed and attached to a new tab.
+
+HyperTerm resolves `tools\psmux\psmux.exe` beside the application first, then
+falls back to `psmux.exe` on `PATH`. This keeps complete ZIP releases on the
+tested bundled version while preserving development workflows.
 
 ## Data storage
 

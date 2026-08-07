@@ -11,6 +11,8 @@ namespace HyperTerm.Infrastructure.Terminal;
 internal sealed class PsmuxService(ILogger<PsmuxService> logger) : IPsmuxService
 {
     private const string Namespace = "hyperterm";
+    private static readonly string BundledExecutablePath =
+        Path.Combine("tools", "psmux", "psmux.exe");
     private static readonly TimeSpan CommandTimeout = TimeSpan.FromSeconds(10);
     private static readonly Regex SessionNamePattern = new(
         "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$",
@@ -19,14 +21,15 @@ internal sealed class PsmuxService(ILogger<PsmuxService> logger) : IPsmuxService
     public async Task<PsmuxAvailability> ProbeAsync(
         CancellationToken cancellationToken = default)
     {
-        string? executable = WindowsExecutableResolver.TryResolve("psmux.exe", "psmux.exe");
+        string? executable = TryResolveExecutable();
         if (executable is null)
         {
             return new PsmuxAvailability(
                 false,
                 null,
                 null,
-                "psmux.exe was not found in PATH. Install it with ‘winget install psmux’.");
+                "psmux.exe was not found in HyperTerm’s bundled tools or PATH. " +
+                "Use the complete ZIP package or install psmux.");
         }
 
         try
@@ -226,10 +229,17 @@ internal sealed class PsmuxService(ILogger<PsmuxService> logger) : IPsmuxService
         }
     }
 
+    private static string? TryResolveExecutable() =>
+        WindowsExecutableResolver.TryResolveBundledOrPath(
+            BundledExecutablePath,
+            "psmux.exe",
+            "psmux.exe");
+
     private static string ResolveExecutable() =>
-        WindowsExecutableResolver.TryResolve("psmux.exe", "psmux.exe") ??
+        TryResolveExecutable() ??
         throw new TerminalLaunchException(
-            "psmux.exe was not found in PATH. Install it with ‘winget install psmux’.");
+            "psmux.exe was not found in HyperTerm’s bundled tools or PATH. " +
+            "Use the complete ZIP package or install psmux.");
 
     private static void ValidateName(string name)
     {

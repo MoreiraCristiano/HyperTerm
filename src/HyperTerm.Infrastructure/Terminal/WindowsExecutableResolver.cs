@@ -4,7 +4,10 @@ namespace HyperTerm.Infrastructure.Terminal;
 
 internal static class WindowsExecutableResolver
 {
-    public static string? TryResolve(string configuredPath, string executableName)
+    public static string? TryResolve(
+        string configuredPath,
+        string executableName,
+        IReadOnlyList<string>? searchDirectories = null)
     {
         string candidate = configuredPath.Trim().Trim('"');
         if (Path.IsPathRooted(candidate))
@@ -12,9 +15,10 @@ internal static class WindowsExecutableResolver
             return File.Exists(candidate) ? candidate : null;
         }
 
-        string? pathEnvironment = Environment.GetEnvironmentVariable("PATH");
-        foreach (string directory in (pathEnvironment ?? string.Empty)
-                     .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
+        IEnumerable<string> directories = searchDirectories ??
+            (Environment.GetEnvironmentVariable("PATH") ?? string.Empty)
+            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+        foreach (string directory in directories)
         {
             string fullPath = Path.Combine(directory.Trim(), candidate);
             if (File.Exists(fullPath))
@@ -53,6 +57,24 @@ internal static class WindowsExecutableResolver
         }
 
         return null;
+    }
+
+    public static string? TryResolveBundledOrPath(
+        string bundledRelativePath,
+        string configuredPath,
+        string executableName,
+        string? applicationDirectory = null,
+        IReadOnlyList<string>? searchDirectories = null)
+    {
+        string bundledPath = Path.GetFullPath(Path.Combine(
+            applicationDirectory ?? AppContext.BaseDirectory,
+            bundledRelativePath));
+        if (File.Exists(bundledPath))
+        {
+            return bundledPath;
+        }
+
+        return TryResolve(configuredPath, executableName, searchDirectories);
     }
 
     public static string Resolve(string configuredPath, string executableName)
