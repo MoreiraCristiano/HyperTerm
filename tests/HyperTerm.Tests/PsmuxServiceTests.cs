@@ -83,6 +83,14 @@ public sealed class PsmuxServiceTests
     }
 
     [Fact]
+    public void PsmuxControlCommandsUseUserProfileAsStartingDirectory()
+    {
+        Assert.Equal(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            PsmuxService.GetDefaultStartingDirectory());
+    }
+
+    [Fact]
     public void NewSessionUsesDetachedCreateHorizontalSplitAndLeftFocusCommands()
     {
         IReadOnlyList<string> create =

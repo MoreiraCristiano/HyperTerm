@@ -277,6 +277,7 @@ internal sealed class PsmuxService(ILogger<PsmuxService> logger) : IPsmuxService
         var startInfo = new ProcessStartInfo
         {
             FileName = executable,
+            WorkingDirectory = GetDefaultStartingDirectory(),
             UseShellExecute = false,
             CreateNoWindow = true,
             RedirectStandardOutput = true,
@@ -315,6 +316,9 @@ internal sealed class PsmuxService(ILogger<PsmuxService> logger) : IPsmuxService
             await outputTask,
             await errorTask);
     }
+
+    internal static string GetDefaultStartingDirectory() =>
+        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
     private sealed record ProcessResult(
         int ExitCode,
