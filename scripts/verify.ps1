@@ -2,6 +2,8 @@
 param(
     [switch]$Package,
 
+    [switch]$Coverage,
+
     [ValidateSet('win-x64', 'win-arm64')]
     [string]$Runtime = 'win-x64',
 

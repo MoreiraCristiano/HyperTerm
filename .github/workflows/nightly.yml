@@ -31,16 +31,9 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: src/HyperTerm.UI/WebTerminal/package-lock.json
-      - name: Restore and build
+      - name: Deterministic quality gate
         shell: pwsh
-        run: |
-          dotnet tool restore
-          dotnet restore .\HyperTerm.sln --locked-mode
-          npm.cmd ci --prefix .\src\HyperTerm.UI\WebTerminal --no-audit --no-fund
-          npm.cmd run build --prefix .\src\HyperTerm.UI\WebTerminal
-          dotnet build .\HyperTerm.sln --configuration Release --no-restore
-      - name: Full deterministic suite
-        run: dotnet test .\HyperTerm.sln --configuration Release --no-build --no-restore
+        run: .\scripts\verify.ps1 -Coverage
       - name: ConPTY stress
         shell: pwsh
         env:

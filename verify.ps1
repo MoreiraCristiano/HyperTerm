@@ -2,6 +2,8 @@
 param(
     [switch]$Package,
 
+    [switch]$Coverage,
+
     [ValidateSet('win-x64', 'win-arm64')]
     [string]$Runtime = 'win-x64',
 
@@ -58,19 +60,35 @@ try {
     }
 
     Invoke-CheckedCommand 'Testing web terminal...' {
-        & npm.cmd test --prefix $webTerminalPath
+        if ($Coverage) {
+            & npm.cmd run test:coverage --prefix $webTerminalPath
+        }
+        else {
+            & npm.cmd test --prefix $webTerminalPath
+        }
     }
 
     Invoke-CheckedCommand 'Building HyperTerm in Release mode...' {
         & dotnet build $solutionPath --configuration Release --no-restore --nologo
     }
 
-    Invoke-CheckedCommand 'Running HyperTerm tests...' {
-        & dotnet test $solutionPath `
-            --configuration Release `
-            --no-build `
-            --no-restore `
-            --nologo
+    if ($Coverage) {
+        Invoke-CheckedCommand 'Restoring repository tools...' {
+            & dotnet tool restore
+        }
+
+        Invoke-CheckedCommand 'Running HyperTerm tests with coverage...' {
+            & (Join-Path $repositoryRoot 'eng\coverage.ps1') -Enforce
+        }
+    }
+    else {
+        Invoke-CheckedCommand 'Running HyperTerm tests...' {
+            & dotnet test $solutionPath `
+                --configuration Release `
+                --no-build `
+                --no-restore `
+                --nologo
+        }
     }
 
     if ($Package) {

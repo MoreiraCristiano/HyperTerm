@@ -1,12 +1,17 @@
 name: CI
 
 on:
+  workflow_dispatch:
   pull_request:
   push:
     branches: [main]
 
 permissions:
   contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -26,22 +31,9 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: src/HyperTerm.UI/WebTerminal/package-lock.json
-      - name: Restore tools and dependencies
+      - name: Deterministic quality gate
         shell: pwsh
-        run: |
-          dotnet tool restore
-          dotnet restore .\HyperTerm.sln --locked-mode
-          npm.cmd ci --prefix .\src\HyperTerm.UI\WebTerminal --no-audit --no-fund
-      - name: Build and test WebTerminal
-        shell: pwsh
-        run: |
-          npm.cmd run build --prefix .\src\HyperTerm.UI\WebTerminal
-          npm.cmd run test:coverage --prefix .\src\HyperTerm.UI\WebTerminal
-      - name: Build .NET
-        run: dotnet build .\HyperTerm.sln --configuration Release --no-restore
-      - name: Test .NET with coverage
-        shell: pwsh
-        run: .\eng\coverage.ps1 -Enforce
+        run: .\scripts\verify.ps1 -Coverage
       - name: Mutate changed Core code
         if: github.event_name == 'pull_request'
         shell: pwsh

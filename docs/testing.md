@@ -8,9 +8,9 @@ The suite is split by layer so fast deterministic failures remain easy to locate
 - `HyperTerm.E2E.Tests`: published desktop application through Windows UI Automation.
 - `HyperTerm.TestTerminal`: deterministic console helper for lifecycle scenarios.
 
-Run the normal suite with `verify.ps1`. Generate coverage with
-`eng\coverage.ps1`; add `-Enforce` to apply the repository thresholds. Run mutation
-with `eng\mutation.ps1 -WebTerminal`.
+Run the normal suite with `scripts\verify.ps1`. Use
+`scripts\verify.ps1 -Coverage` for the same gate as CI, including frontend and
+.NET coverage thresholds. Run mutation with `eng\mutation.ps1 -WebTerminal`.
 
 Coverage excludes generated XAML, EF migrations and native/platform wrappers; those
 are exercised by integration and E2E tests instead. Current baselines block

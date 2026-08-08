@@ -102,6 +102,9 @@ and validate the complete Windows release ZIP:
 .\scripts\verify.ps1 -Package
 ```
 
+Use `.\scripts\verify.ps1 -Coverage` to run the same coverage-enforcing gate as
+the main CI workflow.
+
 ## Manual build
 
 Build the web terminal first because its generated `dist` directory is intentionally excluded from Git:

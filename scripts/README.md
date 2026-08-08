@@ -9,6 +9,7 @@ Run these commands from the repository root:
 .\scripts\test.ps1                      # Run all .NET tests
 .\scripts\test.ps1 -Filter Category=ConPty
 .\scripts\verify.ps1                    # Run the complete local quality gate
+.\scripts\verify.ps1 -Coverage          # Run the CI-equivalent gate with coverage
 .\scripts\coverage.ps1 -Enforce         # Generate and enforce coverage
 .\scripts\mutation.ps1 -WebTerminal     # Run .NET and JavaScript mutation
 .\scripts\web-terminal.ps1              # Restore, test, and build the frontend
