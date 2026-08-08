@@ -1,0 +1,51 @@
+<UserControl
+    x:Class="HyperTerm.UI.Views.Dialogs.PowerShellSetupDialog"
+    x:DataType="viewModels:MainWindowViewModel"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:viewModels="using:HyperTerm.UI.ViewModels"
+    IsVisible="{Binding Settings.IsPowerShellSetupOpen}">
+  <Panel>
+      <Border Background="{DynamicResource OverlayBrush}" />
+      <Border
+          Width="{DynamicResource PowerShellSetupDialogWidth}"
+          Padding="{DynamicResource DialogPadding}"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Center"
+          Background="{DynamicResource PanelBackgroundBrush}"
+          BorderBrush="{DynamicResource BorderBrush}"
+          BorderThickness="1"
+          CornerRadius="{DynamicResource RadiusL}">
+        <StackPanel Spacing="{DynamicResource DialogContentSpacing}">
+          <TextBlock
+              FontSize="{DynamicResource FontSizeTitle}"
+              FontWeight="SemiBold"
+              Text="Choose PowerShell" />
+          <TextBlock
+              Text="HyperTerm needs to know which PowerShell executable to use for local and SSH terminals."
+              TextWrapping="Wrap" />
+          <TextBlock
+              Classes="secondary"
+              Text="Use the default pwsh.exe available on PATH, or choose pwsh.exe or powershell.exe from a specific installation. You can change this later in Settings."
+              TextWrapping="Wrap" />
+          <TextBlock
+              Foreground="{DynamicResource DangerBrush}"
+              Text="{Binding Settings.PowerShellSetupError}"
+              TextWrapping="Wrap" />
+          <StackPanel
+              HorizontalAlignment="Right"
+              Orientation="Horizontal"
+              Spacing="{DynamicResource DialogButtonSpacing}">
+            <Button
+                Command="{Binding Settings.ChooseInitialPowerShellCommand}"
+                Content="Choose another..." />
+            <Button
+                Classes="accent"
+                Command="{Binding Settings.UseDefaultPowerShellCommand}"
+                Content="Use pwsh.exe"
+                IsDefault="{Binding Settings.IsPowerShellSetupOpen}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Panel>
+</UserControl>

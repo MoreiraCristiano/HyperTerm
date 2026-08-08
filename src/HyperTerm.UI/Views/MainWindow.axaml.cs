@@ -182,7 +182,7 @@ public sealed partial class MainWindow : Window
             if (eventArgs.PropertyName == nameof(SessionEditorViewModel.IsEditorOpen) &&
                 viewModel.SessionEditor.IsEditorOpen)
             {
-                FocusEditor(SessionNameEditor);
+                FocusEditor(SessionEditorDialogHost.NameEditor);
             }
         };
         viewModel.FolderEditor.PropertyChanged += (_, eventArgs) =>
@@ -190,7 +190,7 @@ public sealed partial class MainWindow : Window
             if (eventArgs.PropertyName == nameof(FolderEditorViewModel.IsFolderEditorOpen) &&
                 viewModel.FolderEditor.IsFolderEditorOpen)
             {
-                FocusEditor(FolderPathEditor);
+                FocusEditor(FolderEditorDialogHost.PathEditor);
             }
         };
         viewModel.Workspace.PropertyChanged += (_, eventArgs) =>
@@ -198,26 +198,24 @@ public sealed partial class MainWindow : Window
             if (eventArgs.PropertyName == nameof(TerminalWorkspaceViewModel.IsPsmuxCreateOpen) &&
                 viewModel.Workspace.IsPsmuxCreateOpen)
             {
-                FocusEditor(PsmuxSessionNameEditor);
+                FocusEditor(PsmuxCreateDialogHost.NameEditor);
             }
             else if (eventArgs.PropertyName == nameof(TerminalWorkspaceViewModel.IsPsmuxSessionsOpen) &&
                      viewModel.Workspace.IsPsmuxSessionsOpen)
             {
-                FocusPsmuxSessionsDialog(viewModel);
+                PsmuxSessionsDialogHost.FocusContent(viewModel);
             }
             else if (eventArgs.PropertyName == nameof(TerminalWorkspaceViewModel.IsPsmuxKillConfirmationOpen) &&
                      viewModel.Workspace.IsPsmuxKillConfirmationOpen)
             {
-                Dispatcher.UIThread.Post(
-                    () => CancelPsmuxKillButton.Focus(),
-                    DispatcherPriority.Loaded);
+                PsmuxKillDialogHost.FocusCancel();
             }
         };
         viewModel.Workspace.PsmuxSessions.CollectionChanged += (_, _) =>
         {
             if (viewModel.Workspace.IsPsmuxSessionsOpen)
             {
-                FocusPsmuxSessionsDialog(viewModel);
+                PsmuxSessionsDialogHost.FocusContent(viewModel);
             }
         };
         viewModel.PropertyChanged += (_, eventArgs) =>

@@ -1,0 +1,59 @@
+<UserControl
+    x:Class="HyperTerm.UI.Views.Dialogs.PsmuxCreateDialog"
+    x:DataType="viewModels:MainWindowViewModel"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:viewModels="using:HyperTerm.UI.ViewModels"
+    IsVisible="{Binding Workspace.IsPsmuxCreateOpen}">
+  <Panel>
+      <Border Background="{DynamicResource OverlayBrush}" />
+      <Border
+          Width="440"
+          Padding="{DynamicResource DialogPadding}"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Center"
+          Background="{DynamicResource PanelBackgroundBrush}"
+          BorderBrush="{DynamicResource BorderBrush}"
+          BorderThickness="1"
+          CornerRadius="{DynamicResource RadiusL}">
+        <StackPanel Spacing="14">
+          <TextBlock
+              FontSize="{DynamicResource FontSizeTitle}"
+              FontWeight="SemiBold"
+              Text="New psmux session" />
+          <TextBlock
+              Classes="secondary"
+              Text="Session remains active after its HyperTerm tab closes."
+              TextWrapping="Wrap" />
+          <TextBlock Text="Session name" />
+          <TextBox
+              x:Name="PsmuxSessionNameEditor"
+              MaxLength="64"
+              PlaceholderText="work"
+              Text="{Binding Workspace.PsmuxSessionName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+          <TextBlock
+              Foreground="{DynamicResource DangerBrush}"
+              Text="{Binding Workspace.PsmuxError}"
+              TextWrapping="Wrap" />
+          <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+            <Button
+                Command="{Binding Workspace.CancelPsmuxCreateCommand}"
+                Content="Cancel"
+                ToolTip.Tip="Esc" />
+            <Button
+                Classes="accent"
+                Command="{Binding Workspace.ConfirmPsmuxCreateCommand}"
+                Content="Create"
+                IsDefault="{Binding Workspace.IsPsmuxCreateOpen}"
+                IsVisible="{Binding !Workspace.IsPsmuxDuplicate}" />
+            <Button
+                Classes="accent"
+                Command="{Binding Workspace.ConfirmPsmuxCreateCommand}"
+                Content="Attach existing"
+                IsDefault="{Binding Workspace.IsPsmuxCreateOpen}"
+                IsVisible="{Binding Workspace.IsPsmuxDuplicate}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Panel>
+</UserControl>

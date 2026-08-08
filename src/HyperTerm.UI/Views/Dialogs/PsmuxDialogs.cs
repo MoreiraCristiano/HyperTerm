@@ -5,14 +5,18 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using HyperTerm.Core.Models;
 using HyperTerm.UI.ViewModels;
 
-namespace HyperTerm.UI.Views;
+namespace HyperTerm.UI.Views.Dialogs;
 
-public sealed partial class MainWindow : Window
+public sealed partial class PsmuxSessionsDialog : UserControl
 {
-    private void FocusPsmuxSessionsDialog(MainWindowViewModel viewModel)
+    public PsmuxSessionsDialog()
+    {
+        InitializeComponent();
+    }
+
+    internal void FocusContent(MainWindowViewModel viewModel)
     {
         Dispatcher.UIThread.Post(
             () =>
@@ -34,26 +38,6 @@ public sealed partial class MainWindow : Window
                 }
             },
             DispatcherPriority.Loaded);
-    }
-
-    private void OnPsmuxDialogKeyDown(object? sender, KeyEventArgs eventArgs)
-    {
-        if (DataContext is not MainWindowViewModel viewModel)
-        {
-            return;
-        }
-
-        if (eventArgs.Key == Key.Escape)
-        {
-            viewModel.Workspace.CancelPsmuxCreateCommand.Execute(null);
-            eventArgs.Handled = true;
-        }
-        else if (eventArgs.Key == Key.Enter && eventArgs.KeyModifiers == KeyModifiers.None &&
-                 viewModel.Workspace.ConfirmPsmuxCreateCommand.CanExecute(null))
-        {
-            viewModel.Workspace.ConfirmPsmuxCreateCommand.Execute(null);
-            eventArgs.Handled = true;
-        }
     }
 
     private void OnPsmuxSessionsDialogKeyDown(object? sender, KeyEventArgs eventArgs)
@@ -89,6 +73,37 @@ public sealed partial class MainWindow : Window
         eventArgs.Handled = true;
     }
 
+    private void OnActivePsmuxSessionDoubleTapped(object? sender, TappedEventArgs eventArgs)
+    {
+        if (eventArgs.Source is not Visual source ||
+            source.FindAncestorOfType<ListBoxItem>()?.DataContext is not
+                PsmuxSessionItemViewModel session ||
+            DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        viewModel.Workspace.SelectedPsmuxSession = session;
+        if (viewModel.Workspace.AttachSelectedPsmuxSessionCommand.CanExecute(null))
+        {
+            viewModel.Workspace.AttachSelectedPsmuxSessionCommand.Execute(null);
+            eventArgs.Handled = true;
+        }
+    }
+}
+
+public sealed partial class PsmuxKillDialog : UserControl
+{
+    public PsmuxKillDialog()
+    {
+        InitializeComponent();
+    }
+
+    internal void FocusCancel() =>
+        Dispatcher.UIThread.Post(
+            () => CancelPsmuxKillButton.Focus(),
+            DispatcherPriority.Loaded);
+
     private void OnPsmuxKillConfirmationKeyDown(object? sender, KeyEventArgs eventArgs)
     {
         if (DataContext is not MainWindowViewModel viewModel)
@@ -109,21 +124,33 @@ public sealed partial class MainWindow : Window
             eventArgs.Handled = true;
         }
     }
+}
 
-    private void OnActivePsmuxSessionDoubleTapped(object? sender, TappedEventArgs eventArgs)
+public sealed partial class PsmuxCreateDialog : UserControl
+{
+    public PsmuxCreateDialog()
     {
-        if (eventArgs.Source is not Visual source ||
-            source.FindAncestorOfType<ListBoxItem>()?.DataContext is not
-                PsmuxSessionItemViewModel session ||
-            DataContext is not MainWindowViewModel viewModel)
+        InitializeComponent();
+    }
+
+    internal TextBox NameEditor => PsmuxSessionNameEditor;
+
+    private void OnPsmuxDialogKeyDown(object? sender, KeyEventArgs eventArgs)
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
         {
             return;
         }
 
-        viewModel.Workspace.SelectedPsmuxSession = session;
-        if (viewModel.Workspace.AttachSelectedPsmuxSessionCommand.CanExecute(null))
+        if (eventArgs.Key == Key.Escape)
         {
-            viewModel.Workspace.AttachSelectedPsmuxSessionCommand.Execute(null);
+            viewModel.Workspace.CancelPsmuxCreateCommand.Execute(null);
+            eventArgs.Handled = true;
+        }
+        else if (eventArgs.Key == Key.Enter && eventArgs.KeyModifiers == KeyModifiers.None &&
+                 viewModel.Workspace.ConfirmPsmuxCreateCommand.CanExecute(null))
+        {
+            viewModel.Workspace.ConfirmPsmuxCreateCommand.Execute(null);
             eventArgs.Handled = true;
         }
     }

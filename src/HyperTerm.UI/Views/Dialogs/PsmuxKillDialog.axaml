@@ -1,0 +1,48 @@
+<UserControl
+    x:Class="HyperTerm.UI.Views.Dialogs.PsmuxKillDialog"
+    x:DataType="viewModels:MainWindowViewModel"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:viewModels="using:HyperTerm.UI.ViewModels"
+    IsVisible="{Binding Workspace.IsPsmuxKillConfirmationOpen}">
+  <Panel>
+      <Border Background="{DynamicResource OverlayBrush}" />
+      <Border
+          Width="440"
+          Padding="{DynamicResource DialogPadding}"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Center"
+          Background="{DynamicResource PanelBackgroundBrush}"
+          BorderBrush="{DynamicResource BorderBrush}"
+          BorderThickness="1"
+          CornerRadius="{DynamicResource RadiusL}">
+        <StackPanel Spacing="16">
+          <TextBlock FontSize="19" FontWeight="SemiBold" Text="End psmux session?" />
+          <TextBlock TextWrapping="Wrap">
+            <Run Text="Session ‘" />
+            <Run FontWeight="SemiBold" Text="{Binding Workspace.PsmuxSessionPendingKill.Name}" />
+            <Run Text="’ and all processes running in it will be permanently ended." />
+          </TextBlock>
+          <TextBlock
+              Foreground="{DynamicResource DangerBrush}"
+              IsVisible="{Binding Workspace.HasPsmuxKillError}"
+              Text="{Binding Workspace.PsmuxKillError}"
+              TextWrapping="Wrap" />
+          <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+            <Button
+                x:Name="CancelPsmuxKillButton"
+                Command="{Binding Workspace.CancelKillPsmuxSessionCommand}"
+                Content="Cancel"
+                IsEnabled="{Binding !Workspace.IsKillingPsmuxSession}"
+                ToolTip.Tip="Esc" />
+            <Button
+                Classes="danger"
+                Command="{Binding Workspace.ConfirmKillPsmuxSessionCommand}"
+                Content="End session"
+                IsDefault="{Binding Workspace.IsPsmuxKillConfirmationOpen}"
+                IsEnabled="{Binding !Workspace.IsKillingPsmuxSession}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Panel>
+</UserControl>

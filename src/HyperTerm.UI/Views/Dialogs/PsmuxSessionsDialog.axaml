@@ -1,0 +1,107 @@
+<UserControl
+    x:Class="HyperTerm.UI.Views.Dialogs.PsmuxSessionsDialog"
+    x:DataType="viewModels:MainWindowViewModel"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:viewModels="using:HyperTerm.UI.ViewModels"
+    IsVisible="{Binding Workspace.IsPsmuxSessionsOpen}">
+  <Panel>
+      <Border Background="{DynamicResource OverlayBrush}" />
+      <Border
+          Width="520"
+          MaxHeight="560"
+          Padding="{DynamicResource DialogPadding}"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Center"
+          Background="{DynamicResource PanelBackgroundBrush}"
+          BorderBrush="{DynamicResource BorderBrush}"
+          BorderThickness="1"
+          CornerRadius="{DynamicResource RadiusL}">
+        <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
+          <StackPanel>
+            <TextBlock
+                FontSize="{DynamicResource FontSizeTitle}"
+                FontWeight="SemiBold"
+                Text="Active psmux sessions" />
+            <TextBlock
+                Classes="secondary"
+                Text="Sessions from the HyperTerm namespace." />
+          </StackPanel>
+
+          <ProgressBar
+              Grid.Row="1"
+              Height="3"
+              Margin="0,14,0,8"
+              IsIndeterminate="True"
+              IsVisible="{Binding Workspace.IsRefreshingPsmuxSessions}" />
+
+          <ListBox
+              x:Name="ActivePsmuxSessionsList"
+              Grid.Row="2"
+              MinHeight="180"
+              MaxHeight="360"
+              Background="Transparent"
+              BorderThickness="0"
+              DoubleTapped="OnActivePsmuxSessionDoubleTapped"
+              IsVisible="{Binding Workspace.HasPsmuxSessions}"
+              ItemsSource="{Binding Workspace.PsmuxSessions}"
+              SelectedItem="{Binding Workspace.SelectedPsmuxSession, Mode=TwoWay}">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="viewModels:PsmuxSessionItemViewModel">
+                <Grid Margin="4,6" ColumnDefinitions="*,Auto">
+                  <StackPanel>
+                    <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
+                    <TextBlock
+                        FontSize="10"
+                        Foreground="{DynamicResource MutedTextBrush}"
+                        Text="{Binding Details}" />
+                  </StackPanel>
+                  <Button
+                      Grid.Column="1"
+                      Margin="12,0,0,0"
+                      VerticalAlignment="Center"
+                      Classes="tabCloseButton"
+                      Click="OnRequestKillPsmuxSession"
+                      Content="&#xE711;"
+                      FontFamily="{DynamicResource IconFontFamily}"
+                      ToolTip.Tip="End psmux session" />
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+
+          <TextBlock
+              Grid.Row="3"
+              Margin="0,12,0,0"
+              HorizontalAlignment="Center"
+              Classes="secondary"
+              IsVisible="{Binding Workspace.HasPsmuxSessionsMessage}"
+              Text="{Binding Workspace.PsmuxSessionsMessage}"
+              TextAlignment="Center"
+              TextWrapping="Wrap" />
+
+          <StackPanel
+              Grid.Row="4"
+              Margin="0,18,0,0"
+              HorizontalAlignment="Right"
+              Orientation="Horizontal"
+              Spacing="8">
+            <Button
+                Command="{Binding Workspace.ClosePsmuxSessionsCommand}"
+                Content="Close"
+                ToolTip.Tip="Esc" />
+            <Button
+                x:Name="RefreshPsmuxSessionsButton"
+                Command="{Binding Workspace.RefreshPsmuxSessionsCommand}"
+                Content="Refresh"
+                IsEnabled="{Binding !Workspace.IsRefreshingPsmuxSessions}" />
+            <Button
+                Classes="accent"
+                Command="{Binding Workspace.AttachSelectedPsmuxSessionCommand}"
+                Content="Attach"
+                IsEnabled="{Binding Workspace.HasSelectedPsmuxSession}" />
+          </StackPanel>
+        </Grid>
+      </Border>
+    </Panel>
+</UserControl>

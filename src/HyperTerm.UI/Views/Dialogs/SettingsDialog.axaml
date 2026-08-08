@@ -1,0 +1,275 @@
+<UserControl
+    x:Class="HyperTerm.UI.Views.Dialogs.SettingsDialog"
+    x:DataType="viewModels:MainWindowViewModel"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:viewModels="using:HyperTerm.UI.ViewModels"
+    IsVisible="{Binding Settings.IsSettingsOpen}">
+  <Panel>
+      <Border Background="{DynamicResource OverlayBrush}" />
+      <Border
+          Width="{DynamicResource SettingsDialogWidth}"
+          MaxHeight="{DynamicResource SettingsDialogMaxHeight}"
+          Margin="{DynamicResource SettingsDialogMargin}"
+          Padding="{DynamicResource DialogPadding}"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Stretch"
+          Background="{DynamicResource PanelBackgroundBrush}"
+          BorderBrush="{DynamicResource BorderBrush}"
+          BorderThickness="1"
+          CornerRadius="{DynamicResource RadiusL}">
+        <Grid RowDefinitions="Auto,*,Auto,Auto">
+          <StackPanel>
+            <TextBlock FontSize="{DynamicResource FontSizeTitle}" FontWeight="SemiBold" Text="Settings" />
+            <TextBlock Classes="secondary" Text="Configure the shell and terminal appearance." />
+          </StackPanel>
+
+          <TabControl
+              Grid.Row="1"
+              Margin="0,20,0,0"
+              Classes="settingsTabs"
+              SelectedIndex="{Binding Settings.SelectedSettingsTabIndex, Mode=TwoWay}">
+            <TabItem Header="General">
+              <ScrollViewer Classes="settingsTabContent">
+                <StackPanel Spacing="{DynamicResource SettingsSectionSpacing}">
+                  <Border Classes="settingsSection">
+                    <StackPanel>
+                      <TextBlock Classes="settingsSectionTitle" Text="Shell" />
+                      <TextBlock
+                          Classes="settingsSectionDescription"
+                          Text="Enter pwsh.exe or powershell.exe from PATH, or browse to the executable used by local and SSH terminals." />
+                      <TextBlock Classes="settingsLabel" Text="PowerShell executable" />
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBox
+                            PlaceholderText="pwsh.exe or full path"
+                            VerticalAlignment="Center"
+                            Text="{Binding Settings.SettingsPowerShellPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <Button
+                            Grid.Column="1"
+                            Margin="{DynamicResource SettingsBrowseButtonMargin}"
+                            Command="{Binding Settings.SelectPowerShellCommand}"
+                            Content="Browse..." />
+                      </Grid>
+                    </StackPanel>
+                  </Border>
+                  <Border Classes="settingsSection">
+                    <StackPanel>
+                      <TextBlock Classes="settingsSectionTitle" Text="Interface" />
+                      <TextBlock
+                          Classes="settingsSectionDescription"
+                          Text="Control workspace visibility." />
+                      <StackPanel Spacing="{DynamicResource SettingsActionSpacing}">
+                        <CheckBox
+                            IsChecked="{Binding Settings.SettingsShowSidebarScrollbar, Mode=TwoWay}"
+                            Content="Show sidebar scrollbar" />
+                        <CheckBox
+                            IsChecked="{Binding IsStatusBarVisible, Mode=TwoWay}"
+                            Content="Show status bar" />
+                      </StackPanel>
+                    </StackPanel>
+                  </Border>
+                  <Border Classes="settingsSection">
+                    <StackPanel>
+                      <TextBlock Classes="settingsSectionTitle" Text="psmux" />
+                      <TextBlock
+                          Classes="settingsSectionDescription"
+                          Text="Control whether persistent psmux sessions survive after HyperTerm closes." />
+                      <CheckBox
+                          IsChecked="{Binding Settings.SettingsKeepPsmuxSessionsOnExit, Mode=TwoWay}"
+                          Content="Keep psmux sessions running after HyperTerm closes" />
+                      <TextBlock
+                          Margin="0,8,0,0"
+                          Classes="secondary"
+                          Text="Turning this off ends every detached session in HyperTerm’s psmux namespace when the application exits. Sessions attached by another client are preserved."
+                          TextWrapping="Wrap" />
+                    </StackPanel>
+                  </Border>
+                </StackPanel>
+              </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="Terminal">
+              <ScrollViewer Classes="settingsTabContent">
+                <StackPanel Spacing="{DynamicResource SettingsSectionSpacing}">
+                  <Border Classes="settingsSection">
+                    <StackPanel>
+                      <TextBlock Classes="settingsSectionTitle" Text="Terminal appearance" />
+                      <TextBlock
+                          Classes="settingsSectionDescription"
+                          Text="Select an installed font, adjust its size, and customize text selection." />
+                      <Grid ColumnDefinitions="*,16,180">
+                        <StackPanel>
+                          <TextBlock Classes="settingsLabel" Text="Font family" />
+                          <ComboBox
+                              IsEditable="True"
+                              ItemsSource="{Binding Settings.SystemFontFamilies}"
+                              SelectedItem="{Binding Settings.SettingsTerminalFontFamily, Mode=TwoWay}"
+                              Text="{Binding Settings.SettingsTerminalFontFamily, Mode=TwoWay}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                          <TextBlock Classes="settingsLabel" Text="Font size" />
+                          <NumericUpDown
+                              Minimum="8"
+                              Maximum="32"
+                              ShowButtonSpinner="False"
+                              Value="{Binding Settings.SettingsTerminalFontSize, Mode=TwoWay}" />
+                        </StackPanel>
+                      </Grid>
+                      <StackPanel Margin="{DynamicResource SettingsNestedFieldMargin}">
+                        <TextBlock Classes="settingsLabel" Text="Selection color" />
+                        <ComboBox
+                            Width="{DynamicResource SettingsColorPickerWidth}"
+                            HorizontalAlignment="Left"
+                            ItemsSource="{Binding Settings.TerminalSelectionColors}"
+                            SelectedItem="{Binding Settings.SettingsTerminalSelectionColor, Mode=TwoWay}">
+                          <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="viewModels:TerminalSelectionColorOption">
+                              <StackPanel Orientation="Horizontal">
+                                <Border
+                                    Width="{DynamicResource ColorSwatchSize}"
+                                    Height="{DynamicResource ColorSwatchSize}"
+                                    Margin="{DynamicResource ColorSwatchMargin}"
+                                    VerticalAlignment="Center"
+                                    Background="{Binding PreviewBrush}"
+                                    CornerRadius="{DynamicResource RadiusS}" />
+                                <TextBlock VerticalAlignment="Center" Text="{Binding Name}" />
+                              </StackPanel>
+                            </DataTemplate>
+                          </ComboBox.ItemTemplate>
+                        </ComboBox>
+                      </StackPanel>
+                    </StackPanel>
+                  </Border>
+                  <Border Classes="settingsSection">
+                    <StackPanel>
+                      <TextBlock Classes="settingsSectionTitle" Text="Cursor" />
+                      <TextBlock Classes="settingsSectionDescription" Text="Control the cursor shape and animation." />
+                      <Grid ColumnDefinitions="*,16,*">
+                        <StackPanel>
+                          <TextBlock Classes="settingsLabel" Text="Cursor style" />
+                          <ComboBox
+                              ItemsSource="{Binding Settings.TerminalCursorStyles}"
+                              SelectedItem="{Binding Settings.SettingsTerminalCursorStyle, Mode=TwoWay}" />
+                        </StackPanel>
+                        <CheckBox
+                            Grid.Column="2"
+                            VerticalAlignment="Bottom"
+                            IsChecked="{Binding Settings.SettingsTerminalCursorBlink, Mode=TwoWay}"
+                            Content="Blink cursor" />
+                      </Grid>
+                    </StackPanel>
+                  </Border>
+                </StackPanel>
+              </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="Data">
+              <ScrollViewer Classes="settingsTabContent">
+                <Border Classes="settingsSection">
+                  <StackPanel>
+                    <TextBlock Classes="settingsSectionTitle" Text="Session data" />
+                    <TextBlock
+                        Classes="settingsSectionDescription"
+                        Text="Back up or transfer all saved sessions and folders using a versioned HyperTerm JSON archive." />
+                    <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SettingsActionSpacing}">
+                      <Button Command="{Binding Settings.ExportSessionsCommand}" Content="Export..." />
+                      <Button Command="{Binding Settings.ImportSessionsCommand}" Content="Import..." />
+                    </StackPanel>
+                    <TextBlock
+                        Margin="{DynamicResource SettingsStatusMargin}"
+                        Foreground="{DynamicResource SuccessBrush}"
+                        IsVisible="{Binding Settings.HasSettingsDataStatus}"
+                        TextWrapping="Wrap"
+                        Text="{Binding Settings.SettingsDataStatus}" />
+                  </StackPanel>
+                </Border>
+              </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="Logs">
+              <Grid RowDefinitions="Auto,Auto,*,Auto">
+                <Border Classes="settingsSection">
+                  <StackPanel>
+                    <TextBlock Classes="settingsSectionTitle" Text="Diagnostics" />
+                    <TextBlock
+                        Classes="settingsSectionDescription"
+                        Text="Capture local diagnostic events and unexpected failures. Terminal input, output, passwords, and keys are never recorded." />
+                    <CheckBox
+                        IsChecked="{Binding Settings.SettingsCaptureLogs, Mode=TwoWay}"
+                        Content="Capture diagnostic logs" />
+                    <TextBlock
+                        Margin="0,8,0,0"
+                        Classes="secondary"
+                        Text="Up to 7 files of 5 MB are retained locally." />
+                  </StackPanel>
+                </Border>
+
+                <Border
+                    Grid.Row="1"
+                    Margin="0,10,0,10"
+                    Padding="10"
+                    Background="{DynamicResource PanelBackgroundBrush}"
+                    BorderBrush="{DynamicResource WarningBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{DynamicResource RadiusM}"
+                    IsVisible="{Binding Settings.HasPreviousRunCrash}">
+                  <TextBlock
+                      Foreground="{DynamicResource WarningBrush}"
+                      Text="The previous HyperTerm run appears to have ended unexpectedly."
+                      TextWrapping="Wrap" />
+                </Border>
+
+                <TextBox
+                    Grid.Row="2"
+                    AcceptsReturn="True"
+                    FontFamily="Cascadia Mono, Consolas, monospace"
+                    FontSize="12"
+                    IsReadOnly="True"
+                    Text="{Binding Settings.LogContent}"
+                    TextWrapping="NoWrap"
+                    VerticalContentAlignment="Top"
+                    PlaceholderText="No logs captured yet." />
+
+                <Grid Grid.Row="3" Margin="0,10,0,0" ColumnDefinitions="*,Auto">
+                  <TextBlock
+                      VerticalAlignment="Center"
+                      Classes="secondary"
+                      Text="{Binding Settings.LogStatus}"
+                      TextTrimming="CharacterEllipsis" />
+                  <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                    <Button Command="{Binding Settings.RefreshLogsCommand}" Content="Refresh" />
+                    <Button Command="{Binding Settings.CopyLogsCommand}" Content="Copy" />
+                    <Button
+                        Command="{Binding Settings.OpenLogsFolderCommand}"
+                        Content="Open folder" />
+                  </StackPanel>
+                </Grid>
+              </Grid>
+            </TabItem>
+          </TabControl>
+
+          <TextBlock
+              Grid.Row="2"
+              Margin="0,0,0,12"
+              Foreground="{DynamicResource DangerBrush}"
+              TextWrapping="Wrap"
+              Text="{Binding Settings.SettingsError}" />
+
+          <Border
+              Grid.Row="3"
+              Padding="{DynamicResource SettingsFooterPadding}"
+              BorderBrush="{DynamicResource BorderBrush}"
+              BorderThickness="0,1,0,0">
+            <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+              <Button Command="{Binding Settings.CancelSettingsCommand}" Content="Cancel" />
+              <Button
+                  Classes="accent"
+                  Command="{Binding Settings.SaveSettingsCommand}"
+                  Content="Save"
+                  IsDefault="{Binding Settings.IsSettingsOpen}" />
+            </StackPanel>
+          </Border>
+        </Grid>
+      </Border>
+    </Panel>
+</UserControl>

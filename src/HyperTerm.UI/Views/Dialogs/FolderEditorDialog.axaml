@@ -1,0 +1,39 @@
+<UserControl
+    x:Class="HyperTerm.UI.Views.Dialogs.FolderEditorDialog"
+    x:DataType="viewModels:MainWindowViewModel"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:viewModels="using:HyperTerm.UI.ViewModels"
+    IsVisible="{Binding FolderEditor.IsFolderEditorOpen}">
+  <Panel>
+      <Border Background="{DynamicResource OverlayBrush}" />
+      <Border
+          Width="440"
+          Padding="{DynamicResource DialogPadding}"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Center"
+          Background="{DynamicResource PanelBackgroundBrush}"
+          BorderBrush="{DynamicResource BorderBrush}"
+          BorderThickness="1"
+          CornerRadius="{DynamicResource RadiusL}">
+        <StackPanel Spacing="14">
+          <TextBlock FontSize="{DynamicResource FontSizeTitle}" FontWeight="SemiBold" Text="{Binding FolderEditor.FolderEditorTitle}" />
+          <TextBlock Classes="secondary" Text="Use / to create nested folders." />
+          <TextBox
+              x:Name="FolderPathEditor"
+              AutomationProperties.AutomationId="FolderPathEditor"
+              PlaceholderText="Production/Linux"
+              Text="{Binding FolderEditor.FolderPath, Mode=TwoWay}" />
+          <TextBlock Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap" Text="{Binding FolderEditor.FolderError}" />
+          <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+            <Button Command="{Binding FolderEditor.CancelFolderEditorCommand}" Content="Cancel" />
+            <Button
+                Classes="accent"
+                Command="{Binding FolderEditor.CreateFolderCommand}"
+                Content="{Binding FolderEditor.FolderEditorAction}"
+                IsDefault="{Binding FolderEditor.IsFolderEditorOpen}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Panel>
+</UserControl>
