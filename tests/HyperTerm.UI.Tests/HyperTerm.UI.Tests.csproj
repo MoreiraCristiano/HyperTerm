@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Headless.XUnit" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\HyperTerm.UI\HyperTerm.UI.csproj" />
+  </ItemGroup>
+</Project>

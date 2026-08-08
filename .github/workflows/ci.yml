@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: src/HyperTerm.UI/WebTerminal/package-lock.json
+      - name: Restore tools and dependencies
+        shell: pwsh
+        run: |
+          dotnet tool restore
+          dotnet restore .\HyperTerm.sln --locked-mode
+          npm.cmd ci --prefix .\src\HyperTerm.UI\WebTerminal --no-audit --no-fund
+      - name: Build and test WebTerminal
+        shell: pwsh
+        run: |
+          npm.cmd run build --prefix .\src\HyperTerm.UI\WebTerminal
+          npm.cmd run test:coverage --prefix .\src\HyperTerm.UI\WebTerminal
+      - name: Build .NET
+        run: dotnet build .\HyperTerm.sln --configuration Release --no-restore
+      - name: Test .NET with coverage
+        shell: pwsh
+        run: .\eng\coverage.ps1 -Enforce
+      - name: Mutate changed Core code
+        if: github.event_name == 'pull_request'
+        shell: pwsh
+        run: dotnet stryker --config-file stryker-config.json --since:${{ github.event.pull_request.base.sha }}
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            artifacts/test-results
+            artifacts/coverage
+            src/HyperTerm.UI/WebTerminal/coverage
+          retention-days: 14

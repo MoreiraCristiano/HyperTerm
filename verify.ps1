@@ -57,6 +57,10 @@ try {
         & npm.cmd run build --prefix $webTerminalPath
     }
 
+    Invoke-CheckedCommand 'Testing web terminal...' {
+        & npm.cmd test --prefix $webTerminalPath
+    }
+
     Invoke-CheckedCommand 'Building HyperTerm in Release mode...' {
         & dotnet build $solutionPath --configuration Release --no-restore --nologo
     }

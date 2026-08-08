@@ -1,7 +1,11 @@
 {
   "private": true,
+  "type": "module",
   "scripts": {
-    "build": "node build.mjs"
+    "build": "node build.mjs",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:mutation": "stryker run"
   },
   "dependencies": {
     "@xterm/addon-fit": "0.10.0",
@@ -9,9 +13,17 @@
     "@xterm/xterm": "5.5.0"
   },
   "devDependencies": {
-    "esbuild": "0.25.12"
+    "@stryker-mutator/core": "9.6.1",
+    "@stryker-mutator/vitest-runner": "9.6.1",
+    "@vitest/coverage-v8": "4.1.10",
+    "esbuild": "0.25.12",
+    "jsdom": "30.0.1",
+    "vitest": "4.1.10"
   },
   "allowScripts": {
     "esbuild@0.25.12": true
+  },
+  "overrides": {
+    "qs": "6.15.3"
   }
 }

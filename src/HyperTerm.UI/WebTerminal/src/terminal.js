@@ -288,3 +288,17 @@ window.terminalHost = {
 
 new ResizeObserver(scheduleFitActiveTerminal).observe(terminalHostElement);
 window.addEventListener('load', () => send({ type: 'hostReady' }));
+
+export {
+  activateTerminal,
+  configureTerminal,
+  createTerminal,
+  disableWebgl,
+  disposeTerminal,
+  enableWebgl,
+  fitActiveTerminal,
+  focusTerminal,
+  handleKeyEvent,
+  scheduleFitActiveTerminal,
+  writeTerminal
+};

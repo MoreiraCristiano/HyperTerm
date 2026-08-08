@@ -4,6 +4,17 @@ internal sealed class ApplicationPathProvider : IApplicationPathProvider
 {
     public ApplicationPathProvider()
     {
+        string? testDataRoot = GetTestDataRoot();
+        if (testDataRoot is not null)
+        {
+            ApplicationDirectory = testDataRoot;
+            Directory.CreateDirectory(ApplicationDirectory);
+            DatabasePath = Path.Combine(ApplicationDirectory, "hyperterm.db");
+            SettingsPath = Path.Combine(ApplicationDirectory, "settings.json");
+            LogsDirectory = Path.Combine(ApplicationDirectory, "logs");
+            return;
+        }
+
         string localApplicationData = Environment.GetFolderPath(
             Environment.SpecialFolder.LocalApplicationData);
 
@@ -36,6 +47,26 @@ internal sealed class ApplicationPathProvider : IApplicationPathProvider
 
     public string SettingsPath { get; }
     public string LogsDirectory { get; }
+
+    private static string? GetTestDataRoot()
+    {
+        if (!string.Equals(
+                Environment.GetEnvironmentVariable("HYPERTERM_TEST_MODE"),
+                "1",
+                StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        string? configuredRoot = Environment.GetEnvironmentVariable("HYPERTERM_DATA_ROOT");
+        if (string.IsNullOrWhiteSpace(configuredRoot))
+        {
+            throw new InvalidOperationException(
+                "HYPERTERM_DATA_ROOT is required when HYPERTERM_TEST_MODE=1.");
+        }
+
+        return Path.GetFullPath(configuredRoot);
+    }
 
     private static void CopyFirstAvailableIfNeeded(
         IEnumerable<string> sourcePaths,

@@ -36,7 +36,7 @@ HyperTerm targets `net10.0` and follows the .NET 10 LTS support line.
 From the repository root, run:
 
 ```powershell
-.\bootstrap.ps1
+.\scripts\bootstrap.ps1
 ```
 
 The bootstrap script:
@@ -51,7 +51,7 @@ Each run receives an isolated output directory under `artifacts/runs/`. The scri
 To build without launching the application:
 
 ```powershell
-.\bootstrap.ps1 -BuildOnly
+.\scripts\bootstrap.ps1 -BuildOnly
 ```
 
 ## Release builds
@@ -59,7 +59,7 @@ To build without launching the application:
 Create the complete self-contained release ZIP with one command:
 
 ```powershell
-.\build.ps1
+.\scripts\build.ps1
 ```
 
 The complete ZIP is written to:
@@ -73,7 +73,7 @@ without a separate psmux installation and supports an alternative HyperTerm
 version or Windows architecture:
 
 ```powershell
-.\build.ps1 -Version 1.1.0 -Runtime win-arm64
+.\scripts\build.ps1 -Version 1.1.0 -Runtime win-arm64
 ```
 
 Extract the complete ZIP before running HyperTerm. The package contains the
@@ -91,7 +91,7 @@ Runtime. Windows OpenSSH Client is also required for SSH sessions.
 Run the complete local quality gate before committing:
 
 ```powershell
-.\verify.ps1
+.\scripts\verify.ps1
 ```
 
 This verifies locked dependencies, vulnerability audits, formatting, the web
@@ -99,7 +99,7 @@ terminal build, the Release build, and all tests. Add `-Package` to also create
 and validate the complete Windows release ZIP:
 
 ```powershell
-.\verify.ps1 -Package
+.\scripts\verify.ps1 -Package
 ```
 
 ## Manual build
@@ -175,7 +175,7 @@ To permanently remove all sessions, folders, settings, and legacy data, close
 HyperTerm and run:
 
 ```powershell
-.\reset-data.ps1
+.\scripts\reset-data.ps1
 ```
 
 The script displays every target directory and requires `DELETE` confirmation.

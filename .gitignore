@@ -28,6 +28,8 @@ npm-debug.log*
 # Test and coverage output
 TestResults/
 coverage/
+StrykerOutput/
+**/reports/mutation/
 *.coverage
 *.coveragexml
 

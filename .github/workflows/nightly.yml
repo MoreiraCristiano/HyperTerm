@@ -1,0 +1,72 @@
+name: Nightly quality
+
+on:
+  schedule:
+    - cron: '30 5 * * *'
+  workflow_dispatch:
+    inputs:
+      run_mutation:
+        description: Run full mutation suites
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hyperterm-nightly-ui
+  cancel-in-progress: false
+
+jobs:
+  windows-ui:
+    runs-on: [self-hosted, windows, x64, hyperterm-ui]
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: src/HyperTerm.UI/WebTerminal/package-lock.json
+      - name: Restore and build
+        shell: pwsh
+        run: |
+          dotnet tool restore
+          dotnet restore .\HyperTerm.sln --locked-mode
+          npm.cmd ci --prefix .\src\HyperTerm.UI\WebTerminal --no-audit --no-fund
+          npm.cmd run build --prefix .\src\HyperTerm.UI\WebTerminal
+          dotnet build .\HyperTerm.sln --configuration Release --no-restore
+      - name: Full deterministic suite
+        run: dotnet test .\HyperTerm.sln --configuration Release --no-build --no-restore
+      - name: ConPTY stress
+        shell: pwsh
+        env:
+          HYPERTERM_RUN_STRESS: '1'
+        run: dotnet test .\tests\HyperTerm.Infrastructure.Tests\HyperTerm.Infrastructure.Tests.csproj --configuration Release --no-build --filter Category=Stress
+      - name: Publish application for desktop tests
+        shell: pwsh
+        run: dotnet publish .\src\HyperTerm.UI\HyperTerm.UI.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true --output .\artifacts\e2e-app
+      - name: Desktop E2E
+        shell: pwsh
+        env:
+          HYPERTERM_RUN_E2E: '1'
+          HYPERTERM_E2E_APP: '${{ github.workspace }}\artifacts\e2e-app\HyperTerm.exe'
+        run: dotnet test .\tests\HyperTerm.E2E.Tests\HyperTerm.E2E.Tests.csproj --configuration Release --no-build --filter Category=E2E
+      - name: Mutation
+        if: github.event_name == 'schedule' || inputs.run_mutation
+        shell: pwsh
+        run: .\eng\mutation.ps1 -WebTerminal
+      - name: Upload nightly diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-diagnostics-${{ github.run_id }}
+          path: |
+            artifacts
+            StrykerOutput
+            src/HyperTerm.UI/WebTerminal/reports
+          if-no-files-found: ignore
+          retention-days: 14

@@ -1,0 +1,92 @@
+using Avalonia.Controls;
+using Avalonia.Headless.XUnit;
+using HyperTerm.UI.Controls;
+
+namespace HyperTerm.UI.Tests;
+
+public sealed class AvaloniaHeadlessTests
+{
+    [AvaloniaFact]
+    [Trait("Category", "Headless")]
+    public void Headless_application_is_initialized()
+    {
+        Avalonia.Application? application = Avalonia.Application.Current;
+        Assert.NotNull(application);
+        Assert.NotNull(application!.Resources);
+    }
+
+    [AvaloniaFact]
+    [Trait("Category", "Headless")]
+    public void Controls_measure_and_focus_on_headless_dispatcher()
+    {
+        var textBox = new TextBox { Text = "HyperTerm", MinWidth = 100 };
+        var window = new Window
+        {
+            Width = 900,
+            Height = 600,
+            Content = textBox,
+        };
+
+        window.Show();
+        textBox.Focus();
+
+        Assert.True(textBox.IsFocused);
+        Assert.Equal("HyperTerm", textBox.Text);
+        window.Close();
+    }
+}
+
+public sealed class TerminalOutputBufferTests
+{
+    [Fact]
+    public void Constructor_rejects_non_positive_limits()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new TerminalOutputBuffer(0, 1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new TerminalOutputBuffer(1, 0));
+    }
+
+    [Fact]
+    public void Drain_preserves_order_and_batch_boundary()
+    {
+        var buffer = new TerminalOutputBuffer(100, 5);
+        Assert.True(buffer.Enqueue("ab"));
+        Assert.True(buffer.Enqueue("cd"));
+        Assert.True(buffer.Enqueue("ef"));
+
+        Assert.Equal("abcd", buffer.TryDrainBatch());
+        Assert.Equal("ef", buffer.TryDrainBatch());
+        Assert.Null(buffer.TryDrainBatch());
+    }
+
+    [Fact]
+    public async Task Complete_rejects_late_output_and_unblocks_writer()
+    {
+        var buffer = new TerminalOutputBuffer(3, 3);
+        Assert.True(buffer.Enqueue("abc"));
+        Task<bool> blockedWriter = Task.Run(() => buffer.Enqueue("d"));
+        Assert.False(blockedWriter.IsCompleted);
+
+        buffer.Complete();
+
+        Assert.False(await blockedWriter.WaitAsync(TimeSpan.FromSeconds(2)));
+        Assert.False(buffer.Enqueue("late"));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("{}")]
+    [InlineData("{\"type\":\"input\",\"tabId\":\"bad\",\"data\":\"x\"}")]
+    [InlineData("{\"type\":\"resize\",\"tabId\":\"00000000000000000000000000000001\",\"columns\":0,\"rows\":24}")]
+    public void Web_messages_reject_invalid_payloads(string? body) =>
+        Assert.False(WebTerminalMessage.TryParse(body, out _));
+
+    [Fact]
+    public void Web_messages_preserve_raw_control_input()
+    {
+        const string body = "{\"type\":\"input\",\"tabId\":\"00000000000000000000000000000001\",\"data\":\"\\u0003\"}";
+
+        Assert.True(WebTerminalMessage.TryParse(body, out WebTerminalMessage? message));
+        Assert.Equal("\u0003", message!.Data);
+    }
+}

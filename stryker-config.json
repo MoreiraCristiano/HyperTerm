@@ -1,0 +1,11 @@
+{
+  "stryker-config": {
+    "solution": "HyperTerm.sln",
+    "project": "src/HyperTerm.Core/HyperTerm.Core.csproj",
+    "test-projects": ["tests/HyperTerm.Core.Tests/HyperTerm.Core.Tests.csproj"],
+    "mutate": ["**/*.cs", "!**/DependencyInjection.cs", "!**/AssemblyMarker.cs"],
+    "reporters": ["cleartext", "html", "json"],
+    "thresholds": { "high": 85, "low": 75, "break": 75 },
+    "concurrency": 4
+  }
+}

@@ -16,6 +16,7 @@ internal sealed class PortaPtySessionFactory(
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(definition);
+        cancellationToken.ThrowIfCancellationRequested();
         logger.LogInformation("Starting a PTY process.");
 
         var options = new PtyOptions
