@@ -3,29 +3,26 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
 using HyperTerm.UI.Services;
-using HyperTerm.UI.ViewModels;
 using HyperTerm.UI.Views;
 
 namespace HyperTerm.UI;
 
 public sealed partial class App : Application, IDisposable
 {
-    private readonly MainWindow? mainWindow;
-    private readonly MainWindowViewModel? viewModel;
-    private readonly ApplicationLifecycleCoordinator? lifecycle;
+    private readonly Func<MainWindow>? createMainWindow;
+    private readonly Func<ApplicationLifecycleCoordinator>? getLifecycle;
+    private ApplicationLifecycleCoordinator? lifecycle;
 
     public App()
     {
     }
 
     internal App(
-        MainWindow mainWindow,
-        MainWindowViewModel viewModel,
-        ApplicationLifecycleCoordinator lifecycle)
+        Func<MainWindow> createMainWindow,
+        Func<ApplicationLifecycleCoordinator> getLifecycle)
     {
-        this.mainWindow = mainWindow;
-        this.viewModel = viewModel;
-        this.lifecycle = lifecycle;
+        this.createMainWindow = createMainWindow;
+        this.getLifecycle = getLifecycle;
     }
 
     public override void Initialize()
@@ -38,12 +35,14 @@ public sealed partial class App : Application, IDisposable
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            if (mainWindow is null || viewModel is null || lifecycle is null)
+            if (createMainWindow is null || getLifecycle is null)
             {
                 throw new InvalidOperationException(
                     "Desktop application services were not configured.");
             }
 
+            MainWindow mainWindow = createMainWindow();
+            lifecycle = getLifecycle();
             mainWindow.Opened += OnMainWindowOpened;
             desktop.Exit += OnDesktopExit;
             desktop.MainWindow = mainWindow;

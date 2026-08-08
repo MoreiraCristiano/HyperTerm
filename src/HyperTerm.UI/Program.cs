@@ -62,9 +62,8 @@ internal static class Program
 
     private static AppBuilder BuildAvaloniaApp(IServiceProvider services) =>
         AppBuilder.Configure(() => new App(
-                services.GetRequiredService<MainWindow>(),
-                services.GetRequiredService<MainWindowViewModel>(),
-                services.GetRequiredService<ApplicationLifecycleCoordinator>()))
+                () => services.GetRequiredService<MainWindow>(),
+                () => services.GetRequiredService<ApplicationLifecycleCoordinator>()))
             .UsePlatformDetect()
             .WithInterFont()
             .LogToTrace();
