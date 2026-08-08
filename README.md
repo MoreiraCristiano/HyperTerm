@@ -200,6 +200,8 @@ HyperTerm.sln
 - **Shared** contains cross-project utilities.
 
 The product, solution, projects, assemblies, and namespaces use the final **HyperTerm** name consistently.
+See [the architecture guide](docs/architecture.md) for dependency direction,
+feature-folder conventions, and terminal boundaries.
 
 ## Terminal pipeline
 
