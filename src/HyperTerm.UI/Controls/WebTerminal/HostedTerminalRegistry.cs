@@ -1,0 +1,301 @@
+using System.Collections.Concurrent;
+using System.Collections.Specialized;
+using HyperTerm.UI.ViewModels;
+
+namespace HyperTerm.UI.Controls;
+
+internal sealed class HostedTerminalRegistry
+{
+    private readonly ConcurrentDictionary<Guid, HostedTerminal> terminals = new();
+    private readonly WebTerminalScriptBridge scriptBridge;
+    private readonly Func<TerminalTabViewModel?> getActiveTab;
+    private readonly Func<bool> isHostReady;
+    private readonly Action<TerminalTabViewModel> requestFocus;
+    private readonly TerminalOutputCoordinator outputCoordinator;
+    private INotifyCollectionChanged? observedCollection;
+
+    public HostedTerminalRegistry(
+        WebTerminalScriptBridge scriptBridge,
+        Func<TerminalTabViewModel?> getActiveTab,
+        Func<bool> isHostReady,
+        Action<TerminalTabViewModel> requestFocus,
+        Action scheduleOutputFlush)
+    {
+        this.scriptBridge = scriptBridge;
+        this.getActiveTab = getActiveTab;
+        this.isHostReady = isHostReady;
+        this.requestFocus = requestFocus;
+        outputCoordinator = new TerminalOutputCoordinator(
+            () => terminals.Values.ToArray(),
+            GetActiveHostedTerminal,
+            (hosted, output, token) =>
+                scriptBridge.WriteAsync(hosted.Tab.Id, token, output),
+            scheduleOutputFlush);
+    }
+
+    public void Observe(IEnumerable<TerminalTabViewModel>? tabs)
+    {
+        if (ReferenceEquals(observedCollection, tabs))
+        {
+            Synchronize(tabs);
+            return;
+        }
+
+        StopObserving();
+        observedCollection = tabs as INotifyCollectionChanged;
+        if (observedCollection is not null)
+        {
+            observedCollection.CollectionChanged += OnCollectionChanged;
+        }
+
+        Synchronize(tabs);
+    }
+
+    public void StopObserving()
+    {
+        if (observedCollection is not null)
+        {
+            observedCollection.CollectionChanged -= OnCollectionChanged;
+            observedCollection = null;
+        }
+
+        foreach (HostedTerminal hosted in terminals.Values.ToArray())
+        {
+            Remove(hosted.Tab);
+        }
+    }
+
+    public bool TryGet(Guid tabId, out HostedTerminal hosted) =>
+        terminals.TryGetValue(tabId, out hosted!);
+
+    public async Task CreateExistingAsync()
+    {
+        HostedTerminal[] existing = terminals.Values
+            .OrderByDescending(hosted => ReferenceEquals(hosted.Tab, getActiveTab()))
+            .ToArray();
+        foreach (HostedTerminal hosted in existing)
+        {
+            await CreateAsync(hosted);
+        }
+    }
+
+    public async Task ActivateAsync(TerminalTabViewModel? tab)
+    {
+        if (!isHostReady() || tab is null ||
+            !terminals.TryGetValue(tab.Id, out HostedTerminal? hosted))
+        {
+            return;
+        }
+
+        if (!hosted.Created)
+        {
+            await CreateAsync(hosted);
+        }
+
+        if (hosted.Created && await InvokeScriptAsync(
+                () => scriptBridge.ActivateAsync(tab.Id),
+                tab))
+        {
+            requestFocus(tab);
+        }
+    }
+
+    public Task<bool> FlushOutputAsync() => outputCoordinator.FlushAsync();
+
+    public void Acknowledge(HostedTerminal hosted, long token, bool success) =>
+        outputCoordinator.Acknowledge(hosted, token, success);
+
+    private void Synchronize(IEnumerable<TerminalTabViewModel>? tabs)
+    {
+        TerminalTabViewModel[] currentTabs = tabs?.ToArray() ?? [];
+        var currentIds = currentTabs.Select(tab => tab.Id).ToHashSet();
+
+        foreach (HostedTerminal hosted in terminals.Values)
+        {
+            if (!currentIds.Contains(hosted.Tab.Id))
+            {
+                Remove(hosted.Tab);
+            }
+        }
+
+        foreach (TerminalTabViewModel tab in currentTabs)
+        {
+            Add(tab);
+        }
+    }
+
+    private void OnCollectionChanged(
+        object? sender,
+        NotifyCollectionChangedEventArgs eventArgs)
+    {
+        if (eventArgs.OldItems is not null)
+        {
+            foreach (TerminalTabViewModel tab in eventArgs.OldItems)
+            {
+                Remove(tab);
+            }
+        }
+
+        if (eventArgs.NewItems is not null)
+        {
+            foreach (TerminalTabViewModel tab in eventArgs.NewItems)
+            {
+                Add(tab);
+            }
+        }
+
+        if (eventArgs.Action == NotifyCollectionChangedAction.Reset)
+        {
+            Synchronize(sender as IEnumerable<TerminalTabViewModel>);
+        }
+    }
+
+    private void Add(TerminalTabViewModel tab)
+    {
+        var hosted = new HostedTerminal(tab);
+        if (!terminals.TryAdd(tab.Id, hosted))
+        {
+            return;
+        }
+
+        tab.TerminalOutputReceived += OnTerminalOutputReceived;
+        tab.FocusRequested += OnFocusRequested;
+        tab.AppearanceChanged += OnAppearanceChanged;
+        tab.Terminating += OnTabTerminating;
+
+        if (isHostReady())
+        {
+            _ = CreateAsync(hosted);
+        }
+    }
+
+    private void Remove(TerminalTabViewModel tab)
+    {
+        if (!terminals.TryRemove(tab.Id, out HostedTerminal? hosted))
+        {
+            return;
+        }
+
+        tab.TerminalOutputReceived -= OnTerminalOutputReceived;
+        tab.FocusRequested -= OnFocusRequested;
+        tab.AppearanceChanged -= OnAppearanceChanged;
+        tab.Terminating -= OnTabTerminating;
+        hosted.Removed = true;
+        outputCoordinator.Complete(hosted);
+
+        if (isHostReady())
+        {
+            _ = DisposeAsync(hosted);
+        }
+    }
+
+    private async Task CreateAsync(HostedTerminal hosted)
+    {
+        await hosted.CreationGate.WaitAsync();
+        try
+        {
+            if (!isHostReady() || hosted.Created || hosted.Removed ||
+                !terminals.ContainsKey(hosted.Tab.Id))
+            {
+                return;
+            }
+
+            await scriptBridge.CreateAsync(hosted.Tab);
+            hosted.Created = true;
+        }
+        catch (Exception exception)
+        {
+            hosted.Created = false;
+            hosted.Tab.ReportLaunchFailed(exception.Message);
+        }
+        finally
+        {
+            hosted.CreationGate.Release();
+        }
+    }
+
+    private async Task DisposeAsync(HostedTerminal hosted)
+    {
+        await hosted.CreationGate.WaitAsync();
+        try
+        {
+            if (!hosted.Created)
+            {
+                return;
+            }
+
+            try
+            {
+                await scriptBridge.DisposeAsync(hosted.Tab.Id);
+            }
+            catch
+            {
+                // The native host may already be shutting down.
+            }
+
+            hosted.Created = false;
+        }
+        finally
+        {
+            hosted.CreationGate.Release();
+        }
+    }
+
+    private void OnTerminalOutputReceived(object? sender, string output)
+    {
+        if (sender is TerminalTabViewModel tab &&
+            terminals.TryGetValue(tab.Id, out HostedTerminal? hosted))
+        {
+            outputCoordinator.Enqueue(hosted, output);
+        }
+    }
+
+    private void OnTabTerminating(object? sender, EventArgs eventArgs)
+    {
+        if (sender is TerminalTabViewModel tab &&
+            terminals.TryGetValue(tab.Id, out HostedTerminal? hosted))
+        {
+            outputCoordinator.Complete(hosted);
+        }
+    }
+
+    private void OnFocusRequested(object? sender, EventArgs eventArgs)
+    {
+        if (sender is TerminalTabViewModel tab && ReferenceEquals(tab, getActiveTab()))
+        {
+            requestFocus(tab);
+        }
+    }
+
+    private void OnAppearanceChanged(object? sender, EventArgs eventArgs)
+    {
+        if (sender is TerminalTabViewModel tab &&
+            terminals.TryGetValue(tab.Id, out HostedTerminal? hosted) &&
+            isHostReady() && hosted.Created)
+        {
+            _ = InvokeScriptAsync(() => scriptBridge.ConfigureAsync(tab), tab);
+        }
+    }
+
+    private async Task<bool> InvokeScriptAsync(
+        Func<Task> invokeScript,
+        TerminalTabViewModel tab)
+    {
+        try
+        {
+            await invokeScript();
+            return true;
+        }
+        catch (Exception exception)
+        {
+            tab.ReportLaunchFailed(exception.Message);
+            return false;
+        }
+    }
+
+    private HostedTerminal? GetActiveHostedTerminal() =>
+        getActiveTab() is { } activeTab &&
+        terminals.TryGetValue(activeTab.Id, out HostedTerminal? hosted)
+            ? hosted
+            : null;
+}

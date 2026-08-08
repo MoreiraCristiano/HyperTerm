@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using HyperTerm.Core.Abstractions.Terminal;
 using HyperTerm.Core.Models;
 using HyperTerm.UI.Controls;
@@ -164,5 +165,68 @@ public sealed class TerminalOutputCoordinatorTests
         Assert.True(hosted.WriteInFlight);
         Assert.Equal(firstToken + 1, hosted.WriteToken);
         coordinator.Complete(hosted);
+    }
+}
+
+public sealed class HostedTerminalRegistryTests
+{
+    [Fact]
+    public async Task RegistryCreatesActivatesAndRemovesObservedTabs()
+    {
+        var scripts = new List<string>();
+        var bridge = new WebTerminalScriptBridge(script =>
+        {
+            scripts.Add(script);
+            return Task.CompletedTask;
+        });
+        TerminalTabViewModel tab = WebTerminalScriptBridgeTests.CreateTab();
+        var tabs = new ObservableCollection<TerminalTabViewModel> { tab };
+        bool hostReady = false;
+        int focusRequests = 0;
+        var registry = new HostedTerminalRegistry(
+            bridge,
+            () => tab,
+            () => hostReady,
+            _ => focusRequests++,
+            () => { });
+
+        registry.Observe(tabs);
+        hostReady = true;
+        await registry.CreateExistingAsync();
+        await registry.ActivateAsync(tab);
+
+        Assert.True(registry.TryGet(tab.Id, out HostedTerminal hosted));
+        Assert.True(hosted.Created);
+        Assert.Equal(1, focusRequests);
+        Assert.Collection(
+            scripts,
+            script => Assert.StartsWith("window.terminalHost.create(", script),
+            script => Assert.StartsWith("window.terminalHost.activate(", script));
+
+        tabs.Remove(tab);
+
+        Assert.False(registry.TryGet(tab.Id, out _));
+    }
+}
+
+public sealed class WebTerminalClipboardTests
+{
+    [Fact]
+    public async Task MissingClipboardReportsCopyAndPasteFailures()
+    {
+        TerminalTabViewModel tab = WebTerminalScriptBridgeTests.CreateTab();
+        var clipboard = new WebTerminalClipboard(() => null);
+
+        await clipboard.CopyAsync(tab, "text");
+
+        Assert.Equal(
+            "Copy failed: Windows clipboard is unavailable",
+            tab.ConnectionStatus);
+
+        await clipboard.PasteAsync(tab);
+
+        Assert.Equal(
+            "Paste failed: Windows clipboard is unavailable",
+            tab.ConnectionStatus);
     }
 }
