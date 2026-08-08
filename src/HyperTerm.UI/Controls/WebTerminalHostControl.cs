@@ -2,7 +2,6 @@ using System.Collections.Concurrent;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input.Platform;
@@ -24,6 +23,8 @@ public sealed class WebTerminalHostControl : NativeWebView
             nameof(ActiveTab));
 
     private readonly ConcurrentDictionary<Guid, HostedTerminal> terminals = new();
+    private readonly TerminalOutputCoordinator outputCoordinator;
+    private readonly WebTerminalScriptBridge scriptBridge;
     private INotifyCollectionChanged? observedCollection;
     private bool hostReady;
     private bool navigated;
@@ -32,6 +33,14 @@ public sealed class WebTerminalHostControl : NativeWebView
 
     public WebTerminalHostControl()
     {
+        scriptBridge = new WebTerminalScriptBridge(
+            async script => await InvokeScript(script));
+        outputCoordinator = new TerminalOutputCoordinator(
+            () => terminals.Values.ToArray(),
+            GetActiveHostedTerminal,
+            (hosted, output, token) =>
+                scriptBridge.WriteAsync(hosted.Tab.Id, token, output),
+            ScheduleOutputFlush);
         WebMessageReceived += OnWebMessageReceived;
     }
 
@@ -176,7 +185,7 @@ public sealed class WebTerminalHostControl : NativeWebView
                     hosted.Tab.RequestApplicationCommand(message.Command!);
                     break;
                 case "writeComplete":
-                    CompleteOutputWrite(hosted, message.Token, message.Success);
+                    outputCoordinator.Acknowledge(hosted, message.Token, message.Success);
                     break;
             }
         }
@@ -295,10 +304,7 @@ public sealed class WebTerminalHostControl : NativeWebView
         tab.AppearanceChanged -= OnAppearanceChanged;
         tab.Terminating -= OnTabTerminating;
         hosted.Removed = true;
-        hosted.Output.Complete();
-        hosted.WriteTimeoutCancellation?.Cancel();
-        hosted.WriteTimeoutCancellation?.Dispose();
-        hosted.WriteTimeoutCancellation = null;
+        outputCoordinator.Complete(hosted);
 
         if (hostReady)
         {
@@ -328,12 +334,7 @@ public sealed class WebTerminalHostControl : NativeWebView
                 return;
             }
 
-            string request = JsonSerializer.Serialize(new
-            {
-                tabId = GetTerminalId(hosted.Tab),
-                options = CreateAppearanceOptions(hosted.Tab),
-            });
-            await InvokeScript($"window.terminalHost.create({request})");
+            await scriptBridge.CreateAsync(hosted.Tab);
             hosted.Created = true;
         }
         catch (Exception exception)
@@ -356,8 +357,7 @@ public sealed class WebTerminalHostControl : NativeWebView
             {
                 try
                 {
-                    await InvokeScript(
-                        $"window.terminalHost.dispose('{GetTerminalId(hosted.Tab)}')");
+                    await scriptBridge.DisposeAsync(hosted.Tab.Id);
                 }
                 catch
                 {
@@ -388,7 +388,7 @@ public sealed class WebTerminalHostControl : NativeWebView
         if (hosted.Created)
         {
             await InvokeTerminalScriptAsync(
-                $"window.terminalHost.activate('{GetTerminalId(tab)}')",
+                () => scriptBridge.ActivateAsync(tab.Id),
                 tab);
             RequestTerminalFocus(tab);
         }
@@ -397,13 +397,12 @@ public sealed class WebTerminalHostControl : NativeWebView
     private void OnTerminalOutputReceived(object? sender, string output)
     {
         if (sender is not TerminalTabViewModel tab ||
-            !terminals.TryGetValue(tab.Id, out HostedTerminal? hosted) ||
-            !hosted.Output.Enqueue(output))
+            !terminals.TryGetValue(tab.Id, out HostedTerminal? hosted))
         {
             return;
         }
 
-        ScheduleOutputFlush();
+        outputCoordinator.Enqueue(hosted, output);
     }
 
     private void OnTabTerminating(object? sender, EventArgs eventArgs)
@@ -411,7 +410,7 @@ public sealed class WebTerminalHostControl : NativeWebView
         if (sender is TerminalTabViewModel tab &&
             terminals.TryGetValue(tab.Id, out HostedTerminal? hosted))
         {
-            hosted.Output.Complete();
+            outputCoordinator.Complete(hosted);
         }
     }
 
@@ -433,51 +432,8 @@ public sealed class WebTerminalHostControl : NativeWebView
             return;
         }
 
-        int writesStarted = 0;
-        HostedTerminal? activeHosted = ActiveTab is { } activeTab &&
-                                       terminals.TryGetValue(activeTab.Id, out HostedTerminal? match)
-            ? match
-            : null;
-        if (activeHosted is not null && await TryStartOutputWriteAsync(activeHosted))
+        if (await outputCoordinator.FlushAsync())
         {
-            writesStarted++;
-        }
-
-        foreach (HostedTerminal hosted in terminals.Values)
-        {
-            if (writesStarted >= 4)
-            {
-                break;
-            }
-
-            if (ReferenceEquals(hosted, activeHosted) ||
-                !await TryStartOutputWriteAsync(hosted))
-            {
-                continue;
-            }
-
-            writesStarted++;
-        }
-
-        if (terminals.Values.Any(hosted =>
-                hosted.Created && !hosted.WriteInFlight && hosted.Output.HasData))
-        {
-            ScheduleOutputFlush();
-        }
-    }
-
-    private void CompleteOutputWrite(HostedTerminal hosted, long token, bool success)
-    {
-        if (hosted.WriteInFlight && hosted.WriteToken == token)
-        {
-            hosted.WriteTimeoutCancellation?.Cancel();
-            hosted.WriteTimeoutCancellation?.Dispose();
-            hosted.WriteTimeoutCancellation = null;
-            hosted.WriteInFlight = false;
-            if (!success)
-            {
-                hosted.Tab.ReportLaunchFailed("Terminal renderer rejected output.");
-            }
             ScheduleOutputFlush();
         }
     }
@@ -506,7 +462,7 @@ public sealed class WebTerminalHostControl : NativeWebView
 
         Focus();
         await InvokeTerminalScriptAsync(
-            $"window.terminalHost.focus('{GetTerminalId(tab)}')",
+            () => scriptBridge.FocusAsync(tab.Id),
             tab);
     }
 
@@ -533,71 +489,13 @@ public sealed class WebTerminalHostControl : NativeWebView
             Focus();
             WindowsWebViewFocus.TryMoveFocus(this);
             await InvokeTerminalScriptAsync(
-                $"window.terminalHost.focus('{GetTerminalId(tab)}')",
+                () => scriptBridge.FocusAsync(tab.Id),
                 tab);
         }
         catch (Exception exception) when (
             exception is InvalidOperationException or COMException)
         {
             tab.ReportLaunchFailed(exception.Message);
-        }
-    }
-
-    private async Task<bool> TryStartOutputWriteAsync(HostedTerminal hosted)
-    {
-        if (!hosted.Created || hosted.WriteInFlight)
-        {
-            return false;
-        }
-
-        string? output = hosted.Output.TryDrainBatch();
-        if (output is null)
-        {
-            return false;
-        }
-
-        long token = ++hosted.WriteToken;
-        hosted.WriteInFlight = true;
-        try
-        {
-            string jsonOutput = JsonSerializer.Serialize(output);
-            await InvokeScript(
-                $"window.terminalHost.write('{GetTerminalId(hosted.Tab)}', {token}, {jsonOutput})");
-            hosted.WriteTimeoutCancellation?.Dispose();
-            hosted.WriteTimeoutCancellation = new CancellationTokenSource();
-            _ = ObserveWriteTimeoutAsync(
-                hosted,
-                token,
-                hosted.WriteTimeoutCancellation.Token);
-            return true;
-        }
-        catch (Exception exception)
-        {
-            hosted.WriteInFlight = false;
-            hosted.Tab.ReportLaunchFailed(exception.Message);
-            return false;
-        }
-    }
-
-    private async Task ObserveWriteTimeoutAsync(
-        HostedTerminal hosted,
-        long token,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            return;
-        }
-
-        if (!hosted.Removed && hosted.WriteInFlight && hosted.WriteToken == token)
-        {
-            hosted.WriteInFlight = false;
-            hosted.Tab.ReportLaunchFailed("Terminal renderer stopped acknowledging output.");
-            ScheduleOutputFlush();
         }
     }
 
@@ -610,13 +508,8 @@ public sealed class WebTerminalHostControl : NativeWebView
             return;
         }
 
-        string request = JsonSerializer.Serialize(new
-        {
-            tabId = GetTerminalId(tab),
-            options = CreateAppearanceOptions(tab),
-        });
         await InvokeTerminalScriptAsync(
-            $"window.terminalHost.configure({request})",
+            () => scriptBridge.ConfigureAsync(tab),
             tab);
     }
 
@@ -668,22 +561,13 @@ public sealed class WebTerminalHostControl : NativeWebView
         }
     }
 
-    private static object CreateAppearanceOptions(TerminalTabViewModel tab) => new
-    {
-        fontFamily = tab.FontFamily,
-        fontSize = tab.FontSize,
-        selectionBackground = tab.SelectionColor,
-        cursorStyle = tab.CursorStyle.ToLowerInvariant(),
-        cursorBlink = tab.CursorBlink,
-    };
-
     private async Task<bool> InvokeTerminalScriptAsync(
-        string script,
+        Func<Task> invokeScript,
         TerminalTabViewModel tab)
     {
         try
         {
-            await InvokeScript(script);
+            await invokeScript();
             return true;
         }
         catch (Exception exception)
@@ -693,25 +577,9 @@ public sealed class WebTerminalHostControl : NativeWebView
         }
     }
 
-    private static string GetTerminalId(TerminalTabViewModel tab) =>
-        tab.Id.ToString("N");
-
-    private sealed class HostedTerminal(TerminalTabViewModel tab)
-    {
-        public TerminalTabViewModel Tab { get; } = tab;
-
-        public TerminalOutputBuffer Output { get; } = new();
-
-        public SemaphoreSlim CreationGate { get; } = new(1, 1);
-
-        public bool Created { get; set; }
-
-        public bool Removed { get; set; }
-
-        public bool WriteInFlight { get; set; }
-
-        public long WriteToken { get; set; }
-
-        public CancellationTokenSource? WriteTimeoutCancellation { get; set; }
-    }
+    private HostedTerminal? GetActiveHostedTerminal() =>
+        ActiveTab is { } activeTab &&
+        terminals.TryGetValue(activeTab.Id, out HostedTerminal? hosted)
+            ? hosted
+            : null;
 }
