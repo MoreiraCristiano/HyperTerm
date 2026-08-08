@@ -189,12 +189,8 @@
       "hyperterm.core": {
         "type": "Project",
         "dependencies": {
-          "HyperTerm.Shared": "[1.0.0, )",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "[10.0.10, )"
         }
-      },
-      "hyperterm.shared": {
-        "type": "Project"
       },
       "Microsoft.Extensions.DependencyInjection.Abstractions": {
         "type": "CentralTransitive",

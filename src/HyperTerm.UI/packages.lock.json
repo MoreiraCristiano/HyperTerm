@@ -606,7 +606,6 @@
       "hyperterm.core": {
         "type": "Project",
         "dependencies": {
-          "HyperTerm.Shared": "[1.0.0, )",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "[10.0.10, )"
         }
       },
@@ -614,16 +613,12 @@
         "type": "Project",
         "dependencies": {
           "HyperTerm.Core": "[1.0.0, )",
-          "HyperTerm.Shared": "[1.0.0, )",
           "Microsoft.EntityFrameworkCore.Sqlite": "[10.0.10, )",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "[10.0.10, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.10, )",
           "Porta.Pty": "[1.0.7, )",
           "SQLitePCLRaw.bundle_e_sqlite3": "[3.0.5, )"
         }
-      },
-      "hyperterm.shared": {
-        "type": "Project"
       },
       "Microsoft.EntityFrameworkCore.Sqlite": {
         "type": "CentralTransitive",

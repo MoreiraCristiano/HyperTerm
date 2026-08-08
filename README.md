@@ -197,14 +197,12 @@ HyperTerm.sln
 └── src
     ├── HyperTerm.Core
     ├── HyperTerm.Infrastructure
-    ├── HyperTerm.Shared
     └── HyperTerm.UI
 ```
 
 - **Core** contains entities, models, service contracts, and terminal abstractions.
 - **Infrastructure** implements SQLite, settings, PowerShell/OpenSSH launching, and ConPTY sessions.
 - **UI** contains Avalonia views, MVVM view models, the design system, and the xterm.js host.
-- **Shared** contains cross-project utilities.
 
 The product, solution, projects, assemblies, and namespaces use the final **HyperTerm** name consistently.
 See [the architecture guide](docs/architecture.md) for dependency direction,

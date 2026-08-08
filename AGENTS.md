@@ -11,7 +11,6 @@ The solution follows a simplified Clean Architecture:
 - `HyperTerm.Core`: entities, models, validation, service contracts, and domain services.
 - `HyperTerm.Infrastructure`: SQLite, settings, logging, process resolution, PTY, SSH, and psmux implementations.
 - `HyperTerm.UI`: Avalonia views, view models, platform services, WebView bridge, and terminal frontend.
-- `HyperTerm.Shared`: utilities shared across projects.
 - `tests/HyperTerm.Tests`: unit and integration tests.
 
 ## Product constraints

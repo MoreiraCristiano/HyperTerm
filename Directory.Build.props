@@ -9,7 +9,6 @@
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
     <!-- Source-generated logging remains a future mechanical refactor. -->
-    <!-- HyperTerm.Shared is an established assembly and namespace contract. -->
     <!-- Title is intentionally an instance property for Avalonia binding. -->
     <NoWarn>$(NoWarn);CA1716;CA1822;CA1848;CA1873</NoWarn>
   </PropertyGroup>

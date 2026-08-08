@@ -8,7 +8,7 @@ so folder moves do not become API changes.
 
 ```text
 HyperTerm.UI ───────┐
-                   ├──> HyperTerm.Core ──> HyperTerm.Shared
+                   ├──> HyperTerm.Core
 Infrastructure ────┘
 ```
 
@@ -18,8 +18,6 @@ Infrastructure ────┘
   PTY, SSH, psmux, settings, and logging implementations.
 - `HyperTerm.UI` owns Avalonia composition, view models, view interactions,
   platform UI services, and the WebView/xterm.js bridge.
-- `HyperTerm.Shared` is reserved for utilities that genuinely cross project
-  boundaries.
 
 ## Feature organization
 
@@ -63,4 +61,5 @@ testable without creating native processes.
 Place a type in the narrowest owning feature without crossing the project
 dependency direction. Keep contracts in Core, Windows or external-system
 details in Infrastructure or UI platform services, and UI orchestration in UI.
-Avoid creating a shared abstraction until at least two layers genuinely need it.
+Avoid creating a shared project or abstraction until at least two layers
+genuinely need it.

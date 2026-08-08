@@ -27,6 +27,5 @@
   <ItemGroup>
     <ProjectReference Include="..\HyperTerm.Core\HyperTerm.Core.csproj" />
     <ProjectReference Include="..\HyperTerm.Infrastructure\HyperTerm.Infrastructure.csproj" />
-    <ProjectReference Include="..\HyperTerm.Shared\HyperTerm.Shared.csproj" />
   </ItemGroup>
 </Project>
