@@ -26,16 +26,15 @@ internal static class Program
         IApplicationLogService logService =
             host.Services.GetRequiredService<IApplicationLogService>();
 
-        App.Services = host.Services;
         try
         {
             logger.LogInformation("Avalonia desktop lifetime starting.");
-            BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+            BuildAvaloniaApp(host.Services).StartWithClassicDesktopLifetime(args);
 
             SynchronizationContext.SetSynchronizationContext(null);
-            MainWindowViewModel mainWindowViewModel =
-                host.Services.GetRequiredService<MainWindowViewModel>();
-            mainWindowViewModel.ShutdownAsync().GetAwaiter().GetResult();
+            ApplicationLifecycleCoordinator lifecycle =
+                host.Services.GetRequiredService<ApplicationLifecycleCoordinator>();
+            lifecycle.ShutdownAsync().GetAwaiter().GetResult();
             using var stopTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
             try
             {
@@ -61,6 +60,15 @@ internal static class Program
             .WithInterFont()
             .LogToTrace();
 
+    private static AppBuilder BuildAvaloniaApp(IServiceProvider services) =>
+        AppBuilder.Configure(() => new App(
+                services.GetRequiredService<MainWindow>(),
+                services.GetRequiredService<MainWindowViewModel>(),
+                services.GetRequiredService<ApplicationLifecycleCoordinator>()))
+            .UsePlatformDetect()
+            .WithInterFont()
+            .LogToTrace();
+
     private static IHost CreateHost(string[] args) =>
         Host.CreateDefaultBuilder(args)
             .ConfigureServices(static services =>
@@ -73,6 +81,7 @@ internal static class Program
                 services.AddSingleton<ISystemFontService, AvaloniaSystemFontService>();
                 services.AddSingleton<ILogInteractionService, LogInteractionService>();
                 services.AddSingleton<ApplicationExceptionMonitor>();
+                services.AddSingleton<ApplicationLifecycleCoordinator>();
                 services.AddSingleton<SessionExplorerViewModel>();
                 services.AddSingleton<TerminalWorkspaceViewModel>();
                 services.AddSingleton<SettingsViewModel>();

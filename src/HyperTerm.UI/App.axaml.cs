@@ -1,23 +1,32 @@
 using Avalonia;
-using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
-using Avalonia.Threading;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using HyperTerm.Core.Abstractions.Persistence;
-using HyperTerm.UI.Views;
+using HyperTerm.UI.Services;
 using HyperTerm.UI.ViewModels;
+using HyperTerm.UI.Views;
 
 namespace HyperTerm.UI;
 
 public sealed partial class App : Application, IDisposable
 {
-    internal static IServiceProvider Services { private get; set; } = null!;
-    private CancellationTokenSource? startupCancellation;
-    private Task? startupTask;
-    private MainWindowViewModel? mainWindowViewModel;
+    private readonly MainWindow? mainWindow;
+    private readonly MainWindowViewModel? viewModel;
+    private readonly ApplicationLifecycleCoordinator? lifecycle;
+
+    public App()
+    {
+    }
+
+    internal App(
+        MainWindow mainWindow,
+        MainWindowViewModel viewModel,
+        ApplicationLifecycleCoordinator lifecycle)
+    {
+        this.mainWindow = mainWindow;
+        this.viewModel = viewModel;
+        this.lifecycle = lifecycle;
+    }
 
     public override void Initialize()
     {
@@ -29,72 +38,39 @@ public sealed partial class App : Application, IDisposable
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            mainWindowViewModel = Services.GetRequiredService<MainWindowViewModel>();
-            MainWindow mainWindow = Services.GetRequiredService<MainWindow>();
+            if (mainWindow is null || viewModel is null || lifecycle is null)
+            {
+                throw new InvalidOperationException(
+                    "Desktop application services were not configured.");
+            }
+
             mainWindow.Opened += OnMainWindowOpened;
-            desktop.Exit += (_, _) => Dispose();
+            desktop.Exit += OnDesktopExit;
             desktop.MainWindow = mainWindow;
         }
 
         base.OnFrameworkInitializationCompleted();
     }
 
-    public void Dispose()
-    {
-        startupCancellation?.Cancel();
-        startupCancellation?.Dispose();
-        startupCancellation = null;
-    }
+    public void Dispose() => lifecycle?.CancelInitialization();
 
-    private void OnMainWindowOpened(object? sender, EventArgs eventArgs)
+    private async void OnMainWindowOpened(object? sender, EventArgs eventArgs)
     {
-        if (startupTask is not null || mainWindowViewModel is null)
-        {
-            return;
-        }
-
-        if (sender is Window window)
+        if (sender is MainWindow window)
         {
             window.Opened -= OnMainWindowOpened;
         }
 
-        startupCancellation = new CancellationTokenSource();
-        Dispatcher.UIThread.Post(
-            () => startupTask = InitializeApplicationAsync(
-                mainWindowViewModel,
-                startupCancellation.Token),
-            DispatcherPriority.Background);
+        await lifecycle!.InitializeAsync();
     }
 
-    private static async Task InitializeApplicationAsync(
-        MainWindowViewModel viewModel,
-        CancellationToken cancellationToken)
+    private void OnDesktopExit(object? sender, ControlledApplicationLifetimeExitEventArgs eventArgs)
     {
-        try
+        if (sender is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            ILogger logger = Services.GetRequiredService<ILoggerFactory>()
-                .CreateLogger("HyperTerm.Startup");
-            logger.LogInformation("Application initialization started.");
-            Task databaseInitialization = Task.Run(
-                () => Services
-                    .GetRequiredService<IDatabaseInitializer>()
-                    .InitializeAsync(cancellationToken),
-                cancellationToken);
-            await viewModel.InitializeSettingsAsync(cancellationToken);
-            await databaseInitialization;
-            await viewModel.InitializeWorkspaceAsync(cancellationToken);
-            viewModel.CompleteInitialization();
-            logger.LogInformation("Application initialization completed.");
+            desktop.Exit -= OnDesktopExit;
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-        }
-        catch (Exception exception)
-        {
-            Services.GetRequiredService<ILoggerFactory>()
-                .CreateLogger("HyperTerm.Startup")
-                .LogError(exception, "Application initialization failed.");
-            viewModel.ReportStartupFailure(exception);
-        }
+
+        Dispose();
     }
 }

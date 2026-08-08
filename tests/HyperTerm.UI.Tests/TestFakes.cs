@@ -1,5 +1,6 @@
 using HyperTerm.Core.Abstractions.Services;
 using HyperTerm.Core.Abstractions.Logging;
+using HyperTerm.Core.Abstractions.Persistence;
 using HyperTerm.Core.Abstractions.Settings;
 using HyperTerm.Core.Abstractions.Terminal;
 using HyperTerm.Core.Entities;
@@ -7,6 +8,18 @@ using HyperTerm.Core.Models;
 using HyperTerm.UI.Services;
 
 namespace HyperTerm.UI.Tests;
+
+internal sealed class FakeDatabaseInitializer : IDatabaseInitializer
+{
+    public int InitializeCalls { get; private set; }
+
+    public Task InitializeAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        InitializeCalls++;
+        return Task.CompletedTask;
+    }
+}
 
 internal sealed class FakeSessionService : ISessionService
 {

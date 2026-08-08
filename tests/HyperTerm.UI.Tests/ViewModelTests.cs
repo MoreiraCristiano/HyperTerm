@@ -1,5 +1,7 @@
 using HyperTerm.Core.Models;
+using HyperTerm.UI.Services;
 using HyperTerm.UI.ViewModels;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace HyperTerm.UI.Tests;
@@ -586,6 +588,44 @@ public sealed class ViewModelTests
         Assert.True(viewModel.IsInitialized);
         Assert.True(initializationCompleted);
         Assert.Single(workspace.Tabs);
+    }
+
+    [Fact]
+    public async Task ApplicationLifecycleInitializesAndShutsDownOnlyOnce()
+    {
+        var database = new FakeDatabaseInitializer();
+        var sessions = new FakeSessionService();
+        var folders = new FakeFolderService();
+        var workspace = new TerminalWorkspaceViewModel(
+            sessions,
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory());
+        var viewModel = new MainWindowViewModel(
+            new SessionExplorerViewModel(sessions, folders),
+            workspace,
+            CreateSettingsViewModel(new FakeSettingsService(exists: true)),
+            new SessionEditorViewModel(sessions),
+            new FolderEditorViewModel(folders));
+        using var lifecycle = new ApplicationLifecycleCoordinator(
+            database,
+            viewModel,
+            NullLogger<ApplicationLifecycleCoordinator>.Instance);
+
+        Task firstInitialization = lifecycle.InitializeAsync();
+        Task secondInitialization = lifecycle.InitializeAsync();
+        await Task.WhenAll(firstInitialization, secondInitialization);
+
+        Assert.Same(firstInitialization, secondInitialization);
+        Assert.Equal(1, database.InitializeCalls);
+        Assert.True(viewModel.IsInitialized);
+        Assert.Single(workspace.Tabs);
+
+        Task firstShutdown = lifecycle.ShutdownAsync();
+        Task secondShutdown = lifecycle.ShutdownAsync();
+        await Task.WhenAll(firstShutdown, secondShutdown);
+
+        Assert.Same(firstShutdown, secondShutdown);
+        Assert.Empty(workspace.Tabs);
     }
 
     [Fact]
