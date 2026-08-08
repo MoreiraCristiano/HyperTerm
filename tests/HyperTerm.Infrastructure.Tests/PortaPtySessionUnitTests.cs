@@ -141,6 +141,73 @@ public sealed class PortaPtySessionUnitTests
         Assert.Equal(0, connection.Writer.Length);
     }
 
+    [Fact]
+    public async Task Writer_failure_faults_session_and_stops_connection()
+    {
+        var connection = new FakePtyConnectionAdapter(
+            new ControlledReadStream(),
+            new ThrowingWriteStream());
+        await using var session = CreateSession(connection);
+
+        await session.WriteAsync("input", TestContext.Current.CancellationToken);
+
+        Assert.Equal(-1, await session.Completion.WaitAsync(TimeSpan.FromSeconds(2)));
+        Assert.Equal(TerminalSessionState.Faulted, session.State);
+        Assert.Equal(1, connection.KillCalls);
+    }
+
+    [Fact]
+    public async Task Reader_failure_faults_session_and_stops_connection()
+    {
+        var reader = new ControlledReadStream();
+        var connection = new FakePtyConnectionAdapter(reader);
+        await using var session = CreateSession(connection);
+        await reader.WaitForReadCallsAsync(1);
+
+        reader.Fault(new IOException("pipe closed unexpectedly"));
+
+        Assert.Equal(-1, await session.Completion.WaitAsync(TimeSpan.FromSeconds(2)));
+        Assert.Equal(TerminalSessionState.Faulted, session.State);
+        Assert.Equal(1, connection.KillCalls);
+    }
+
+    [Fact]
+    public async Task Kill_failure_faults_session_only_once()
+    {
+        var connection = new FakePtyConnectionAdapter(new ControlledReadStream())
+        {
+            KillException = new IOException("process unavailable"),
+        };
+        await using var session = CreateSession(connection);
+        int exitCalls = 0;
+        session.Exited += (_, _) => exitCalls++;
+
+        session.Kill();
+
+        Assert.Equal(-1, await session.Completion.WaitAsync(TimeSpan.FromSeconds(2)));
+        Assert.Equal(TerminalSessionState.Faulted, session.State);
+        Assert.Equal(1, exitCalls);
+        Assert.Equal(2, connection.KillCalls);
+    }
+
+    [Fact]
+    public async Task Dispose_tolerates_already_closed_connection()
+    {
+        var connection = new FakePtyConnectionAdapter(new ControlledReadStream())
+        {
+            KillException = new ObjectDisposedException("connection"),
+            DisposeException = new ObjectDisposedException("connection"),
+        };
+        var session = CreateSession(connection);
+
+        await session.DisposeAsync();
+
+        Assert.Equal(TerminalSessionState.Disposed, session.State);
+        Assert.Equal(-1, await session.Completion.WaitAsync(TimeSpan.FromSeconds(2)));
+        Assert.Equal(1, connection.KillCalls);
+        Assert.Equal(1, connection.DisposeCalls);
+    }
+
     private static PortaPtySession CreateSession(IPtyConnectionAdapter connection) =>
         new(connection, NullLogger.Instance);
 
@@ -162,6 +229,10 @@ public sealed class PortaPtySessionUnitTests
 
         public Exception? ResizeException { get; init; }
 
+        public Exception? KillException { get; init; }
+
+        public Exception? DisposeException { get; init; }
+
         public int ResizeCalls { get; private set; }
 
         public int KillCalls { get; private set; }
@@ -180,13 +251,24 @@ public sealed class PortaPtySessionUnitTests
             }
         }
 
-        public void Kill() => KillCalls++;
+        public void Kill()
+        {
+            KillCalls++;
+            if (KillException is not null)
+            {
+                throw KillException;
+            }
+        }
 
         public void Dispose()
         {
             DisposeCalls++;
             ReaderStream.Dispose();
             WriterStream.Dispose();
+            if (DisposeException is not null)
+            {
+                throw DisposeException;
+            }
         }
 
         public void RaiseExit(int exitCode) => Exited?.Invoke(this, exitCode);
@@ -217,6 +299,8 @@ public sealed class PortaPtySessionUnitTests
         public void Enqueue(byte[] bytes) => chunks.Writer.TryWrite(bytes);
 
         public void Complete() => chunks.Writer.TryComplete();
+
+        public void Fault(Exception exception) => chunks.Writer.TryComplete(exception);
 
         public Task WaitForReadCallsAsync(int expectedCalls)
         {
@@ -317,5 +401,13 @@ public sealed class PortaPtySessionUnitTests
             await release.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
             await base.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
         }
+    }
+
+    private sealed class ThrowingWriteStream : MemoryStream
+    {
+        public override ValueTask WriteAsync(
+            ReadOnlyMemory<byte> buffer,
+            CancellationToken cancellationToken = default) =>
+            ValueTask.FromException(new IOException("input pipe closed"));
     }
 }

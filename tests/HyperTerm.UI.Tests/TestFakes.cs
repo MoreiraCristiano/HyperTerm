@@ -6,7 +6,7 @@ using HyperTerm.Core.Entities;
 using HyperTerm.Core.Models;
 using HyperTerm.UI.Services;
 
-namespace HyperTerm.Tests;
+namespace HyperTerm.UI.Tests;
 
 internal sealed class FakeSessionService : ISessionService
 {

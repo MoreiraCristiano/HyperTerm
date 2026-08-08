@@ -5,7 +5,7 @@ using HyperTerm.Infrastructure.Terminal;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
-namespace HyperTerm.Tests;
+namespace HyperTerm.Infrastructure.Tests;
 
 public sealed class PortaPtySessionTests
 {

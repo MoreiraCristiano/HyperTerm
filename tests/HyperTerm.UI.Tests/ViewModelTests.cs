@@ -2,7 +2,7 @@ using HyperTerm.Core.Models;
 using HyperTerm.UI.ViewModels;
 using Xunit;
 
-namespace HyperTerm.Tests;
+namespace HyperTerm.UI.Tests;
 
 public sealed class ViewModelTests
 {

@@ -10,8 +10,7 @@ $reportRoot = Join-Path $repositoryRoot 'artifacts\coverage'
 $projects = @(
     'tests\HyperTerm.Core.Tests\HyperTerm.Core.Tests.csproj',
     'tests\HyperTerm.Infrastructure.Tests\HyperTerm.Infrastructure.Tests.csproj',
-    'tests\HyperTerm.UI.Tests\HyperTerm.UI.Tests.csproj',
-    'tests\HyperTerm.Tests\HyperTerm.Tests.csproj'
+    'tests\HyperTerm.UI.Tests\HyperTerm.UI.Tests.csproj'
 )
 
 if (Test-Path -LiteralPath $resultsRoot) {
@@ -45,7 +44,7 @@ $reports = ($coverageFiles.FullName -join ';')
     "-targetdir:$reportRoot" `
     '-reporttypes:Html;Cobertura;JsonSummary' `
     '-assemblyfilters:+HyperTerm.Core;+HyperTerm.Infrastructure;+HyperTerm' `
-    '-classfilters:-CompiledAvaloniaXaml.*;-HyperTerm.UI.App;-HyperTerm.UI.Program;-HyperTerm.UI.Views.*;-HyperTerm.UI.Controls.WebTerminalHostControl;-HyperTerm.UI.Services.AvaloniaSystemFontService;-HyperTerm.UI.Services.AvaloniaThemeService;-HyperTerm.UI.Services.ExecutableFilePicker;-HyperTerm.UI.Services.LogInteractionService;-HyperTerm.UI.Services.SessionArchiveFilePicker;-HyperTerm.UI.Services.WindowsWebViewFocus;-HyperTerm.Infrastructure.Persistence.Migrations.*;-HyperTerm.Infrastructure.Persistence.HyperTermDbContextFactory;-HyperTerm.Infrastructure.Storage.ApplicationPathProvider;-HyperTerm.Infrastructure.Terminal.PortaPtySessionFactory;-HyperTerm.Infrastructure.Terminal.PowerShellSessionFactory;-HyperTerm.Infrastructure.Terminal.PsmuxService;-HyperTerm.Infrastructure.Terminal.WindowsExecutableResolver'
+    '-classfilters:-CompiledAvaloniaXaml.*;-System.Text.RegularExpressions.Generated*;-HyperTerm.UI.App;-HyperTerm.UI.Program;-HyperTerm.UI.Views.*;-HyperTerm.UI.Controls.WebTerminalHostControl;-HyperTerm.UI.Services.AvaloniaSystemFontService;-HyperTerm.UI.Services.AvaloniaThemeService;-HyperTerm.UI.Services.ExecutableFilePicker;-HyperTerm.UI.Services.LogInteractionService;-HyperTerm.UI.Services.SessionArchiveFilePicker;-HyperTerm.UI.Services.WindowsWebViewFocus;-HyperTerm.Infrastructure.Persistence.Migrations.*;-HyperTerm.Infrastructure.Persistence.HyperTermDbContextFactory;-HyperTerm.Infrastructure.Storage.ApplicationPathProvider;-HyperTerm.Infrastructure.Terminal.PortaPtySessionFactory;-HyperTerm.Infrastructure.Terminal.PowerShellSessionFactory;-HyperTerm.Infrastructure.Terminal.PsmuxService;-HyperTerm.Infrastructure.Terminal.WindowsExecutableResolver'
 if ($LASTEXITCODE -ne 0) {
     throw 'Coverage report generation failed.'
 }

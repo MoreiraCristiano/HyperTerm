@@ -7,7 +7,7 @@ using HyperTerm.Core.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
-namespace HyperTerm.Tests;
+namespace HyperTerm.Core.Tests;
 
 public sealed class SessionArchiveServiceTests
 {

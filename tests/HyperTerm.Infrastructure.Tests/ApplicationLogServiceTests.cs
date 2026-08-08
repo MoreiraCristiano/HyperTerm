@@ -3,7 +3,7 @@ using HyperTerm.Infrastructure.Storage;
 using Microsoft.Extensions.Logging;
 using Xunit;
 
-namespace HyperTerm.Tests;
+namespace HyperTerm.Infrastructure.Tests;
 
 public sealed class ApplicationLogServiceTests : IDisposable
 {

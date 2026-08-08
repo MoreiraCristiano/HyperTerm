@@ -4,8 +4,7 @@ The suite is split by layer so fast deterministic failures remain easy to locate
 
 - `HyperTerm.Core.Tests`: validation, domain services, folder rules and architecture.
 - `HyperTerm.Infrastructure.Tests`: SQLite, settings, process and ConPTY integration.
-- `HyperTerm.UI.Tests`: bridge/buffer tests and Avalonia Headless controls.
-- `HyperTerm.Tests`: existing cross-layer regression and view-model coverage.
+- `HyperTerm.UI.Tests`: view models, bridge/buffer tests and Avalonia Headless controls.
 - `HyperTerm.E2E.Tests`: published desktop application through Windows UI Automation.
 - `HyperTerm.TestTerminal`: deterministic console helper for lifecycle scenarios.
 

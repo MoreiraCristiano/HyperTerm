@@ -39,6 +39,31 @@ public sealed class AvaloniaHeadlessTests
 public sealed class TerminalOutputBufferTests
 {
     [Fact]
+    public void High_volume_output_drains_in_bounded_batches_without_loss()
+    {
+        const int maximumBufferSize = 2 * 1024 * 1024;
+        const int maximumBatchSize = 128 * 1024;
+        const int chunkSize = 1024;
+        var buffer = new TerminalOutputBuffer(maximumBufferSize, maximumBatchSize);
+        string chunk = new('x', chunkSize);
+        for (int index = 0; index < maximumBufferSize / chunkSize; index++)
+        {
+            Assert.True(buffer.Enqueue(chunk));
+        }
+
+        int drainedCharacters = 0;
+        string? batch;
+        while ((batch = buffer.TryDrainBatch()) is not null)
+        {
+            Assert.InRange(batch.Length, 1, maximumBatchSize);
+            Assert.All(batch, character => Assert.Equal('x', character));
+            drainedCharacters += batch.Length;
+        }
+
+        Assert.Equal(maximumBufferSize, drainedCharacters);
+    }
+
+    [Fact]
     public void Constructor_rejects_non_positive_limits()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => new TerminalOutputBuffer(0, 1));

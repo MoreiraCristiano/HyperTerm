@@ -3,7 +3,7 @@ using HyperTerm.Infrastructure.Settings;
 using HyperTerm.Infrastructure.Storage;
 using Xunit;
 
-namespace HyperTerm.Tests;
+namespace HyperTerm.Infrastructure.Tests;
 
 public sealed class JsonSettingsServiceTests : IDisposable
 {

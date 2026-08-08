@@ -1,7 +1,7 @@
 using HyperTerm.Infrastructure.Terminal;
 using Xunit;
 
-namespace HyperTerm.Tests;
+namespace HyperTerm.Infrastructure.Tests;
 
 public sealed class PsmuxServiceTests
 {
