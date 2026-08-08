@@ -3,6 +3,8 @@ using Avalonia.Controls.Primitives;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HyperTerm.Core.Models;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace HyperTerm.UI.ViewModels;
 
@@ -13,15 +15,19 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         TerminalWorkspaceViewModel workspace,
         SettingsViewModel settings,
         SessionEditorViewModel sessionEditor,
-        FolderEditorViewModel folderEditor)
+        FolderEditorViewModel folderEditor,
+        ILogger<MainWindowViewModel>? logger = null)
     {
         Explorer = explorer;
         Workspace = workspace;
         Settings = settings;
         SessionEditor = sessionEditor;
         FolderEditor = folderEditor;
+        diagnostics = logger ?? NullLogger<MainWindowViewModel>.Instance;
         WireEvents();
     }
+
+    private readonly ILogger<MainWindowViewModel> diagnostics;
 
     public event EventHandler? CloseWindowRequested;
     public event EventHandler? InitializationCompleted;
@@ -221,23 +227,27 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         FolderEditor.PropertyChanged += OnChildPropertyChanged;
     }
 
-    private async void OnSessionOpenRequested(SessionListItemViewModel session) =>
-        await Workspace.OpenSessionAsync(session);
+    private void OnSessionOpenRequested(SessionListItemViewModel session) =>
+        Observe(Workspace.OpenSessionAsync(session), "open terminal session");
 
-    private async void OnSessionsReloaded(IReadOnlyList<SessionListItemViewModel> sessions)
-    {
-        await Workspace.SynchronizeTabsAsync(sessions);
-    }
+    private void OnSessionsReloaded(IReadOnlyList<SessionListItemViewModel> sessions) =>
+        Observe(Workspace.SynchronizeTabsAsync(sessions), "synchronize terminal tabs");
 
-    private async void OnSessionsChanged(Guid? sessionId) =>
-        await Explorer.ReloadAsync(sessionId);
+    private void OnSessionsChanged(Guid? sessionId) =>
+        Observe(Explorer.ReloadAsync(sessionId), "reload sessions");
 
-    private async void OnFoldersChanged() => await Explorer.ReloadAsync();
+    private void OnFoldersChanged() =>
+        Observe(Explorer.ReloadAsync(), "reload folders");
 
-    private async void OnSessionsImported() =>
-        await Explorer.ReloadAsync(Explorer.SelectedSession?.Id);
+    private void OnSessionsImported() =>
+        Observe(
+            Explorer.ReloadAsync(Explorer.SelectedSession?.Id),
+            "reload imported sessions");
 
-    private async void OnInitialSetupCompleted()
+    private void OnInitialSetupCompleted() =>
+        Observe(CompleteInitialSetupAsync(), "complete initial setup");
+
+    private async Task CompleteInitialSetupAsync()
     {
         Workspace.ApplySettings(Settings.Current);
         await Workspace.OpenLocalTerminalCommand.ExecuteAsync(null);
@@ -255,9 +265,13 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(SidebarScrollBarVisibility));
     }
 
-    private async void OnSessionsRefreshRequested() => await Explorer.ReloadAsync();
+    private void OnSessionsRefreshRequested() =>
+        Observe(Explorer.ReloadAsync(), "refresh sessions");
 
-    private async void OnApplicationCommandRequested(string command)
+    private void OnApplicationCommandRequested(string command) =>
+        Observe(HandleApplicationCommandAsync(command), "execute application command");
+
+    private async Task HandleApplicationCommandAsync(string command)
     {
         switch (command)
         {
@@ -276,6 +290,25 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             case "settings":
                 Settings.OpenSettingsCommand.Execute(null);
                 break;
+        }
+    }
+
+    private void Observe(Task operation, string operationName) =>
+        _ = ObserveAsync(operation, operationName);
+
+    private async Task ObserveAsync(Task operation, string operationName)
+    {
+        try
+        {
+            await operation;
+        }
+        catch (Exception exception)
+        {
+            diagnostics.LogError(
+                exception,
+                "Failed to {Operation}.",
+                operationName);
+            Workspace.SetStatus($"Failed to {operationName}: {exception.Message}");
         }
     }
 

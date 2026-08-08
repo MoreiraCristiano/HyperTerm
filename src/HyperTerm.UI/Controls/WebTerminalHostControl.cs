@@ -47,9 +47,9 @@ public sealed class WebTerminalHostControl : NativeWebView
         set => SetValue(ActiveTabProperty, value);
     }
 
-    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs eventArgs)
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
-        base.OnAttachedToVisualTree(eventArgs);
+        base.OnAttachedToVisualTree(e);
         ObserveTabs(Tabs);
 
         if (!navigated)
@@ -90,10 +90,10 @@ public sealed class WebTerminalHostControl : NativeWebView
             deployedPath);
     }
 
-    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs eventArgs)
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         StopObservingTabs();
-        base.OnDetachedFromVisualTree(eventArgs);
+        base.OnDetachedFromVisualTree(e);
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -119,18 +119,21 @@ public sealed class WebTerminalHostControl : NativeWebView
         object? sender,
         WebMessageReceivedEventArgs eventArgs)
     {
-        if (string.IsNullOrWhiteSpace(eventArgs.Body))
+        if (!WebTerminalMessage.TryParse(eventArgs.Body, out WebTerminalMessage? parsed) ||
+            parsed is not { } message)
         {
             return;
         }
 
         try
         {
-            using JsonDocument document = JsonDocument.Parse(eventArgs.Body);
-            JsonElement root = document.RootElement;
-            string? type = root.GetProperty("type").GetString();
-            if (type == "hostReady")
+            if (message.Type == "hostReady")
             {
+                if (hostReady)
+                {
+                    return;
+                }
+
                 hostReady = true;
                 await CreateExistingTerminalsAsync();
                 await ActivateTerminalAsync(ActiveTab);
@@ -139,17 +142,18 @@ public sealed class WebTerminalHostControl : NativeWebView
                 return;
             }
 
-            if (!TryGetTerminal(root, out HostedTerminal hosted))
+            if (message.TabId is not Guid tabId ||
+                !terminals.TryGetValue(tabId, out HostedTerminal? hosted))
             {
                 return;
             }
 
-            switch (type)
+            switch (message.Type)
             {
                 case "ready":
                     await hosted.Tab.StartPtyAsync(
-                        root.GetProperty("columns").GetInt32(),
-                        root.GetProperty("rows").GetInt32());
+                        message.Columns,
+                        message.Rows);
                     ScheduleOutputFlush();
                     if (ReferenceEquals(hosted.Tab, ActiveTab))
                     {
@@ -157,35 +161,27 @@ public sealed class WebTerminalHostControl : NativeWebView
                     }
                     break;
                 case "input":
-                    await hosted.Tab.WritePtyAsync(
-                        root.GetProperty("data").GetString() ?? string.Empty);
+                    await hosted.Tab.WritePtyAsync(message.Data!);
                     break;
                 case "copy":
-                    await CopySelectionAsync(
-                        hosted.Tab,
-                        root.GetProperty("data").GetString() ?? string.Empty);
+                    await CopySelectionAsync(hosted.Tab, message.Data!);
                     break;
                 case "paste":
                     await PasteClipboardAsync(hosted.Tab);
                     break;
                 case "resize":
-                    hosted.Tab.ResizePty(
-                        root.GetProperty("columns").GetInt32(),
-                        root.GetProperty("rows").GetInt32());
+                    hosted.Tab.ResizePty(message.Columns, message.Rows);
                     break;
                 case "applicationCommand":
-                    hosted.Tab.RequestApplicationCommand(
-                        root.GetProperty("command").GetString() ?? string.Empty);
+                    hosted.Tab.RequestApplicationCommand(message.Command!);
                     break;
                 case "writeComplete":
-                    CompleteOutputWrite(
-                        hosted,
-                        root.GetProperty("token").GetInt64());
+                    CompleteOutputWrite(hosted, message.Token, message.Success);
                     break;
             }
         }
         catch (Exception exception) when (
-            exception is JsonException or InvalidOperationException or FormatException)
+            exception is InvalidOperationException or COMException)
         {
             ActiveTab?.ReportLaunchFailed(exception.Message);
         }
@@ -300,6 +296,9 @@ public sealed class WebTerminalHostControl : NativeWebView
         tab.Terminating -= OnTabTerminating;
         hosted.Removed = true;
         hosted.Output.Complete();
+        hosted.WriteTimeoutCancellation?.Cancel();
+        hosted.WriteTimeoutCancellation?.Dispose();
+        hosted.WriteTimeoutCancellation = null;
 
         if (hostReady)
         {
@@ -467,11 +466,18 @@ public sealed class WebTerminalHostControl : NativeWebView
         }
     }
 
-    private void CompleteOutputWrite(HostedTerminal hosted, long token)
+    private void CompleteOutputWrite(HostedTerminal hosted, long token, bool success)
     {
         if (hosted.WriteInFlight && hosted.WriteToken == token)
         {
+            hosted.WriteTimeoutCancellation?.Cancel();
+            hosted.WriteTimeoutCancellation?.Dispose();
+            hosted.WriteTimeoutCancellation = null;
             hosted.WriteInFlight = false;
+            if (!success)
+            {
+                hosted.Tab.ReportLaunchFailed("Terminal renderer rejected output.");
+            }
             ScheduleOutputFlush();
         }
     }
@@ -557,6 +563,12 @@ public sealed class WebTerminalHostControl : NativeWebView
             string jsonOutput = JsonSerializer.Serialize(output);
             await InvokeScript(
                 $"window.terminalHost.write('{GetTerminalId(hosted.Tab)}', {token}, {jsonOutput})");
+            hosted.WriteTimeoutCancellation?.Dispose();
+            hosted.WriteTimeoutCancellation = new CancellationTokenSource();
+            _ = ObserveWriteTimeoutAsync(
+                hosted,
+                token,
+                hosted.WriteTimeoutCancellation.Token);
             return true;
         }
         catch (Exception exception)
@@ -564,6 +576,28 @@ public sealed class WebTerminalHostControl : NativeWebView
             hosted.WriteInFlight = false;
             hosted.Tab.ReportLaunchFailed(exception.Message);
             return false;
+        }
+    }
+
+    private async Task ObserveWriteTimeoutAsync(
+        HostedTerminal hosted,
+        long token,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
+        if (!hosted.Removed && hosted.WriteInFlight && hosted.WriteToken == token)
+        {
+            hosted.WriteInFlight = false;
+            hosted.Tab.ReportLaunchFailed("Terminal renderer stopped acknowledging output.");
+            ScheduleOutputFlush();
         }
     }
 
@@ -659,22 +693,6 @@ public sealed class WebTerminalHostControl : NativeWebView
         }
     }
 
-    private bool TryGetTerminal(
-        JsonElement root,
-        out HostedTerminal hosted)
-    {
-        hosted = null!;
-        if (!root.TryGetProperty("tabId", out JsonElement tabIdElement) ||
-            !Guid.TryParseExact(tabIdElement.GetString(), "N", out Guid tabId) ||
-            !terminals.TryGetValue(tabId, out HostedTerminal? match))
-        {
-            return false;
-        }
-
-        hosted = match;
-        return true;
-    }
-
     private static string GetTerminalId(TerminalTabViewModel tab) =>
         tab.Id.ToString("N");
 
@@ -693,5 +711,7 @@ public sealed class WebTerminalHostControl : NativeWebView
         public bool WriteInFlight { get; set; }
 
         public long WriteToken { get; set; }
+
+        public CancellationTokenSource? WriteTimeoutCancellation { get; set; }
     }
 }

@@ -64,16 +64,15 @@ internal sealed class SessionArchiveService(
             throw new ArgumentException("The source stream is not readable.", nameof(source));
         }
 
-        if (source.CanSeek && source.Length > MaximumArchiveBytes)
-        {
-            throw new InvalidDataException("The archive exceeds the 10 MB size limit.");
-        }
+        await using MemoryStream boundedSource = await ReadBoundedAsync(
+            source,
+            cancellationToken);
 
         ArchiveDocument document;
         try
         {
             document = await JsonSerializer.DeserializeAsync<ArchiveDocument>(
-                           source,
+                           boundedSource,
                            SerializerOptions,
                            cancellationToken)
                        ?? throw new InvalidDataException("The archive is empty.");
@@ -152,6 +151,45 @@ internal sealed class SessionArchiveService(
             addedSessions.Count,
             updatedSessions.Count,
             addedFolders.Count);
+    }
+
+    private static async Task<MemoryStream> ReadBoundedAsync(
+        Stream source,
+        CancellationToken cancellationToken)
+    {
+        if (source.CanSeek && source.Length - source.Position > MaximumArchiveBytes)
+        {
+            throw new InvalidDataException("The archive exceeds the 10 MB size limit.");
+        }
+
+        var destination = new MemoryStream();
+        byte[] buffer = new byte[64 * 1024];
+        try
+        {
+            while (true)
+            {
+                int bytesRead = await source.ReadAsync(buffer, cancellationToken);
+                if (bytesRead == 0)
+                {
+                    destination.Position = 0;
+                    return destination;
+                }
+
+                if (destination.Length + bytesRead > MaximumArchiveBytes)
+                {
+                    throw new InvalidDataException("The archive exceeds the 10 MB size limit.");
+                }
+
+                await destination.WriteAsync(
+                    buffer.AsMemory(0, bytesRead),
+                    cancellationToken);
+            }
+        }
+        catch
+        {
+            await destination.DisposeAsync();
+            throw;
+        }
     }
 
     private static ValidatedArchive Validate(ArchiveDocument document)

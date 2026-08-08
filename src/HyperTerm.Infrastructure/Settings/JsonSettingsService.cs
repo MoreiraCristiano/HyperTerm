@@ -5,7 +5,8 @@ using HyperTerm.Infrastructure.Storage;
 
 namespace HyperTerm.Infrastructure.Settings;
 
-internal sealed class JsonSettingsService(IApplicationPathProvider pathProvider) : ISettingsService
+internal sealed class JsonSettingsService(IApplicationPathProvider pathProvider)
+    : ISettingsService, IDisposable
 {
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
@@ -17,10 +18,12 @@ internal sealed class JsonSettingsService(IApplicationPathProvider pathProvider)
 
     public bool Exists() => File.Exists(pathProvider.SettingsPath);
 
+    public void Dispose() => accessLock.Dispose();
+
     public async Task<ApplicationSettings> LoadAsync(
         CancellationToken cancellationToken = default)
     {
-        await accessLock.WaitAsync(cancellationToken);
+        await accessLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             if (!File.Exists(pathProvider.SettingsPath))
@@ -30,9 +33,10 @@ internal sealed class JsonSettingsService(IApplicationPathProvider pathProvider)
 
             await using FileStream stream = File.OpenRead(pathProvider.SettingsPath);
             return await JsonSerializer.DeserializeAsync<ApplicationSettings>(
-                       stream,
-                       SerializerOptions,
-                       cancellationToken)
+                           stream,
+                           SerializerOptions,
+                           cancellationToken)
+                       .ConfigureAwait(false)
                    ?? new ApplicationSettings();
         }
         finally
@@ -47,23 +51,61 @@ internal sealed class JsonSettingsService(IApplicationPathProvider pathProvider)
     {
         ArgumentNullException.ThrowIfNull(settings);
 
-        await accessLock.WaitAsync(cancellationToken);
+        await accessLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        string? temporaryPath = null;
         try
         {
-            string temporaryPath = $"{pathProvider.SettingsPath}.tmp";
-            await using (FileStream stream = File.Create(temporaryPath))
+            string settingsDirectory = Path.GetDirectoryName(pathProvider.SettingsPath)
+                ?? throw new InvalidOperationException("Settings path has no parent directory.");
+            Directory.CreateDirectory(settingsDirectory);
+            temporaryPath = Path.Combine(
+                settingsDirectory,
+                $".{Path.GetFileName(pathProvider.SettingsPath)}.{Guid.NewGuid():N}.tmp");
+            await using (var stream = new FileStream(
+                             temporaryPath,
+                             FileMode.CreateNew,
+                             FileAccess.Write,
+                             FileShare.None,
+                             16 * 1024,
+                             FileOptions.Asynchronous | FileOptions.WriteThrough))
             {
                 await JsonSerializer.SerializeAsync(
                     stream,
                     settings,
                     SerializerOptions,
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
+                await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
             }
 
-            File.Move(temporaryPath, pathProvider.SettingsPath, overwrite: true);
+            if (File.Exists(pathProvider.SettingsPath))
+            {
+                File.Replace(
+                    temporaryPath,
+                    pathProvider.SettingsPath,
+                    destinationBackupFileName: null,
+                    ignoreMetadataErrors: true);
+            }
+            else
+            {
+                File.Move(temporaryPath, pathProvider.SettingsPath);
+            }
+
+            temporaryPath = null;
         }
         finally
         {
+            if (temporaryPath is not null)
+            {
+                try
+                {
+                    File.Delete(temporaryPath);
+                }
+                catch (Exception exception) when (
+                    exception is IOException or UnauthorizedAccessException)
+                {
+                }
+            }
+
             accessLock.Release();
         }
     }

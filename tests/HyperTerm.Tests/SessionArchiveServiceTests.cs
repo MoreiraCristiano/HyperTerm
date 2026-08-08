@@ -12,6 +12,31 @@ namespace HyperTerm.Tests;
 public sealed class SessionArchiveServiceTests
 {
     [Fact]
+    public async Task ImportRejectsOversizedNonSeekableStreamBeforeMutation()
+    {
+        var importRepository = new RecordingSessionImportRepository(
+            new SessionImportSnapshot([], []));
+        var services = new ServiceCollection();
+        services.AddCore();
+        services.AddSingleton<ISessionRepository, UnusedSessionRepository>();
+        services.AddSingleton<ISessionFolderRepository, UnusedSessionFolderRepository>();
+        services.AddSingleton<ISessionImportRepository>(importRepository);
+        await using ServiceProvider provider = services.BuildServiceProvider();
+        ISessionArchiveService archiveService =
+            provider.GetRequiredService<ISessionArchiveService>();
+        await using var inner = new MemoryStream(new byte[10 * 1024 * 1024 + 1]);
+        await using var source = new NonSeekableReadStream(inner);
+
+        InvalidDataException exception = await Assert.ThrowsAsync<InvalidDataException>(
+            () => archiveService.ImportAsync(
+                source,
+                TestContext.Current.CancellationToken));
+
+        Assert.Contains("10 MB", exception.Message);
+        Assert.Equal(0, importRepository.ApplyCount);
+    }
+
+    [Fact]
     public async Task ImportAppliesFoldersAndSessionsInOneBatch()
     {
         Guid existingId = Guid.NewGuid();
@@ -157,5 +182,33 @@ public sealed class SessionArchiveServiceTests
             IReadOnlyCollection<string> paths,
             bool force,
             CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    }
+
+    private sealed class NonSeekableReadStream(Stream inner) : Stream
+    {
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position
+        {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) =>
+            inner.Read(buffer, offset, count);
+
+        public override ValueTask<int> ReadAsync(
+            Memory<byte> buffer,
+            CancellationToken cancellationToken = default) =>
+            inner.ReadAsync(buffer, cancellationToken);
+
+        public override void Flush() => throw new NotSupportedException();
+        public override long Seek(long offset, SeekOrigin origin) =>
+            throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) =>
+            throw new NotSupportedException();
     }
 }

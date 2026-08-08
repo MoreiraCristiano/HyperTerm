@@ -12,7 +12,7 @@ using HyperTerm.UI.ViewModels;
 
 namespace HyperTerm.UI;
 
-public sealed partial class App : Application
+public sealed partial class App : Application, IDisposable
 {
     internal static IServiceProvider Services { private get; set; } = null!;
     private CancellationTokenSource? startupCancellation;
@@ -32,11 +32,18 @@ public sealed partial class App : Application
             mainWindowViewModel = Services.GetRequiredService<MainWindowViewModel>();
             MainWindow mainWindow = Services.GetRequiredService<MainWindow>();
             mainWindow.Opened += OnMainWindowOpened;
-            desktop.Exit += (_, _) => startupCancellation?.Cancel();
+            desktop.Exit += (_, _) => Dispose();
             desktop.MainWindow = mainWindow;
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    public void Dispose()
+    {
+        startupCancellation?.Cancel();
+        startupCancellation?.Dispose();
+        startupCancellation = null;
     }
 
     private void OnMainWindowOpened(object? sender, EventArgs eventArgs)

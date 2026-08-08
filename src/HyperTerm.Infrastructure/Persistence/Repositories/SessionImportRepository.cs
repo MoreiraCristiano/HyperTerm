@@ -43,10 +43,13 @@ internal sealed class SessionImportRepository(
 
         await using HyperTermDbContext context =
             await contextFactory.CreateDbContextAsync(cancellationToken);
+        await using var transaction = await context.Database.BeginTransactionAsync(
+            cancellationToken);
 
         context.SessionFolders.AddRange(addedFolders);
         context.Sessions.AddRange(addedSessions);
         context.Sessions.UpdateRange(updatedSessions);
         await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
     }
 }

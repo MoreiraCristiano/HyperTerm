@@ -176,13 +176,17 @@ function configureTerminal({ tabId, options }) {
 function writeTerminal(tabId, token, value) {
   const state = terminals.get(tabId);
   if (!state) {
-    send({ type: 'writeComplete', tabId, token });
+    send({ type: 'writeComplete', tabId, token, success: false });
     return;
   }
 
-  state.terminal.write(value, () => {
-    send({ type: 'writeComplete', tabId, token });
-  });
+  try {
+    state.terminal.write(value, () => {
+      send({ type: 'writeComplete', tabId, token, success: true });
+    });
+  } catch {
+    send({ type: 'writeComplete', tabId, token, success: false });
+  }
 }
 
 function focusTerminal(tabId) {

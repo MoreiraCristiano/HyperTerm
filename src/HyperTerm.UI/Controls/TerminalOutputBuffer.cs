@@ -4,12 +4,29 @@ namespace HyperTerm.UI.Controls;
 
 internal sealed class TerminalOutputBuffer
 {
-    private const int MaxBufferedCharacters = 2 * 1024 * 1024;
-    private const int MaxBatchCharacters = 128 * 1024;
+    private const int DefaultMaxBufferedCharacters = 2 * 1024 * 1024;
+    private const int DefaultMaxBatchCharacters = 128 * 1024;
     private readonly object gate = new();
     private readonly Queue<string> chunks = new();
+    private readonly int maximumBufferedCharacters;
+    private readonly int maximumBatchCharacters;
     private int bufferedCharacters;
     private bool completed;
+
+    public TerminalOutputBuffer()
+        : this(DefaultMaxBufferedCharacters, DefaultMaxBatchCharacters)
+    {
+    }
+
+    internal TerminalOutputBuffer(
+        int maximumBufferedCharacters,
+        int maximumBatchCharacters)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBufferedCharacters);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBatchCharacters);
+        this.maximumBufferedCharacters = maximumBufferedCharacters;
+        this.maximumBatchCharacters = maximumBatchCharacters;
+    }
 
     public bool HasData
     {
@@ -31,7 +48,8 @@ internal sealed class TerminalOutputBuffer
 
         lock (gate)
         {
-            while (!completed && bufferedCharacters >= MaxBufferedCharacters)
+            while (!completed && bufferedCharacters > 0 &&
+                   bufferedCharacters + output.Length > maximumBufferedCharacters)
             {
                 Monitor.Wait(gate);
             }
@@ -58,16 +76,17 @@ internal sealed class TerminalOutputBuffer
 
             string firstChunk = chunks.Dequeue();
             bufferedCharacters -= firstChunk.Length;
-            if (chunks.Count == 0 || firstChunk.Length >= MaxBatchCharacters)
+            if (chunks.Count == 0 || firstChunk.Length >= maximumBatchCharacters)
             {
                 Monitor.PulseAll(gate);
                 return firstChunk;
             }
 
             var batch = new StringBuilder(
-                Math.Min(MaxBatchCharacters, firstChunk.Length + bufferedCharacters));
+                Math.Min(maximumBatchCharacters, firstChunk.Length + bufferedCharacters));
             batch.Append(firstChunk);
-            while (chunks.Count > 0 && batch.Length < MaxBatchCharacters)
+            while (chunks.Count > 0 &&
+                   batch.Length + chunks.Peek().Length <= maximumBatchCharacters)
             {
                 string chunk = chunks.Dequeue();
                 bufferedCharacters -= chunk.Length;

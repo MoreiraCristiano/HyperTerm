@@ -4,11 +4,14 @@
     "build": "node build.mjs"
   },
   "dependencies": {
-    "@xterm/addon-fit": "^0.10.0",
-    "@xterm/addon-webgl": "^0.19.0",
-    "@xterm/xterm": "^5.5.0"
+    "@xterm/addon-fit": "0.10.0",
+    "@xterm/addon-webgl": "0.19.0",
+    "@xterm/xterm": "5.5.0"
   },
   "devDependencies": {
-    "esbuild": "^0.25.0"
+    "esbuild": "0.25.12"
+  },
+  "allowScripts": {
+    "esbuild@0.25.12": true
   }
 }

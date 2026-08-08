@@ -149,27 +149,68 @@ internal sealed class FakeTerminalSessionFactory : ITerminalSessionFactory
 
 internal sealed class FakePtySessionFactory : IPtySessionFactory
 {
+    public int CreateCount { get; private set; }
+    public FakePtySession? LastSession { get; private set; }
+
     public Task<IPtySession> CreateAsync(
         TerminalSessionDefinition definition,
         int columns,
         int rows,
-        CancellationToken cancellationToken = default) =>
-        Task.FromResult<IPtySession>(new FakePtySession());
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        CreateCount++;
+        LastSession = new FakePtySession();
+        return Task.FromResult<IPtySession>(LastSession);
+    }
 }
 
 internal sealed class FakePtySession : IPtySession
 {
-    public event EventHandler<string>? OutputReceived
-    {
-        add { }
-        remove { }
-    }
+    private readonly TaskCompletionSource<int> completion = new(
+        TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public event EventHandler<string>? OutputReceived;
     public event EventHandler<int>? Exited;
+    public TerminalSessionState State { get; private set; } = TerminalSessionState.Running;
+    public Task<int> Completion => completion.Task;
+    public List<string> Writes { get; } = [];
+    public int DisposeCount { get; private set; }
+    public (int Columns, int Rows)? Size { get; private set; }
     public Task WriteAsync(string data, CancellationToken cancellationToken = default) =>
-        Task.CompletedTask;
-    public void Resize(int columns, int rows) { }
-    public void Kill() => Exited?.Invoke(this, 0);
-    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+        State == TerminalSessionState.Running
+            ? WriteCoreAsync(data, cancellationToken)
+            : Task.CompletedTask;
+    public void Resize(int columns, int rows) => Size = (columns, rows);
+    public void Kill()
+    {
+        State = TerminalSessionState.Exited;
+        completion.TrySetResult(0);
+        Exited?.Invoke(this, 0);
+    }
+    public ValueTask DisposeAsync()
+    {
+        DisposeCount++;
+        State = TerminalSessionState.Disposed;
+        completion.TrySetResult(-1);
+        return ValueTask.CompletedTask;
+    }
+
+    public void RaiseOutput(string output) => OutputReceived?.Invoke(this, output);
+
+    public void RaiseExit(int exitCode)
+    {
+        State = TerminalSessionState.Exited;
+        completion.TrySetResult(exitCode);
+        Exited?.Invoke(this, exitCode);
+    }
+
+    private Task WriteCoreAsync(string data, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        Writes.Add(data);
+        return Task.CompletedTask;
+    }
 }
 
 internal sealed class FakePsmuxService : IPsmuxService

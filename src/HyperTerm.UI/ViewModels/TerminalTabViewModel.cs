@@ -1,18 +1,21 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Avalonia.Threading;
 using HyperTerm.Core.Abstractions.Terminal;
 using HyperTerm.Core.Models;
 
 namespace HyperTerm.UI.ViewModels;
 
-public sealed partial class TerminalTabViewModel : ViewModelBase
+public sealed partial class TerminalTabViewModel : ViewModelBase, IAsyncDisposable
 {
     private readonly Func<TerminalTabViewModel, Task> closeAction;
     private readonly IPtySessionFactory ptySessionFactory;
     private readonly SemaphoreSlim startGate = new(1, 1);
+    private readonly CancellationTokenSource lifetime = new();
     private Action? killProcess;
     private IPtySession? ptySession;
     private int terminationSignaled;
+    private int disposed;
 
     public TerminalTabViewModel(
         SessionListItemViewModel session,
@@ -175,34 +178,62 @@ public sealed partial class TerminalTabViewModel : ViewModelBase
     public async Task TerminateAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        SignalTerminating();
-        killProcess?.Invoke();
-        killProcess = null;
-        if (ptySession is not null)
-        {
-            await ptySession.DisposeAsync();
-            ptySession = null;
-        }
+        await DisposeAsync();
     }
 
     public async ValueTask DisposeAsync()
     {
+        if (Interlocked.Exchange(ref disposed, 1) != 0)
+        {
+            return;
+        }
+
         SignalTerminating();
+        lifetime.Cancel();
         killProcess?.Invoke();
         killProcess = null;
-        if (ptySession is not null)
-        {
-            await ptySession.DisposeAsync();
-            ptySession = null;
-        }
-        startGate.Dispose();
-    }
 
-    public async Task StartPtyAsync(int columns, int rows)
-    {
         await startGate.WaitAsync();
         try
         {
+            if (ptySession is null)
+            {
+                return;
+            }
+
+            ptySession.OutputReceived -= OnPtyOutputReceived;
+            ptySession.Exited -= OnPtyExited;
+            await ptySession.DisposeAsync();
+            ptySession = null;
+        }
+        finally
+        {
+            startGate.Release();
+            lifetime.Dispose();
+        }
+    }
+
+    public async Task StartPtyAsync(
+        int columns,
+        int rows,
+        CancellationToken cancellationToken = default)
+    {
+        if (Volatile.Read(ref disposed) != 0)
+        {
+            return;
+        }
+
+        using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            lifetime.Token);
+        await startGate.WaitAsync(linkedCancellation.Token);
+        try
+        {
+            if (Volatile.Read(ref disposed) != 0)
+            {
+                return;
+            }
+
             if (ptySession is not null)
             {
                 ptySession.Resize(columns, rows);
@@ -210,13 +241,20 @@ public sealed partial class TerminalTabViewModel : ViewModelBase
             }
 
             ConnectionStatus = "Starting ConPTY";
-            ptySession = await ptySessionFactory.CreateAsync(Definition, columns, rows);
+            ptySession = await ptySessionFactory.CreateAsync(
+                Definition,
+                columns,
+                rows,
+                linkedCancellation.Token);
             ptySession.OutputReceived += OnPtyOutputReceived;
             ptySession.Exited += OnPtyExited;
             ConnectionStatus = Definition.Kind == TerminalSessionKind.Psmux
                 ? "psmux via xterm.js/WebGL"
                 : "PowerShell via xterm.js/WebGL";
             PtyStarted?.Invoke(this, EventArgs.Empty);
+        }
+        catch (OperationCanceledException) when (linkedCancellation.IsCancellationRequested)
+        {
         }
         catch (Exception exception)
         {
@@ -228,8 +266,10 @@ public sealed partial class TerminalTabViewModel : ViewModelBase
         }
     }
 
-    public Task WritePtyAsync(string data) =>
-        ptySession?.WriteAsync(data) ?? Task.CompletedTask;
+    public Task WritePtyAsync(
+        string data,
+        CancellationToken cancellationToken = default) =>
+        ptySession?.WriteAsync(data, cancellationToken) ?? Task.CompletedTask;
 
     public void ResizePty(int columns, int rows) =>
         ptySession?.Resize(columns, rows);
@@ -266,8 +306,37 @@ public sealed partial class TerminalTabViewModel : ViewModelBase
         }
     }
 
-    private void OnPtyExited(object? sender, int exitCode) =>
-        ReportProcessExited(exitCode);
+    private void OnPtyExited(object? sender, int exitCode)
+    {
+        if (IsPsmux)
+        {
+            TerminalOutputReceived?.Invoke(
+                this,
+                $"\r\n\u001b[31m[HyperTerm] psmux exited with code {exitCode}. " +
+                "Check the status bar or application logs for details.\u001b[0m\r\n");
+        }
+
+        RunOnUiThread(
+            () =>
+            {
+                if (Volatile.Read(ref disposed) == 0)
+                {
+                    ReportProcessExited(exitCode);
+                }
+            });
+    }
+
+    private static void RunOnUiThread(Action action)
+    {
+        if (Dispatcher.UIThread.CheckAccess())
+        {
+            action();
+        }
+        else
+        {
+            Dispatcher.UIThread.Post(action);
+        }
+    }
 
     public void UpdateSession(SessionListItemViewModel session)
     {
@@ -313,13 +382,6 @@ public sealed partial class TerminalTabViewModel : ViewModelBase
     {
         killProcess = null;
         ConnectionStatus = $"Terminal exited — code {exitCode}";
-        if (IsPsmux)
-        {
-            TerminalOutputReceived?.Invoke(
-                this,
-                $"\r\n\u001b[31m[HyperTerm] psmux exited with code {exitCode}. " +
-                "Check the status bar or application logs for details.\u001b[0m\r\n");
-        }
     }
 
     internal void ReportLaunchFailed(string message)

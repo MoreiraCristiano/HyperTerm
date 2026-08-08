@@ -59,7 +59,7 @@ $outputPath = Join-Path $repositoryRoot "artifacts\runs\$runId"
 $webTerminalPath = Join-Path $repositoryRoot 'src\HyperTerm.UI\WebTerminal'
 
 Write-Host 'Sincronizando dependências do terminal web...'
-& npm.cmd install --prefix $webTerminalPath --no-audit --no-fund
+& npm.cmd ci --prefix $webTerminalPath --no-audit --no-fund
 if ($LASTEXITCODE -ne 0) {
     throw "Instalação web falhou com código $LASTEXITCODE."
 }

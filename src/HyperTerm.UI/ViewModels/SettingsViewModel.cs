@@ -20,7 +20,7 @@ public sealed partial class SettingsViewModel(
     ISystemFontService systemFontService,
     IApplicationLogService? applicationLogService = null,
     ILogInteractionService? logInteractionService = null,
-    ILogger<SettingsViewModel>? logger = null) : ViewModelBase
+    ILogger<SettingsViewModel>? logger = null) : ViewModelBase, IDisposable
 {
     private ApplicationSettings applicationSettings = new();
     private bool windowStateChanged;
@@ -177,12 +177,15 @@ public sealed partial class SettingsViewModel(
 
     public async Task ShutdownAsync()
     {
+        StopLogPolling();
         if (windowStateChanged && !RequiresInitialPowerShellSelection)
         {
             await settingsService.SaveAsync(applicationSettings);
             windowStateChanged = false;
         }
     }
+
+    public void Dispose() => StopLogPolling();
 
     [RelayCommand]
     private void OpenSettings()

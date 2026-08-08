@@ -41,7 +41,10 @@ public sealed class ApplicationLogServiceTests : IDisposable
         ILogger logger = service.CreateLogger("Test");
         for (int index = 0; index < 8; index++)
         {
-            logger.LogInformation(new string((char)('a' + index), 300));
+            logger.LogInformation(
+                "Rotation entry {Index}: {Payload}",
+                index,
+                new string((char)('a' + index), 300));
         }
 
         string[] logs = Directory.GetFiles(paths.LogsDirectory, "hyperterm*.log");

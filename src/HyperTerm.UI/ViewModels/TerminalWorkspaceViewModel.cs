@@ -628,7 +628,6 @@ public sealed partial class TerminalWorkspaceViewModel(
 
         try
         {
-            await tab.TerminateAsync();
             await tab.DisposeAsync();
         }
         catch (Exception exception) when (
@@ -653,7 +652,12 @@ public sealed partial class TerminalWorkspaceViewModel(
         StatusText = $"Tab ‘{tab.Title}’ closed";
     }
 
-    private async void OnApplicationCommandRequested(object? sender, string command)
+    private void OnApplicationCommandRequested(object? sender, string command) =>
+        Observe(
+            HandleApplicationCommandAsync(sender, command),
+            "execute terminal command");
+
+    private async Task HandleApplicationCommandAsync(object? sender, string command)
     {
         switch (command)
         {
@@ -672,7 +676,10 @@ public sealed partial class TerminalWorkspaceViewModel(
         }
     }
 
-    private async void OnTabPtyStarted(object? sender, EventArgs eventArgs)
+    private void OnTabPtyStarted(object? sender, EventArgs eventArgs) =>
+        Observe(RefreshStartedPsmuxTabAsync(sender), "refresh psmux sessions");
+
+    private async Task RefreshStartedPsmuxTabAsync(object? sender)
     {
         if (sender is not TerminalTabViewModel { IsPsmux: true } tab ||
             tab.PsmuxSessionName is null)
@@ -697,6 +704,22 @@ public sealed partial class TerminalWorkspaceViewModel(
                 PsmuxSessions.Add(new PsmuxSessionItemViewModel(
                     new PsmuxSessionInfo(tab.PsmuxSessionName, 1, true)));
             }
+        }
+    }
+
+    private void Observe(Task operation, string operationName) =>
+        _ = ObserveAsync(operation, operationName);
+
+    private async Task ObserveAsync(Task operation, string operationName)
+    {
+        try
+        {
+            await operation;
+        }
+        catch (Exception exception)
+        {
+            diagnostics.LogError(exception, "Failed to {Operation}.", operationName);
+            StatusText = $"Failed to {operationName}: {exception.Message}";
         }
     }
 

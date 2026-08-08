@@ -17,6 +17,7 @@ $packageName = "HyperTerm-$Version-$Runtime"
 $releaseStagingRoot = Join-Path $repositoryRoot "artifacts\staging\release-$PID"
 $releasePublishPath = Join-Path $releaseStagingRoot $packageName
 $archivePath = Join-Path $releaseRoot "$packageName.zip"
+$archiveHashPath = "$archivePath.sha256"
 $dotnetPath = 'C:\Program Files\dotnet\dotnet.exe'
 $psmuxVersion = '3.3.7'
 $psmuxLicensePath = Join-Path $repositoryRoot 'licenses\psmux-LICENSE.txt'
@@ -63,10 +64,76 @@ function Assert-PsmuxArchiveHash {
     }
 }
 
+function New-DeterministicZipArchive {
+    param(
+        [Parameter(Mandatory)]
+        [string]$SourceDirectory,
+
+        [Parameter(Mandatory)]
+        [string]$DestinationPath
+    )
+
+    Add-Type -AssemblyName System.IO.Compression
+    $sourceRoot = [System.IO.Path]::GetFullPath($SourceDirectory)
+    $fixedTimestamp = [System.DateTimeOffset]::new(
+        1980,
+        1,
+        1,
+        0,
+        0,
+        0,
+        [System.TimeSpan]::Zero)
+    $archiveStream = [System.IO.File]::Open(
+        $DestinationPath,
+        [System.IO.FileMode]::CreateNew,
+        [System.IO.FileAccess]::Write,
+        [System.IO.FileShare]::None)
+    try {
+        $zip = [System.IO.Compression.ZipArchive]::new(
+            $archiveStream,
+            [System.IO.Compression.ZipArchiveMode]::Create,
+            $false)
+        try {
+            $files = @(Get-ChildItem -LiteralPath $sourceRoot -File -Recurse)
+            $files = $files | Sort-Object {
+                [System.IO.Path]::GetRelativePath($sourceRoot, $_.FullName)
+            }
+            foreach ($file in $files) {
+                $entryName = [System.IO.Path]::GetRelativePath(
+                    $sourceRoot,
+                    $file.FullName).Replace('\', '/')
+                $entry = $zip.CreateEntry(
+                    $entryName,
+                    [System.IO.Compression.CompressionLevel]::Optimal)
+                $entry.LastWriteTime = $fixedTimestamp
+                $inputStream = $file.OpenRead()
+                try {
+                    $outputStream = $entry.Open()
+                    try {
+                        $inputStream.CopyTo($outputStream)
+                    }
+                    finally {
+                        $outputStream.Dispose()
+                    }
+                }
+                finally {
+                    $inputStream.Dispose()
+                }
+            }
+        }
+        finally {
+            $zip.Dispose()
+        }
+    }
+    finally {
+        $archiveStream.Dispose()
+    }
+}
+
 if (-not (Test-Path -LiteralPath $dotnetPath)) {
     $dotnetCommand = Get-Command dotnet -ErrorAction SilentlyContinue
     if ($null -eq $dotnetCommand) {
-        throw '.NET SDK 9 or newer was not found.'
+        throw '.NET SDK 10 or newer was not found.'
     }
 
     $dotnetPath = $dotnetCommand.Source
@@ -86,6 +153,9 @@ New-Item -ItemType Directory -Path $releaseStagingRoot -Force | Out-Null
 
 if (Test-Path -LiteralPath $archivePath) {
     Remove-Item -LiteralPath $archivePath -Force
+}
+if (Test-Path -LiteralPath $archiveHashPath) {
+    Remove-Item -LiteralPath $archiveHashPath -Force
 }
 
 Invoke-CheckedCommand 'Installing web terminal dependencies...' {
@@ -169,6 +239,35 @@ Copy-Item -LiteralPath $psmuxExecutableCandidates[0].FullName -Destination $bund
 Copy-Item -LiteralPath $psmuxLicensePath `
     -Destination (Join-Path $bundledLicenseDirectory 'psmux-LICENSE.txt')
 
+[xml]$centralPackages = Get-Content -LiteralPath (
+    Join-Path $repositoryRoot 'Directory.Packages.props')
+$packageVersions = [ordered]@{}
+$sortedPackages = @($centralPackages.Project.ItemGroup.PackageVersion) | `
+    Sort-Object Include
+foreach ($package in $sortedPackages) {
+    $packageVersions[$package.Include] = $package.Version
+}
+$webPackage = Get-Content -LiteralPath (
+    Join-Path $webTerminalPath 'package.json') -Raw | ConvertFrom-Json
+$manifest = [ordered]@{
+    schemaVersion = 1
+    product = 'HyperTerm'
+    version = $Version
+    runtime = $Runtime
+    targetFramework = 'net10.0'
+    psmuxVersion = $psmuxVersion
+    nugetPackages = $packageVersions
+    npmDependencies = [ordered]@{
+        '@xterm/addon-fit' = $webPackage.dependencies.'@xterm/addon-fit'
+        '@xterm/addon-webgl' = $webPackage.dependencies.'@xterm/addon-webgl'
+        '@xterm/xterm' = $webPackage.dependencies.'@xterm/xterm'
+        esbuild = $webPackage.devDependencies.esbuild
+    }
+}
+$manifest | ConvertTo-Json -Depth 5 |
+    Set-Content -LiteralPath (Join-Path $releasePublishPath 'HyperTerm.manifest.json') `
+        -Encoding utf8NoBOM
+
 $currentArchitecture = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
 $canRunBundledPsmux =
     ($Runtime -eq 'win-x64' -and $currentArchitecture -eq [System.Runtime.InteropServices.Architecture]::X64) -or
@@ -186,7 +285,9 @@ else {
 }
 
 Write-Host 'Creating complete ZIP package...'
-Compress-Archive -LiteralPath $releasePublishPath -DestinationPath $archivePath -CompressionLevel Optimal
+New-DeterministicZipArchive `
+    -SourceDirectory $releasePublishPath `
+    -DestinationPath $archivePath
 
 if (-not (Test-Path -LiteralPath $archivePath)) {
     throw "ZIP package was not created: $archivePath"
@@ -196,8 +297,13 @@ Remove-Item -LiteralPath $releaseStagingRoot -Recurse -Force
 
 $archive = Get-Item -LiteralPath $archivePath
 $archiveSizeMb = [Math]::Round($archive.Length / 1MB, 2)
+$archiveHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
+Set-Content -LiteralPath $archiveHashPath `
+    -Value "$archiveHash  $($archive.Name)" `
+    -Encoding ascii
 
 Write-Host ''
 Write-Host 'Build outputs created successfully:'
 Write-Host "  Complete ZIP: $archivePath"
+Write-Host "  SHA-256: $archiveHashPath"
 Write-Host "  ZIP size: $archiveSizeMb MB"

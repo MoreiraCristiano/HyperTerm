@@ -22,14 +22,14 @@ HyperTerm is a modern Windows terminal and SSH session manager built with .NET a
 ## Requirements
 
 - Windows 10 or Windows 11
-- [.NET SDK 9](https://dotnet.microsoft.com/download/dotnet/9.0) or newer
+- [.NET SDK 10](https://dotnet.microsoft.com/download/dotnet/10.0) or newer
 - [Node.js](https://nodejs.org/) with npm
 - PowerShell (`pwsh.exe` or Windows `powershell.exe`)
 - Windows OpenSSH Client (`ssh.exe`) for SSH sessions
 - Microsoft Edge WebView2 Runtime
 - [psmux](https://github.com/psmux/psmux) is included in the complete release ZIP; development builds can use `psmux.exe` on `PATH`
 
-HyperTerm targets `net9.0`. A newer installed SDK, including .NET 10, can build the project as long as it supports that target.
+HyperTerm targets `net10.0` and follows the .NET 10 LTS support line.
 
 ## Quick start
 
@@ -86,12 +86,28 @@ release on first use, verify its SHA-256 hash, and reuse the validated copy unde
 The destination computer still needs PowerShell (`pwsh.exe` or `powershell.exe`) and Microsoft Edge WebView2
 Runtime. Windows OpenSSH Client is also required for SSH sessions.
 
+## Local verification
+
+Run the complete local quality gate before committing:
+
+```powershell
+.\verify.ps1
+```
+
+This verifies locked dependencies, vulnerability audits, formatting, the web
+terminal build, the Release build, and all tests. Add `-Package` to also create
+and validate the complete Windows release ZIP:
+
+```powershell
+.\verify.ps1 -Package
+```
+
 ## Manual build
 
 Build the web terminal first because its generated `dist` directory is intentionally excluded from Git:
 
 ```powershell
-npm install --prefix .\src\HyperTerm.UI\WebTerminal --no-audit --no-fund
+npm ci --prefix .\src\HyperTerm.UI\WebTerminal --no-audit --no-fund
 npm run build --prefix .\src\HyperTerm.UI\WebTerminal
 dotnet build .\src\HyperTerm.UI\HyperTerm.UI.csproj --configuration Release
 ```
@@ -193,13 +209,23 @@ HyperTerm UI → shared WebView2 host → xterm.js → C# bridge → ConPTY → 
 
 Each tab owns an independent ConPTY process and xterm buffer. A shared WebView2 host reduces memory usage, while bounded output queues and backpressure keep high-volume terminals from freezing the UI.
 
+Terminal sessions expose explicit running, exited, faulted, and disposal states.
+Input writes are serialized against shutdown, pipe closure after process exit is
+treated as normal lifecycle behavior, and repeated disposal is safe. Messages
+from the WebView are schema-validated before reaching the PTY.
+
+Settings updates use atomic file replacement. Session archives are size-limited
+for seekable and non-seekable streams, fully validated before mutation, and
+applied in a SQLite transaction. Application diagnostics stay local and never
+capture terminal input or SSH credentials.
+
 ## Technology
 
-- C# and .NET 9
+- C# and .NET 10 LTS
 - Avalonia UI 12
 - CommunityToolkit.Mvvm
 - Microsoft.Extensions.Hosting and dependency injection
-- Entity Framework Core 9 with SQLite
+- Entity Framework Core 10 with SQLite
 - Porta.Pty and Windows ConPTY
 - xterm.js 5 with WebGL
 - PowerShell (`pwsh.exe` or `powershell.exe`) and Windows OpenSSH

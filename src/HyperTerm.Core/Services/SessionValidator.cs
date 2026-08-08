@@ -18,9 +18,9 @@ internal static class SessionValidator
         if (details.Port is < 1 or > 65535)
         {
             throw new ArgumentOutOfRangeException(
-                nameof(details.Port),
+                nameof(details),
                 details.Port,
-                "Port must be between 1 and 65535.");
+                "Details.Port must be between 1 and 65535.");
         }
     }
 

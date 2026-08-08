@@ -443,7 +443,7 @@ public sealed partial class SessionExplorerViewModel(
         }
     }
 
-    private static void AddParentPaths(string folderPath, ISet<string> paths)
+    private static void AddParentPaths(string folderPath, HashSet<string> paths)
     {
         string[] segments = GetFolderPathSegments(folderPath);
         for (int length = 1; length < segments.Length; length++)
@@ -510,11 +510,11 @@ public sealed partial class SessionExplorerViewModel(
         }
     }
 
-    private ObservableCollection<SessionTreeNodeViewModel> EnsureFolderPath(
+    private static ObservableCollection<SessionTreeNodeViewModel> EnsureFolderPath(
         string folderPath,
         ObservableCollection<SessionTreeNodeViewModel> rootNodes,
-        IDictionary<string, SessionTreeNodeViewModel> foldersByPath,
-        ISet<string> foldersWithItems)
+        Dictionary<string, SessionTreeNodeViewModel> foldersByPath,
+        HashSet<string> foldersWithItems)
     {
         string[] segments = GetFolderPathSegments(folderPath);
         ObservableCollection<SessionTreeNodeViewModel> parentNodes = rootNodes;
