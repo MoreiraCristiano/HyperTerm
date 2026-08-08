@@ -52,6 +52,20 @@ public sealed class ApplicationPathProviderTests
 public sealed class JsonSettingsIntegrationTests
 {
     [Fact]
+    public async Task ExistingSettingsDefaultToKeepingPsmuxSessionsOnExit()
+    {
+        using var paths = new TemporaryPaths();
+        await File.WriteAllTextAsync(
+            paths.SettingsPath,
+            """{"PowerShellPath":"pwsh.exe"}""");
+        using var service = new JsonSettingsService(paths);
+
+        ApplicationSettings settings = await service.LoadAsync();
+
+        Assert.True(settings.KeepPsmuxSessionsOnExit);
+    }
+
+    [Fact]
     public async Task Missing_file_returns_defaults_and_save_round_trips()
     {
         using var paths = new TemporaryPaths();
@@ -63,6 +77,7 @@ public sealed class JsonSettingsIntegrationTests
         {
             Theme = "Light",
             TerminalFontSize = 17,
+            KeepPsmuxSessionsOnExit = false,
             Window = new WindowSettings { Width = 900, Height = 600, X = 10, Y = 20 },
         };
         await service.SaveAsync(expected);

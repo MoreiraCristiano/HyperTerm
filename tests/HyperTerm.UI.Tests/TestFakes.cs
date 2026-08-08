@@ -220,6 +220,9 @@ internal sealed class FakePsmuxService : IPsmuxService
     public bool IsAvailable { get; set; } = true;
     public string? Error { get; set; }
     public Exception? KillError { get; set; }
+    public bool StopServerResult { get; set; } = true;
+    public Exception? StopServerError { get; set; }
+    public int StopServerCalls { get; private set; }
 
     public Task<PsmuxAvailability> ProbeAsync(
         CancellationToken cancellationToken = default) =>
@@ -258,6 +261,16 @@ internal sealed class FakePsmuxService : IPsmuxService
         KilledSessions.Add(name);
         Sessions.RemoveAll(session => session.Name == name);
         return Task.CompletedTask;
+    }
+
+    public Task<bool> TryStopServerAsync(
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        StopServerCalls++;
+        return StopServerError is null
+            ? Task.FromResult(StopServerResult)
+            : Task.FromException<bool>(StopServerError);
     }
 
     private static TerminalSessionDefinition CreateDefinition(string name) =>

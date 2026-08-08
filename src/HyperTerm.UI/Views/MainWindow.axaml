@@ -517,11 +517,11 @@
       <Border Background="{DynamicResource OverlayBrush}" />
       <Border
           Width="{DynamicResource SettingsDialogWidth}"
-          Height="{DynamicResource SettingsDialogHeight}"
           MaxHeight="{DynamicResource SettingsDialogMaxHeight}"
+          Margin="{DynamicResource SettingsDialogMargin}"
           Padding="{DynamicResource DialogPadding}"
           HorizontalAlignment="Center"
-          VerticalAlignment="Center"
+          VerticalAlignment="Stretch"
           Background="{DynamicResource PanelBackgroundBrush}"
           BorderBrush="{DynamicResource BorderBrush}"
           BorderThickness="1"
@@ -574,6 +574,22 @@
                             IsChecked="{Binding IsStatusBarVisible, Mode=TwoWay}"
                             Content="Show status bar" />
                       </StackPanel>
+                    </StackPanel>
+                  </Border>
+                  <Border Classes="settingsSection">
+                    <StackPanel>
+                      <TextBlock Classes="settingsSectionTitle" Text="psmux" />
+                      <TextBlock
+                          Classes="settingsSectionDescription"
+                          Text="Control whether persistent psmux sessions survive after HyperTerm closes." />
+                      <CheckBox
+                          IsChecked="{Binding Settings.SettingsKeepPsmuxSessionsOnExit, Mode=TwoWay}"
+                          Content="Keep psmux sessions running after HyperTerm closes" />
+                      <TextBlock
+                          Margin="0,8,0,0"
+                          Classes="secondary"
+                          Text="Turning this off ends every detached session in HyperTerm’s psmux namespace when the application exits. Sessions attached by another client are preserved."
+                          TextWrapping="Wrap" />
                     </StackPanel>
                   </Border>
                 </StackPanel>

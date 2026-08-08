@@ -86,6 +86,7 @@ public sealed partial class SettingsViewModel
                 TerminalCursorBlink = SettingsTerminalCursorBlink,
                 ShowSidebarScrollbar = SettingsShowSidebarScrollbar,
                 CaptureLogs = SettingsCaptureLogs,
+                KeepPsmuxSessionsOnExit = SettingsKeepPsmuxSessionsOnExit,
             };
             await settingsService.SaveAsync(applicationSettings);
             applicationLogService?.Configure(applicationSettings.CaptureLogs);
@@ -133,6 +134,7 @@ public sealed partial class SettingsViewModel
         SettingsTerminalCursorBlink = applicationSettings.TerminalCursorBlink;
         SettingsShowSidebarScrollbar = applicationSettings.ShowSidebarScrollbar;
         SettingsCaptureLogs = applicationSettings.CaptureLogs;
+        SettingsKeepPsmuxSessionsOnExit = applicationSettings.KeepPsmuxSessionsOnExit;
     }
 
     private void UpdateLogPolling()

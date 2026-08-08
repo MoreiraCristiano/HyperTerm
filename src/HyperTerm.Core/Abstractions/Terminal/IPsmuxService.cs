@@ -18,4 +18,6 @@ public interface IPsmuxService
         CancellationToken cancellationToken = default);
 
     Task KillSessionAsync(string name, CancellationToken cancellationToken = default);
+
+    Task<bool> TryStopServerAsync(CancellationToken cancellationToken = default);
 }

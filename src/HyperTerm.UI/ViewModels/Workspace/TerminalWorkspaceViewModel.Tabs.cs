@@ -13,6 +13,8 @@ namespace HyperTerm.UI.ViewModels;
 
 public sealed partial class TerminalWorkspaceViewModel
 {
+    private static readonly TimeSpan PsmuxShutdownTimeout = TimeSpan.FromSeconds(3);
+
     public async Task OpenSessionAsync(SessionListItemViewModel session)
     {
         ArgumentNullException.ThrowIfNull(session);
@@ -118,6 +120,35 @@ public sealed partial class TerminalWorkspaceViewModel
         foreach (TerminalTabViewModel tab in Tabs.ToArray())
         {
             await CloseTabAsync(tab);
+        }
+
+        if (settings.KeepPsmuxSessionsOnExit ||
+            psmuxService is null ||
+            Tabs.Any(tab => tab.IsPsmux))
+        {
+            return;
+        }
+
+        using var cancellation = new CancellationTokenSource(PsmuxShutdownTimeout);
+        try
+        {
+            bool stopped = await psmuxService.TryStopServerAsync(cancellation.Token);
+            if (!stopped)
+            {
+                diagnostics.LogInformation(
+                    "Preserved the HyperTerm psmux server because another client is attached.");
+            }
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+        {
+            diagnostics.LogWarning(
+                "Timed out while stopping the HyperTerm psmux server during shutdown.");
+        }
+        catch (Exception exception)
+        {
+            diagnostics.LogWarning(
+                exception,
+                "Failed to stop the HyperTerm psmux server during shutdown.");
         }
     }
 

@@ -152,8 +152,12 @@ Double-click a saved session to open it. Double-click a terminal tab to rename i
 The `+` button in the tab bar opens either a regular PowerShell terminal or a
 persistent psmux session. HyperTerm keeps its psmux sessions isolated in the
 `hyperterm` namespace. Closing a psmux tab detaches it. End persistent sessions
-from the active-session list after confirming the action. The `psmux` submenu
-also lists active sessions so they can be refreshed and attached to a new tab.
+from the active-session list after confirming the action. General Settings can
+also end all detached sessions in that namespace when HyperTerm
+closes; sessions still attached by another client are preserved. By default,
+sessions continue running after HyperTerm closes for backward compatibility.
+The `psmux` submenu also lists active sessions so they can be refreshed and
+attached to a new tab.
 
 HyperTerm resolves `tools\psmux\psmux.exe` beside the application first, then
 falls back to `psmux.exe` on `PATH`. This keeps complete ZIP releases on the

@@ -376,6 +376,66 @@ public sealed class ViewModelTests
     }
 
     [Fact]
+    public async Task WorkspaceShutdownKeepsPsmuxServerByDefault()
+    {
+        var psmux = new FakePsmuxService();
+        var workspace = new TerminalWorkspaceViewModel(
+            new FakeSessionService(),
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory(),
+            psmux);
+
+        await workspace.ShutdownAsync();
+
+        Assert.Equal(0, psmux.StopServerCalls);
+    }
+
+    [Fact]
+    public async Task WorkspaceShutdownDetachesTabsBeforeStoppingPsmuxServer()
+    {
+        var psmux = new FakePsmuxService();
+        psmux.Sessions.Add(new PsmuxSessionInfo("work", 1, false));
+        var workspace = new TerminalWorkspaceViewModel(
+            new FakeSessionService(),
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory(),
+            psmux);
+        workspace.ApplySettings(new ApplicationSettings
+        {
+            KeepPsmuxSessionsOnExit = false,
+        });
+        await workspace.RefreshPsmuxSessionsAsync(TestContext.Current.CancellationToken);
+        await workspace.OpenPsmuxSessionCommand.ExecuteAsync(workspace.PsmuxSessions[0]);
+
+        await workspace.ShutdownAsync();
+
+        Assert.Empty(workspace.Tabs);
+        Assert.Equal(1, psmux.StopServerCalls);
+    }
+
+    [Fact]
+    public async Task WorkspaceShutdownContinuesWhenStoppingPsmuxFails()
+    {
+        var psmux = new FakePsmuxService
+        {
+            StopServerError = new InvalidOperationException("stop failed"),
+        };
+        var workspace = new TerminalWorkspaceViewModel(
+            new FakeSessionService(),
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory(),
+            psmux);
+        workspace.ApplySettings(new ApplicationSettings
+        {
+            KeepPsmuxSessionsOnExit = false,
+        });
+
+        await workspace.ShutdownAsync();
+
+        Assert.Equal(1, psmux.StopServerCalls);
+    }
+
+    [Fact]
     public async Task WorkspaceConfirmsAndEndsPsmuxSessionWithMatchingTab()
     {
         var psmux = new FakePsmuxService();
@@ -616,6 +676,20 @@ public sealed class ViewModelTests
         await viewModel.SaveSettingsCommand.ExecuteAsync(null);
 
         Assert.True(settingsService.Value.ShowSidebarScrollbar);
+    }
+
+    [Fact]
+    public async Task SettingsSavePsmuxShutdownPreference()
+    {
+        var settingsService = new FakeSettingsService(exists: true);
+        var viewModel = CreateSettingsViewModel(settingsService);
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+        viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.SettingsKeepPsmuxSessionsOnExit = false;
+
+        await viewModel.SaveSettingsCommand.ExecuteAsync(null);
+
+        Assert.False(settingsService.Value.KeepPsmuxSessionsOnExit);
     }
 
     [Fact]

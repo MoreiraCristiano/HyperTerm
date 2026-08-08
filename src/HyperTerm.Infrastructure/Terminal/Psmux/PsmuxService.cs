@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using HyperTerm.Core.Abstractions.Terminal;
@@ -8,11 +7,11 @@ using Microsoft.Extensions.Logging;
 
 namespace HyperTerm.Infrastructure.Terminal;
 
-internal sealed class PsmuxService(ILogger<PsmuxService> logger) : IPsmuxService
+internal sealed class PsmuxService(
+    ILogger<PsmuxService> logger,
+    IPsmuxCommandClient commandClient) : IPsmuxService
 {
     private const string Namespace = "hyperterm";
-    private static readonly string BundledExecutablePath =
-        Path.Combine("tools", "psmux", "psmux.exe");
     private static readonly TimeSpan CommandTimeout = TimeSpan.FromSeconds(10);
     private static readonly Regex SessionNamePattern = new(
         "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$",
@@ -21,7 +20,7 @@ internal sealed class PsmuxService(ILogger<PsmuxService> logger) : IPsmuxService
     public async Task<PsmuxAvailability> ProbeAsync(
         CancellationToken cancellationToken = default)
     {
-        string? executable = TryResolveExecutable();
+        string? executable = commandClient.TryResolveExecutable();
         if (executable is null)
         {
             return new PsmuxAvailability(
@@ -34,7 +33,11 @@ internal sealed class PsmuxService(ILogger<PsmuxService> logger) : IPsmuxService
 
         try
         {
-            ProcessResult result = await RunAsync(executable, ["--version"], cancellationToken);
+            PsmuxCommandResult result = await commandClient.RunAsync(
+                executable,
+                ["--version"],
+                CommandTimeout,
+                cancellationToken);
             if (result.ExitCode != 0)
             {
                 return new PsmuxAvailability(
@@ -59,44 +62,7 @@ internal sealed class PsmuxService(ILogger<PsmuxService> logger) : IPsmuxService
         CancellationToken cancellationToken = default)
     {
         string executable = ResolveExecutable();
-        ProcessResult result = await RunAsync(
-            executable,
-            [
-                "-L",
-                Namespace,
-                "list-sessions",
-                "-F",
-                "#{session_name}\t#{session_windows}\t#{session_attached}",
-            ],
-            cancellationToken);
-        if (result.ExitCode != 0)
-        {
-            if (IsNoSessionsResult(result))
-            {
-                return [];
-            }
-
-            throw new TerminalLaunchException(FormatFailure("psmux list-sessions", result));
-        }
-
-        var sessions = new List<PsmuxSessionInfo>();
-        foreach (string line in result.StandardOutput.Split(
-                     ['\r', '\n'],
-                     StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        {
-            string[] fields = line.Split('\t');
-            if (fields.Length != 3 ||
-                !int.TryParse(fields[1], NumberStyles.None, CultureInfo.InvariantCulture, out int windows) ||
-                !int.TryParse(fields[2], NumberStyles.None, CultureInfo.InvariantCulture, out int attached))
-            {
-                throw new TerminalLaunchException(
-                    $"psmux returned an invalid session row: ‘{line}’.");
-            }
-
-            sessions.Add(new PsmuxSessionInfo(fields[0], windows, attached > 0));
-        }
-
-        return sessions.OrderBy(session => session.Name, StringComparer.OrdinalIgnoreCase).ToArray();
+        return await ListSessionsAsync(executable, cancellationToken);
     }
 
     public async Task<TerminalSessionDefinition> CreateSessionDefinitionAsync(
@@ -155,14 +121,40 @@ internal sealed class PsmuxService(ILogger<PsmuxService> logger) : IPsmuxService
     {
         ValidateName(name);
         string executable = ResolveExecutable();
-        ProcessResult result = await RunAsync(
+        PsmuxCommandResult result = await commandClient.RunAsync(
             executable,
             ["-L", Namespace, "kill-session", "-t", name],
+            CommandTimeout,
             cancellationToken);
         if (result.ExitCode != 0)
         {
             throw new TerminalLaunchException(FormatFailure("psmux kill-session", result));
         }
+    }
+
+    public async Task<bool> TryStopServerAsync(
+        CancellationToken cancellationToken = default)
+    {
+        string executable = ResolveExecutable();
+        IReadOnlyList<PsmuxSessionInfo> sessions = await ListSessionsAsync(
+            executable,
+            cancellationToken);
+        if (sessions.Any(session => session.IsAttached))
+        {
+            return false;
+        }
+
+        PsmuxCommandResult result = await commandClient.RunAsync(
+            executable,
+            BuildKillServerArguments(),
+            CommandTimeout,
+            cancellationToken);
+        if (result.ExitCode != 0 && !IsNoSessionsResult(result))
+        {
+            throw new TerminalLaunchException(FormatFailure("psmux kill-server", result));
+        }
+
+        return true;
     }
 
     internal static IReadOnlyList<string> BuildDetachedSessionArguments(string name)
@@ -189,7 +181,55 @@ internal sealed class PsmuxService(ILogger<PsmuxService> logger) : IPsmuxService
         return ["-L", Namespace, "attach-session", "-t", name];
     }
 
-    private static TerminalSessionDefinition CreateDefinition(
+    internal static IReadOnlyList<string> BuildKillServerArguments() =>
+        ["-L", Namespace, "kill-server"];
+
+    private async Task<IReadOnlyList<PsmuxSessionInfo>> ListSessionsAsync(
+        string executable,
+        CancellationToken cancellationToken)
+    {
+        PsmuxCommandResult result = await commandClient.RunAsync(
+            executable,
+            [
+                "-L",
+                Namespace,
+                "list-sessions",
+                "-F",
+                "#{session_name}\t#{session_windows}\t#{session_attached}",
+            ],
+            CommandTimeout,
+            cancellationToken);
+        if (result.ExitCode != 0)
+        {
+            if (IsNoSessionsResult(result))
+            {
+                return [];
+            }
+
+            throw new TerminalLaunchException(FormatFailure("psmux list-sessions", result));
+        }
+
+        var sessions = new List<PsmuxSessionInfo>();
+        foreach (string line in result.StandardOutput.Split(
+                     ['\r', '\n'],
+                     StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            string[] fields = line.Split('\t');
+            if (fields.Length != 3 ||
+                !int.TryParse(fields[1], NumberStyles.None, CultureInfo.InvariantCulture, out int windows) ||
+                !int.TryParse(fields[2], NumberStyles.None, CultureInfo.InvariantCulture, out int attached))
+            {
+                throw new TerminalLaunchException(
+                    $"psmux returned an invalid session row: ‘{line}’.");
+            }
+
+            sessions.Add(new PsmuxSessionInfo(fields[0], windows, attached > 0));
+        }
+
+        return sessions.OrderBy(session => session.Name, StringComparer.OrdinalIgnoreCase).ToArray();
+    }
+
+    private TerminalSessionDefinition CreateDefinition(
         string name,
         IReadOnlyList<string> arguments,
         string? resolvedExecutable = null)
@@ -202,26 +242,31 @@ internal sealed class PsmuxService(ILogger<PsmuxService> logger) : IPsmuxService
             name);
     }
 
-    private static async Task RunRequiredAsync(
+    private async Task RunRequiredAsync(
         string executable,
         IReadOnlyList<string> arguments,
         string command,
         CancellationToken cancellationToken)
     {
-        ProcessResult result = await RunAsync(executable, arguments, cancellationToken);
+        PsmuxCommandResult result = await commandClient.RunAsync(
+            executable,
+            arguments,
+            CommandTimeout,
+            cancellationToken);
         if (result.ExitCode != 0)
         {
             throw new TerminalLaunchException(FormatFailure(command, result));
         }
     }
 
-    private static async Task TryKillSessionAsync(string executable, string name)
+    private async Task TryKillSessionAsync(string executable, string name)
     {
         try
         {
-            await RunAsync(
+            await commandClient.RunAsync(
                 executable,
                 ["-L", Namespace, "kill-session", "-t", name],
+                CommandTimeout,
                 CancellationToken.None);
         }
         catch
@@ -229,14 +274,8 @@ internal sealed class PsmuxService(ILogger<PsmuxService> logger) : IPsmuxService
         }
     }
 
-    private static string? TryResolveExecutable() =>
-        WindowsExecutableResolver.TryResolveBundledOrPath(
-            BundledExecutablePath,
-            "psmux.exe",
-            "psmux.exe");
-
-    private static string ResolveExecutable() =>
-        TryResolveExecutable() ??
+    private string ResolveExecutable() =>
+        commandClient.TryResolveExecutable() ??
         throw new TerminalLaunchException(
             "psmux.exe was not found in HyperTerm’s bundled tools or PATH. " +
             "Use the complete ZIP package or install psmux.");
@@ -251,7 +290,7 @@ internal sealed class PsmuxService(ILogger<PsmuxService> logger) : IPsmuxService
         }
     }
 
-    private static bool IsNoSessionsResult(ProcessResult result)
+    private static bool IsNoSessionsResult(PsmuxCommandResult result)
     {
         string error = $"{result.StandardError}\n{result.StandardOutput}";
         return error.Contains("no server", StringComparison.OrdinalIgnoreCase) ||
@@ -259,7 +298,7 @@ internal sealed class PsmuxService(ILogger<PsmuxService> logger) : IPsmuxService
                error.Contains("failed to connect", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static string FormatFailure(string command, ProcessResult result)
+    private static string FormatFailure(string command, PsmuxCommandResult result)
     {
         string detail = string.IsNullOrWhiteSpace(result.StandardError)
             ? result.StandardOutput.Trim()
@@ -269,59 +308,6 @@ internal sealed class PsmuxService(ILogger<PsmuxService> logger) : IPsmuxService
             : $"{command} failed: {detail}";
     }
 
-    private static async Task<ProcessResult> RunAsync(
-        string executable,
-        IReadOnlyList<string> arguments,
-        CancellationToken cancellationToken)
-    {
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = executable,
-            WorkingDirectory = GetDefaultStartingDirectory(),
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            StandardOutputEncoding = System.Text.Encoding.UTF8,
-            StandardErrorEncoding = System.Text.Encoding.UTF8,
-        };
-        foreach (string argument in arguments)
-        {
-            startInfo.ArgumentList.Add(argument);
-        }
-
-        using var process = new Process { StartInfo = startInfo };
-        if (!process.Start())
-        {
-            throw new TerminalLaunchException($"Could not start ‘{executable}’.");
-        }
-
-        Task<string> outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
-        Task<string> errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(CommandTimeout);
-        try
-        {
-            await process.WaitForExitAsync(timeout.Token);
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            process.Kill(entireProcessTree: true);
-            throw new TerminalLaunchException(
-                $"psmux did not respond within {CommandTimeout.TotalSeconds:0} seconds.");
-        }
-
-        return new ProcessResult(
-            process.ExitCode,
-            await outputTask,
-            await errorTask);
-    }
-
     internal static string GetDefaultStartingDirectory() =>
         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-
-    private sealed record ProcessResult(
-        int ExitCode,
-        string StandardOutput,
-        string StandardError);
 }
