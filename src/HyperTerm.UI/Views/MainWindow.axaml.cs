@@ -6,6 +6,7 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using HyperTerm.Core.Models;
+using HyperTerm.UI.Services;
 using HyperTerm.UI.ViewModels;
 
 namespace HyperTerm.UI.Views;
@@ -177,6 +178,8 @@ public sealed partial class MainWindow : Window
     {
         DataContext = viewModel;
         viewModel.CloseWindowRequested += (_, _) => Close();
+        viewModel.TerminalSearchRequested += (_, _) =>
+            _ = TerminalHost.OpenSearchAsync();
         viewModel.SessionEditor.PropertyChanged += (_, eventArgs) =>
         {
             if (eventArgs.PropertyName == nameof(SessionEditorViewModel.IsEditorOpen) &&
@@ -223,6 +226,13 @@ public sealed partial class MainWindow : Window
             if (eventArgs.PropertyName == nameof(MainWindowViewModel.IsSidebarVisible))
             {
                 UpdateSidebarVisibility(viewModel.IsSidebarVisible);
+            }
+            else if (eventArgs.PropertyName == nameof(MainWindowViewModel.IsCommandPaletteOpen) &&
+                     viewModel.IsCommandPaletteOpen)
+            {
+                TerminalHost.CancelWindowActivationFocus();
+                WindowsWebViewFocus.TryReleaseFocus(this);
+                CommandPaletteDialogHost.FocusQueryAfterNativeFocusRelease();
             }
         };
         Activated += (_, _) =>

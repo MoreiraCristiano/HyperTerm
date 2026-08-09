@@ -31,6 +31,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
     public event EventHandler? CloseWindowRequested;
     public event EventHandler? InitializationCompleted;
+    public event EventHandler? TerminalSearchRequested;
 
     public SessionExplorerViewModel Explorer { get; }
     public TerminalWorkspaceViewModel Workspace { get; }
@@ -53,7 +54,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         !Settings.IsPowerShellSetupOpen &&
         !FolderEditor.IsFolderEditorOpen &&
         !FolderEditor.IsFolderDeleteConfirmationOpen &&
-        !IsShortcutsOpen;
+        !IsShortcutsOpen &&
+        !IsCommandPaletteOpen;
 
     [ObservableProperty]
     private bool isStatusBarVisible;
@@ -149,6 +151,12 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private void CloseShortcuts() => IsShortcutsOpen = false;
 
+    [RelayCommand(CanExecute = nameof(CanSearchTerminal))]
+    private void OpenTerminalSearch() =>
+        TerminalSearchRequested?.Invoke(this, EventArgs.Empty);
+
+    private bool CanSearchTerminal() => Workspace.SelectedTab is not null;
+
     [RelayCommand]
     private void CloseActiveOverlay()
     {
@@ -160,6 +168,10 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         if (FolderEditor.IsFolderDeleteConfirmationOpen)
         {
             FolderEditor.CancelDeleteFolder();
+        }
+        else if (IsCommandPaletteOpen)
+        {
+            CloseCommandPalette();
         }
         else if (SessionEditor.IsDeleteConfirmationOpen)
         {
@@ -290,6 +302,12 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             case "settings":
                 Settings.OpenSettingsCommand.Execute(null);
                 break;
+            case "searchTerminal":
+                OpenTerminalSearch();
+                break;
+            case "commandPalette":
+                OpenCommandPalette();
+                break;
         }
     }
 
@@ -318,6 +336,12 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             eventArgs.PropertyName == nameof(TerminalWorkspaceViewModel.Title))
         {
             OnPropertyChanged(nameof(Title));
+        }
+
+        if (ReferenceEquals(sender, Workspace) &&
+            eventArgs.PropertyName == nameof(TerminalWorkspaceViewModel.SelectedTab))
+        {
+            OpenTerminalSearchCommand.NotifyCanExecuteChanged();
         }
 
         bool terminalVisibilityChanged =

@@ -47,6 +47,24 @@ public sealed class WebTerminalScriptBridgeTests
         Assert.Contains("\"cursorStyle\":\"bar\"", script, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task Search_targets_the_requested_terminal()
+    {
+        string? script = null;
+        var bridge = new WebTerminalScriptBridge(value =>
+        {
+            script = value;
+            return Task.CompletedTask;
+        });
+        Guid tabId = Guid.Parse("00112233-4455-6677-8899-aabbccddeeff");
+
+        await bridge.OpenSearchAsync(tabId);
+
+        Assert.Equal(
+            "window.terminalHost.openSearch(\"00112233445566778899aabbccddeeff\")",
+            script);
+    }
+
     internal static TerminalTabViewModel CreateTab() => new(
         "Test",
         new TerminalSessionDefinition(

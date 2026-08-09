@@ -46,10 +46,57 @@
     }
     ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-hover); }
     ::-webkit-scrollbar-corner { background: var(--terminal-background); }
+    #terminal-search {
+      position: absolute;
+      z-index: 10;
+      top: 8px;
+      right: 18px;
+      display: none;
+      align-items: center;
+      gap: 4px;
+      padding: 5px;
+      color: #e6e9ef;
+      background: #292d33;
+      border: 1px solid #4b535d;
+      border-radius: 5px;
+      box-shadow: 0 4px 14px #0008;
+      font: 12px "Segoe UI", sans-serif;
+    }
+    #terminal-search.open { display: flex; }
+    #terminal-search input {
+      width: 220px;
+      padding: 4px 7px;
+      color: #e6e9ef;
+      background: #1e1e1e;
+      border: 1px solid #59636f;
+      border-radius: 3px;
+      outline: none;
+      cursor: text !important;
+    }
+    #terminal-search input:focus { border-color: #69a7e8; }
+    #terminal-search button {
+      min-width: 27px;
+      height: 27px;
+      padding: 0 6px;
+      color: #e6e9ef;
+      background: transparent;
+      border: 0;
+      border-radius: 3px;
+    }
+    #terminal-search button:hover, #terminal-search button.active { background: #46515e; }
+    #terminal-search-results { min-width: 42px; text-align: center; color: #adb6c2; }
   </style>
 </head>
 <body>
   <div id="terminal-host"></div>
+  <div id="terminal-search" aria-hidden="true">
+    <input id="terminal-search-input" aria-label="Search terminal output" autocomplete="off" placeholder="Search terminal…">
+    <span id="terminal-search-results">0/0</span>
+    <button id="terminal-search-case" type="button" aria-label="Match case" aria-pressed="false" title="Match case">Aa</button>
+    <button id="terminal-search-previous" type="button" aria-label="Previous match" title="Previous match">↑</button>
+    <button id="terminal-search-next" type="button" aria-label="Next match" title="Next match">↓</button>
+    <button id="terminal-search-close" type="button" aria-label="Close search" title="Close">×</button>
+  </div>
   <script src="terminal.js"></script>
 </body>
 </html>

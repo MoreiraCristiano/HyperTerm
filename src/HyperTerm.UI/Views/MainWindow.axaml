@@ -27,6 +27,8 @@
     <KeyBinding Gesture="Alt+F4" Command="{Binding RequestCloseWindowCommand}" />
     <KeyBinding Gesture="Ctrl+Shift+," Command="{Binding Settings.OpenSettingsCommand}" />
     <KeyBinding Gesture="Ctrl+Shift+B" Command="{Binding ToggleSidebarCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+F" Command="{Binding OpenTerminalSearchCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+K" Command="{Binding OpenCommandPaletteCommand}" />
     <KeyBinding Gesture="F1" Command="{Binding OpenShortcutsCommand}" />
     <KeyBinding Gesture="F2" Command="{Binding Explorer.EditSessionCommand}" />
     <KeyBinding Gesture="Escape" Command="{Binding CloseActiveOverlayCommand}" />
@@ -389,6 +391,8 @@
     <dialogs:SettingsDialog Grid.Row="1" Grid.RowSpan="2" />
 
     <dialogs:ShortcutsDialog Grid.Row="1" Grid.RowSpan="2" />
+
+    <dialogs:CommandPaletteDialog x:Name="CommandPaletteDialogHost" Grid.Row="1" Grid.RowSpan="2" />
 
     <dialogs:FolderEditorDialog x:Name="FolderEditorDialogHost" Grid.Row="1" Grid.RowSpan="2" />
 

@@ -26,6 +26,8 @@ internal sealed record WebTerminalMessage(
         "closeWindow",
         "toggleSidebar",
         "settings",
+        "searchTerminal",
+        "commandPalette",
     ];
 
     public static bool TryParse(string? body, out WebTerminalMessage? message)

@@ -64,6 +64,22 @@ public sealed class TerminalPipelineTests
         Assert.False(WebTerminalMessage.TryParse(body, out _));
     }
 
+    [Theory]
+    [InlineData("searchTerminal")]
+    [InlineData("commandPalette")]
+    public void ParsesSupportedDiscoveryCommands(string command)
+    {
+        string body = JsonSerializer.Serialize(new
+        {
+            type = "applicationCommand",
+            tabId = Guid.NewGuid().ToString("N"),
+            command,
+        });
+
+        Assert.True(WebTerminalMessage.TryParse(body, out WebTerminalMessage? message));
+        Assert.Equal(command, message!.Command);
+    }
+
     [Fact]
     public void OutputBufferPreservesOrderAndBatchLimit()
     {

@@ -37,6 +37,45 @@ internal static class WindowsWebViewFocus
         }
     }
 
+    public static bool TryReleaseFocus(TopLevel topLevel)
+    {
+        if (!OperatingSystem.IsWindows() ||
+            topLevel.TryGetPlatformHandle() is not { } handle ||
+            !string.Equals(
+                handle.HandleDescriptor,
+                "HWND",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        try
+        {
+            IntPtr user32 = NativeLibrary.Load("user32.dll");
+            try
+            {
+                IntPtr method = NativeLibrary.GetExport(user32, "SetFocus");
+                SetWindowFocus setFocus =
+                    Marshal.GetDelegateForFunctionPointer<SetWindowFocus>(method);
+                setFocus(handle.Handle);
+            }
+            finally
+            {
+                NativeLibrary.Free(user32);
+            }
+
+            return true;
+        }
+        catch (Exception exception) when (
+            exception is DllNotFoundException or EntryPointNotFoundException or PlatformNotSupportedException)
+        {
+            return false;
+        }
+    }
+
+    [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+    private delegate IntPtr SetWindowFocus(IntPtr windowHandle);
+
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     private delegate int MoveFocus(
         IntPtr controller,

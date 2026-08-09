@@ -226,6 +226,19 @@ public sealed class WebTerminalHostControl : NativeWebView
     public void CancelWindowActivationFocus() =>
         focusAfterActivationPending = false;
 
+    public async Task OpenSearchAsync()
+    {
+        TerminalTabViewModel? tab = ActiveTab;
+        if (!hostReady || !IsVisible || tab is null)
+        {
+            return;
+        }
+
+        await InvokeTerminalScriptAsync(
+            () => scriptBridge.OpenSearchAsync(tab.Id),
+            tab);
+    }
+
     private async Task FocusAfterWindowActivationIfReadyAsync()
     {
         TerminalTabViewModel? tab = ActiveTab;

@@ -1,6 +1,8 @@
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
+using Avalonia.Threading;
 using HyperTerm.UI.Controls;
+using HyperTerm.UI.Views.Dialogs;
 
 namespace HyperTerm.UI.Tests;
 
@@ -32,6 +34,30 @@ public sealed class AvaloniaHeadlessTests
 
         Assert.True(textBox.IsFocused);
         Assert.Equal("HyperTerm", textBox.Text);
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    [Trait("Category", "Headless")]
+    public void Command_palette_focuses_query_after_becoming_visible()
+    {
+        var palette = new CommandPaletteDialog
+        {
+            IsVisible = false,
+        };
+        var window = new Window
+        {
+            Width = 900,
+            Height = 600,
+            Content = palette,
+        };
+        window.Show();
+
+        palette.IsVisible = true;
+        Dispatcher.UIThread.RunJobs();
+
+        TextBox query = palette.FindControl<TextBox>("QueryEditor")!;
+        Assert.True(query.IsFocused);
         window.Close();
     }
 }

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const terminalInstances = [];
 const webglInstances = [];
+const searchInstances = [];
 let throwWebglConstructor = false;
 let throwWebglDispose = false;
 
@@ -55,9 +56,31 @@ vi.mock('@xterm/addon-webgl', () => ({
   }
 }));
 
+vi.mock('@xterm/addon-search', () => ({
+  SearchAddon: class {
+    constructor() { searchInstances.push(this); }
+    onDidChangeResults(handler) {
+      this.resultsHandler = handler;
+      return { dispose: () => { this.listenerDisposed = true; } };
+    }
+    findNext(term, options) { this.next = { term, options }; return true; }
+    findPrevious(term, options) { this.previous = { term, options }; return true; }
+    clearDecorations() { this.cleared = true; }
+  }
+}));
+
 async function loadHost({ width = 800, height = 600, bridge = true } = {}) {
   vi.resetModules();
-  document.body.innerHTML = '<div id="terminal-host"></div>';
+  document.body.innerHTML = `
+    <div id="terminal-host"></div>
+    <div id="terminal-search" aria-hidden="true">
+      <input id="terminal-search-input">
+      <span id="terminal-search-results">0/0</span>
+      <button id="terminal-search-case"></button>
+      <button id="terminal-search-previous"></button>
+      <button id="terminal-search-next"></button>
+      <button id="terminal-search-close"></button>
+    </div>`;
   const host = document.getElementById('terminal-host');
   host.getBoundingClientRect = () => ({ width, height });
   globalThis.ResizeObserver = class { observe() {} };
@@ -86,6 +109,7 @@ describe('terminal host bridge', () => {
   beforeEach(() => {
     terminalInstances.length = 0;
     webglInstances.length = 0;
+    searchInstances.length = 0;
     throwWebglConstructor = false;
     throwWebglDispose = false;
   });
@@ -158,6 +182,52 @@ describe('terminal host bridge', () => {
     expect(terminalInstances[0].selection).toBe('');
   });
 
+  it('opens search without forwarding the shortcut and navigates matches', async () => {
+    const { host, sent } = await loadHost();
+    host.create({ tabId: 'a', options: createOptions() });
+    host.activate('a');
+
+    const handled = terminalInstances[0].keyHandler({
+      type: 'keydown', ctrlKey: true, shiftKey: true, altKey: false,
+      metaKey: false, code: 'KeyF', repeat: false
+    });
+    expect(handled).toBe(false);
+    expect(sent).toContainEqual({
+      type: 'applicationCommand', tabId: 'a', command: 'searchTerminal'
+    });
+
+    host.openSearch('a');
+    const input = document.getElementById('terminal-search-input');
+    input.value = 'Needle';
+    input.dispatchEvent(new Event('input'));
+    expect(searchInstances[0].next.term).toBe('Needle');
+
+    searchInstances[0].resultsHandler({ resultIndex: 1, resultCount: 3 });
+    expect(document.getElementById('terminal-search-results').textContent).toBe('2/3');
+
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', shiftKey: true }));
+    expect(searchInstances[0].previous.term).toBe('Needle');
+  });
+
+  it('clears search on escape, tab switch, and disposal', async () => {
+    const { host } = await loadHost();
+    host.create({ tabId: 'a', options: createOptions() });
+    host.create({ tabId: 'b', options: createOptions() });
+    host.activate('a');
+    host.openSearch('a');
+
+    document.getElementById('terminal-search-input').dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape' }));
+    expect(document.getElementById('terminal-search').classList.contains('open')).toBe(false);
+    expect(searchInstances[0].cleared).toBe(true);
+
+    host.openSearch('a');
+    host.activate('b');
+    expect(document.getElementById('terminal-search').classList.contains('open')).toBe(false);
+    host.dispose('b');
+    expect(searchInstances[1].listenerDisposed).toBe(true);
+  });
+
   it('falls back permanently after WebGL context loss', async () => {
     const { host } = await loadHost();
     host.create({ tabId: 'a', options: createOptions() });
@@ -191,10 +261,11 @@ describe('terminal host bridge', () => {
     expect(key({ ...base, altKey: true, code: 'F4' })).toBe(false);
     expect(key({ ...base, ctrlKey: true, code: 'Tab' })).toBe(false);
     expect(key({ ...base, ctrlKey: true, shiftKey: true, code: 'Tab' })).toBe(false);
+    expect(key({ ...base, ctrlKey: true, shiftKey: true, code: 'KeyK' })).toBe(false);
     expect(key({ ...base, code: 'KeyA' })).toBe(true);
 
     expect(sent.map(message => message.command).filter(Boolean)).toEqual([
-      'closeWindow', 'nextTab', 'previousTab'
+      'closeWindow', 'nextTab', 'previousTab', 'commandPalette'
     ]);
   });
 

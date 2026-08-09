@@ -591,6 +591,74 @@ public sealed class ViewModelTests
     }
 
     [Fact]
+    public async Task CommandPaletteCombinesActionsSessionsTabsAndPsmux()
+    {
+        var sessions = new FakeSessionService();
+        sessions.Sessions.Add(FakeSessionService.CreateSession(
+            Guid.NewGuid(),
+            new SessionDetails(
+                "Production server", "prod.test", 22, "admin", null,
+                "Production", "Primary host")));
+        var folders = new FakeFolderService();
+        var explorer = new SessionExplorerViewModel(sessions, folders);
+        await explorer.InitializeAsync(TestContext.Current.CancellationToken);
+        var psmux = new FakePsmuxService();
+        psmux.Sessions.Add(new PsmuxSessionInfo("persistent-work", 2, false));
+        var workspace = new TerminalWorkspaceViewModel(
+            sessions,
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory(),
+            psmux);
+        await workspace.OpenLocalTerminalCommand.ExecuteAsync(null);
+        var viewModel = new MainWindowViewModel(
+            explorer,
+            workspace,
+            CreateSettingsViewModel(new FakeSettingsService(exists: true)),
+            new SessionEditorViewModel(sessions),
+            new FolderEditorViewModel(folders));
+
+        viewModel.OpenCommandPaletteCommand.Execute(null);
+
+        Assert.True(viewModel.IsCommandPaletteOpen);
+        Assert.Contains(viewModel.CommandPaletteResults, item => item.Title == "New SSH session");
+        Assert.Contains(viewModel.CommandPaletteResults, item => item.Title == "Production server");
+        Assert.Contains(viewModel.CommandPaletteResults, item => item.Category == "Open tab");
+        Assert.Contains(viewModel.CommandPaletteResults, item => item.Title == "persistent-work");
+
+        viewModel.CommandPaletteQuery = "prod server";
+        Assert.Equal("Production server", Assert.Single(viewModel.CommandPaletteResults).Title);
+    }
+
+    [Fact]
+    public async Task CommandPaletteExecutesSelectionAndRestoresTerminalVisibility()
+    {
+        var sessions = new FakeSessionService();
+        var folders = new FakeFolderService();
+        var explorer = new SessionExplorerViewModel(sessions, folders);
+        await explorer.InitializeAsync(TestContext.Current.CancellationToken);
+        var workspace = new TerminalWorkspaceViewModel(
+            sessions,
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory());
+        await workspace.OpenLocalTerminalCommand.ExecuteAsync(null);
+        var viewModel = new MainWindowViewModel(
+            explorer,
+            workspace,
+            CreateSettingsViewModel(new FakeSettingsService(exists: true)),
+            new SessionEditorViewModel(sessions),
+            new FolderEditorViewModel(folders));
+        viewModel.OpenCommandPaletteCommand.Execute(null);
+        Assert.False(viewModel.AreTerminalHostsVisible);
+        viewModel.CommandPaletteQuery = "toggle status bar";
+
+        await viewModel.ExecuteSelectedCommandPaletteItemCommand.ExecuteAsync(null);
+
+        Assert.True(viewModel.IsStatusBarVisible);
+        Assert.False(viewModel.IsCommandPaletteOpen);
+        Assert.True(viewModel.AreTerminalHostsVisible);
+    }
+
+    [Fact]
     public async Task ApplicationLifecycleInitializesAndShutsDownOnlyOnce()
     {
         var database = new FakeDatabaseInitializer();

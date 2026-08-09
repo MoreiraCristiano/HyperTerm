@@ -1,8 +1,16 @@
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
+import { SearchAddon } from '@xterm/addon-search';
 import { WebglAddon } from '@xterm/addon-webgl';
 
 const terminalHostElement = document.getElementById('terminal-host');
+const searchBarElement = document.getElementById('terminal-search');
+const searchInputElement = document.getElementById('terminal-search-input');
+const searchResultsElement = document.getElementById('terminal-search-results');
+const searchCaseElement = document.getElementById('terminal-search-case');
+const searchPreviousElement = document.getElementById('terminal-search-previous');
+const searchNextElement = document.getElementById('terminal-search-next');
+const searchCloseElement = document.getElementById('terminal-search-close');
 const terminals = new Map();
 let activeTabId = null;
 let resizeFrame = null;
@@ -25,6 +33,7 @@ function createTerminal({ tabId, options }) {
   terminalHostElement.appendChild(element);
 
   const fitAddon = new FitAddon();
+  const searchAddon = new SearchAddon();
   const terminal = new Terminal({
     cursorBlink: options.cursorBlink,
     cursorStyle: options.cursorStyle,
@@ -46,6 +55,8 @@ function createTerminal({ tabId, options }) {
     element,
     terminal,
     fitAddon,
+    searchAddon,
+    searchResultsDisposable: null,
     webglAddon: null,
     webglContextLossDisposable: null,
     webglDisabled: false,
@@ -55,6 +66,12 @@ function createTerminal({ tabId, options }) {
   };
 
   terminal.loadAddon(fitAddon);
+  terminal.loadAddon(searchAddon);
+  state.searchResultsDisposable = searchAddon.onDidChangeResults(results => {
+    if (activeTabId === tabId && searchBarElement.classList.contains('open')) {
+      updateSearchResults(results);
+    }
+  });
   terminal.open(element);
   terminal.onData(data => send({ type: 'input', tabId, data }));
   terminal.attachCustomKeyEventHandler(event => handleKeyEvent(state, event));
@@ -90,6 +107,8 @@ function handleKeyEvent(state, event) {
       KeyO: 'openSession',
       KeyW: 'closeTab',
       KeyB: 'toggleSidebar',
+      KeyF: 'searchTerminal',
+      KeyK: 'commandPalette',
       Comma: 'settings'
     };
     const command = applicationCommands[event.code];
@@ -124,6 +143,7 @@ function activateTerminal(tabId) {
   }
 
   if (activeTabId && activeTabId !== tabId) {
+    closeSearch(false);
     const previous = terminals.get(activeTabId);
     if (previous) {
       disableWebgl(previous);
@@ -145,13 +165,16 @@ function disposeTerminal(tabId) {
     return;
   }
 
+  if (activeTabId === tabId) {
+    closeSearch(false);
+    activeTabId = null;
+  }
+
   disableWebgl(state);
+  state.searchResultsDisposable?.dispose();
   state.terminal.dispose();
   state.element.remove();
   terminals.delete(tabId);
-  if (activeTabId === tabId) {
-    activeTabId = null;
-  }
 }
 
 function configureTerminal({ tabId, options }) {
@@ -194,6 +217,84 @@ function focusTerminal(tabId) {
     terminals.get(tabId)?.terminal.focus();
   }
 }
+
+function searchOptions() {
+  return {
+    caseSensitive: searchCaseElement.classList.contains('active'),
+    incremental: true,
+    decorations: {
+      matchBackground: '#515c6a',
+      matchOverviewRuler: '#748496',
+      activeMatchBackground: '#d18616',
+      activeMatchColorOverviewRuler: '#d18616'
+    }
+  };
+}
+
+function openSearch(tabId = activeTabId) {
+  if (!terminals.has(tabId)) {
+    return;
+  }
+
+  searchBarElement.classList.add('open');
+  searchBarElement.setAttribute('aria-hidden', 'false');
+  searchInputElement.focus();
+  searchInputElement.select();
+  runSearch(true);
+}
+
+function closeSearch(restoreFocus = true) {
+  const state = terminals.get(activeTabId);
+  state?.searchAddon.clearDecorations();
+  searchBarElement.classList.remove('open');
+  searchBarElement.setAttribute('aria-hidden', 'true');
+  searchInputElement.value = '';
+  updateSearchResults({ resultIndex: -1, resultCount: 0 });
+  if (restoreFocus) {
+    state?.terminal.focus();
+  }
+}
+
+function runSearch(forward) {
+  const state = terminals.get(activeTabId);
+  const query = searchInputElement.value;
+  if (!state || !query) {
+    state?.searchAddon.clearDecorations();
+    updateSearchResults({ resultIndex: -1, resultCount: 0 });
+    return false;
+  }
+
+  return forward
+    ? state.searchAddon.findNext(query, searchOptions())
+    : state.searchAddon.findPrevious(query, searchOptions());
+}
+
+function updateSearchResults({ resultIndex, resultCount }) {
+  searchResultsElement.textContent = resultCount > 0 && resultIndex >= 0
+    ? `${resultIndex + 1}/${resultCount}`
+    : '0/0';
+}
+
+searchInputElement.addEventListener('input', () => runSearch(true));
+searchInputElement.addEventListener('keydown', event => {
+  if (event.key === 'Escape') {
+    closeSearch();
+    event.preventDefault();
+  } else if (event.key === 'Enter') {
+    runSearch(!event.shiftKey);
+    event.preventDefault();
+  }
+});
+searchCaseElement.addEventListener('click', () => {
+  searchCaseElement.classList.toggle('active');
+  searchCaseElement.setAttribute(
+    'aria-pressed',
+    String(searchCaseElement.classList.contains('active')));
+  runSearch(true);
+});
+searchPreviousElement.addEventListener('click', () => runSearch(false));
+searchNextElement.addEventListener('click', () => runSearch(true));
+searchCloseElement.addEventListener('click', () => closeSearch());
 
 function enableWebgl(state) {
   if (state.webglAddon || state.webglDisabled) {
@@ -283,7 +384,8 @@ window.terminalHost = {
   dispose: disposeTerminal,
   configure: configureTerminal,
   write: writeTerminal,
-  focus: focusTerminal
+  focus: focusTerminal,
+  openSearch
 };
 
 new ResizeObserver(scheduleFitActiveTerminal).observe(terminalHostElement);
@@ -299,6 +401,9 @@ export {
   fitActiveTerminal,
   focusTerminal,
   handleKeyEvent,
+  openSearch,
+  closeSearch,
+  runSearch,
   scheduleFitActiveTerminal,
   writeTerminal
 };

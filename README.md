@@ -14,6 +14,8 @@ HyperTerm is a modern Windows terminal and SSH session manager built with .NET a
 - Shared WebView terminal host optimized for multiple concurrent tabs
 - WebGL-accelerated xterm.js renderer with safe DOM fallback
 - Native Windows clipboard integration
+- Scrollback search with match navigation and optional case sensitivity
+- Command palette for actions, SSH sessions, open tabs, and active psmux sessions
 - Resizable and collapsible session sidebar
 - Configurable terminal font, font size, cursor, blinking, and selection color
 - Dark-only interface inspired by modern developer tools
@@ -142,6 +144,8 @@ Application shortcuts use `Ctrl+Shift` where possible so regular `Ctrl` combinat
 | Edit selected session | `F2` |
 | Close active tab | `Ctrl+Shift+W` |
 | Open settings | `Ctrl+Shift+,` |
+| Search terminal output | `Ctrl+Shift+F` |
+| Open command palette | `Ctrl+Shift+K` |
 | Show shortcuts | `F1` |
 | Copy terminal selection | `Ctrl+Shift+C` |
 | Paste into terminal | `Ctrl+Shift+V` |

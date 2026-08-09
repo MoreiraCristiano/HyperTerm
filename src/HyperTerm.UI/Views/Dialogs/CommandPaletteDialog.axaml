@@ -1,0 +1,75 @@
+<UserControl
+    x:Class="HyperTerm.UI.Views.Dialogs.CommandPaletteDialog"
+    x:DataType="viewModels:MainWindowViewModel"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:viewModels="using:HyperTerm.UI.ViewModels"
+    IsVisible="{Binding IsCommandPaletteOpen}">
+  <Panel>
+    <Border Background="{DynamicResource OverlayBrush}" />
+    <Border
+        Width="680"
+        MaxHeight="560"
+        Margin="24,80,24,24"
+        Padding="12"
+        HorizontalAlignment="Center"
+        VerticalAlignment="Top"
+        Background="{DynamicResource PanelBackgroundBrush}"
+        BorderBrush="{DynamicResource BorderBrush}"
+        BorderThickness="1"
+        CornerRadius="{DynamicResource RadiusL}">
+      <Grid RowDefinitions="Auto,*,Auto">
+        <TextBox
+            x:Name="QueryEditor"
+            Padding="10,7"
+            KeyDown="OnQueryKeyDown"
+            PlaceholderText="Type a command, session, tab, or psmux name…"
+            Text="{Binding CommandPaletteQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+        <ListBox
+            x:Name="ResultsList"
+            Grid.Row="1"
+            MinHeight="120"
+            MaxHeight="420"
+            Margin="0,8,0,0"
+            Background="Transparent"
+            BorderThickness="0"
+            DoubleTapped="OnResultDoubleTapped"
+            IsVisible="{Binding HasCommandPaletteResults}"
+            ItemsSource="{Binding CommandPaletteResults}"
+            SelectedItem="{Binding SelectedCommandPaletteItem, Mode=TwoWay}">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="viewModels:CommandPaletteItemViewModel">
+              <Grid Margin="5,7" ColumnDefinitions="*,Auto">
+                <StackPanel Spacing="2">
+                  <TextBlock FontWeight="SemiBold" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Classes="secondary" FontSize="10" Text="{Binding Subtitle}" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+                <TextBlock
+                    Grid.Column="1"
+                    Margin="14,0,0,0"
+                    Classes="secondary"
+                    FontSize="10"
+                    Text="{Binding Category}"
+                    VerticalAlignment="Center" />
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+        <TextBlock
+            Grid.Row="1"
+            Margin="8,28"
+            HorizontalAlignment="Center"
+            Classes="secondary"
+            IsVisible="{Binding !HasCommandPaletteResults}"
+            Text="No matching commands or resources." />
+        <TextBlock
+            Grid.Row="2"
+            Margin="8,8,8,0"
+            HorizontalAlignment="Right"
+            Classes="secondary"
+            FontSize="10"
+            Text="↑↓ Navigate   Enter Run   Esc Close" />
+      </Grid>
+    </Border>
+  </Panel>
+</UserControl>

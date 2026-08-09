@@ -20,6 +20,9 @@ internal sealed class WebTerminalScriptBridge(Func<string, Task> invokeScript)
     public Task FocusAsync(Guid tabId) =>
         invokeScript($"window.terminalHost.focus({SerializeTerminalId(tabId)})");
 
+    public Task OpenSearchAsync(Guid tabId) =>
+        invokeScript($"window.terminalHost.openSearch({SerializeTerminalId(tabId)})");
+
     public Task WriteAsync(Guid tabId, long token, string output) =>
         invokeScript(
             $"window.terminalHost.write({SerializeTerminalId(tabId)}, {token}, " +
