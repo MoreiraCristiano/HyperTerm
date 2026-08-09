@@ -5,6 +5,7 @@ on:
   pull_request:
   push:
     branches: [main]
+    tags: ['v*']
 
 permissions:
   contents: read
@@ -48,3 +49,87 @@ jobs:
             artifacts/coverage
             src/HyperTerm.UI/WebTerminal/coverage
           retention-days: 14
+
+  release:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: test
+    runs-on: windows-2025
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: src/HyperTerm.UI/WebTerminal/package-lock.json
+      - name: Resolve release version
+        id: version
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          if ($env:RELEASE_TAG -notmatch '^v(?<version>(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*))$') {
+              throw "Release tag must use the vMAJOR.MINOR.PATCH format: $env:RELEASE_TAG"
+          }
+
+          "version=$($Matches.version)" >> $env:GITHUB_OUTPUT
+      - name: Build portable release
+        shell: pwsh
+        run: .\scripts\build.ps1 -Runtime win-x64 -Version '${{ steps.version.outputs.version }}'
+      - name: Verify release assets
+        shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $archiveName = "HyperTerm-$env:RELEASE_VERSION-win-x64.zip"
+          $archivePath = Join-Path 'artifacts\releases' $archiveName
+          $checksumPath = "$archivePath.sha256"
+          if (-not (Test-Path -LiteralPath $archivePath)) {
+              throw "Release archive was not created: $archivePath"
+          }
+          if (-not (Test-Path -LiteralPath $checksumPath)) {
+              throw "Release checksum was not created: $checksumPath"
+          }
+
+          $checksum = (Get-Content -LiteralPath $checksumPath -Raw).Trim()
+          $expectedHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
+          $expectedChecksum = "$expectedHash  $archiveName"
+          if ($checksum -cne $expectedChecksum) {
+              throw "Release checksum does not match $archiveName."
+          }
+      - name: Publish GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $archivePath = "artifacts\releases\HyperTerm-$env:RELEASE_VERSION-win-x64.zip"
+          $assets = @($archivePath, "$archivePath.sha256")
+
+          & gh release view $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -eq 0) {
+              & gh release upload $env:RELEASE_TAG @assets `
+                  --repo $env:GITHUB_REPOSITORY `
+                  --clobber
+          }
+          else {
+              & gh release create $env:RELEASE_TAG @assets `
+                  --repo $env:GITHUB_REPOSITORY `
+                  --verify-tag `
+                  --title "HyperTerm $env:RELEASE_VERSION" `
+                  --generate-notes
+          }
+
+          if ($LASTEXITCODE -ne 0) {
+              throw "Publishing release $env:RELEASE_TAG failed with exit code $LASTEXITCODE."
+          }
