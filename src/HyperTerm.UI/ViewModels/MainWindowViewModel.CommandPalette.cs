@@ -6,12 +6,22 @@ namespace HyperTerm.UI.ViewModels;
 
 public sealed partial class MainWindowViewModel
 {
+    private enum CommandPaletteMode
+    {
+        All,
+        Commands,
+        OpenSessions,
+    }
+
     private const int PaletteResultLimit = 50;
     private Action? cancelPaletteRefresh;
 
     public ObservableCollection<CommandPaletteItemViewModel> CommandPaletteResults { get; } = [];
 
     public bool HasCommandPaletteResults => CommandPaletteResults.Count > 0;
+
+    [ObservableProperty]
+    private string commandPaletteEmptyMessage = "No matching commands or resources.";
 
     [ObservableProperty]
     private bool isCommandPaletteOpen;
@@ -123,8 +133,10 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
-        string query = CommandPaletteQuery.Trim();
-        IEnumerable<CommandPaletteItemViewModel> candidates = BuildPaletteCandidates();
+        (CommandPaletteMode mode, string query) = ParsePaletteQuery(CommandPaletteQuery);
+        IEnumerable<CommandPaletteItemViewModel> candidates = FilterPaletteCandidates(
+            BuildPaletteCandidates(),
+            mode);
         IEnumerable<CommandPaletteItemViewModel> results = query.Length == 0
             ? candidates.OrderBy(item => item.DisplayOrder).ThenBy(item => item.Title, StringComparer.CurrentCultureIgnoreCase)
             : candidates
@@ -142,8 +154,42 @@ public sealed partial class MainWindowViewModel
         }
 
         SelectedCommandPaletteItem = CommandPaletteResults.FirstOrDefault();
+        CommandPaletteEmptyMessage = mode switch
+        {
+            CommandPaletteMode.Commands => "No matching commands.",
+            CommandPaletteMode.OpenSessions => "No matching open sessions.",
+            _ => "No matching commands or resources.",
+        };
         OnPropertyChanged(nameof(HasCommandPaletteResults));
     }
+
+    private static (CommandPaletteMode Mode, string Query) ParsePaletteQuery(string value)
+    {
+        string query = value.Trim();
+        if (query.Length == 0)
+        {
+            return (CommandPaletteMode.All, string.Empty);
+        }
+
+        return query[0] switch
+        {
+            '>' => (CommandPaletteMode.Commands, query[1..].Trim()),
+            ':' => (CommandPaletteMode.OpenSessions, query[1..].Trim()),
+            _ => (CommandPaletteMode.All, query),
+        };
+    }
+
+    private static IEnumerable<CommandPaletteItemViewModel> FilterPaletteCandidates(
+        IEnumerable<CommandPaletteItemViewModel> candidates,
+        CommandPaletteMode mode) =>
+        mode switch
+        {
+            CommandPaletteMode.Commands => candidates.Where(
+                item => item.Kind == CommandPaletteItemKind.Action),
+            CommandPaletteMode.OpenSessions => candidates.Where(
+                item => item.Kind == CommandPaletteItemKind.OpenTab),
+            _ => candidates,
+        };
 
     private IEnumerable<CommandPaletteItemViewModel> BuildPaletteCandidates()
     {
@@ -155,6 +201,7 @@ public sealed partial class MainWindowViewModel
         foreach (SessionListItemViewModel session in Explorer.Sessions)
         {
             yield return new CommandPaletteItemViewModel(
+                CommandPaletteItemKind.SavedSshSession,
                 "SSH session",
                 session.Name,
                 session.Endpoint,
@@ -166,6 +213,7 @@ public sealed partial class MainWindowViewModel
         foreach (TerminalTabViewModel tab in Workspace.Tabs)
         {
             yield return new CommandPaletteItemViewModel(
+                CommandPaletteItemKind.OpenTab,
                 "Open tab",
                 tab.Title,
                 tab.Endpoint,
@@ -182,6 +230,7 @@ public sealed partial class MainWindowViewModel
         foreach (PsmuxSessionItemViewModel session in Workspace.PsmuxSessions)
         {
             yield return new CommandPaletteItemViewModel(
+                CommandPaletteItemKind.PsmuxSession,
                 "psmux session",
                 session.Name,
                 session.Details,
@@ -216,18 +265,32 @@ public sealed partial class MainWindowViewModel
         string subtitle,
         int order,
         Action execute) =>
-        new("Action", title, subtitle, $"{title} {subtitle}", order, () =>
-        {
-            execute();
-            return Task.CompletedTask;
-        });
+        new(
+            CommandPaletteItemKind.Action,
+            "Action",
+            title,
+            subtitle,
+            $"{title} {subtitle}",
+            order,
+            () =>
+            {
+                execute();
+                return Task.CompletedTask;
+            });
 
     private static CommandPaletteItemViewModel AsyncAction(
         string title,
         string subtitle,
         int order,
         Func<Task> execute) =>
-        new("Action", title, subtitle, $"{title} {subtitle}", order, execute);
+        new(
+            CommandPaletteItemKind.Action,
+            "Action",
+            title,
+            subtitle,
+            $"{title} {subtitle}",
+            order,
+            execute);
 
     private static int? ScorePaletteMatch(string candidate, string query)
     {

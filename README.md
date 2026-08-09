@@ -151,6 +151,10 @@ Application shortcuts use `Ctrl+Shift` where possible so regular `Ctrl` combinat
 | Paste into terminal | `Ctrl+Shift+V` |
 | Close active non-terminal screen | `Esc` |
 
+Inside the command palette, prefix the query with `>` to search only commands
+or with `:` to search only open SSH, PowerShell, and psmux tabs. Queries without
+a prefix continue to search all available items.
+
 Double-click a saved session to open it. Double-click a terminal tab to rename it.
 
 The `+` button in the tab bar opens either a regular PowerShell terminal or a

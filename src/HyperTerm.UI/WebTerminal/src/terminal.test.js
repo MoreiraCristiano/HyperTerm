@@ -120,6 +120,9 @@ describe('terminal host bridge', () => {
     host.create({ tabId: 'a', options: createOptions() });
 
     expect(terminalInstances).toHaveLength(1);
+    const contextMenu = new MouseEvent('contextmenu', { cancelable: true });
+    terminalInstances[0].element.dispatchEvent(contextMenu);
+    expect(contextMenu.defaultPrevented).toBe(true);
     terminalInstances[0].dataHandler('\u0003');
     expect(sent).toContainEqual({ type: 'input', tabId: 'a', data: '\u0003' });
   });
@@ -207,6 +210,17 @@ describe('terminal host bridge', () => {
 
     input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', shiftKey: true }));
     expect(searchInstances[0].previous.term).toBe('Needle');
+
+    document.getElementById('terminal-search-case').click();
+    expect(searchInstances[0].next.options.caseSensitive).toBe(true);
+    expect(document.getElementById('terminal-search-case').getAttribute('aria-pressed')).toBe('true');
+
+    document.getElementById('terminal-search-previous').click();
+    expect(searchInstances[0].previous.term).toBe('Needle');
+    document.getElementById('terminal-search-next').click();
+    expect(searchInstances[0].next.term).toBe('Needle');
+    document.getElementById('terminal-search-close').click();
+    expect(document.getElementById('terminal-search').classList.contains('open')).toBe(false);
   });
 
   it('clears search on escape, tab switch, and disposal', async () => {

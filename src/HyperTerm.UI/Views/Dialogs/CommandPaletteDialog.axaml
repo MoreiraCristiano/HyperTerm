@@ -23,7 +23,7 @@
             x:Name="QueryEditor"
             Padding="10,7"
             KeyDown="OnQueryKeyDown"
-            PlaceholderText="Type a command, session, tab, or psmux name…"
+            PlaceholderText="Search all…  > commands  : open sessions"
             Text="{Binding CommandPaletteQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
         <ListBox
             x:Name="ResultsList"
@@ -61,14 +61,14 @@
             HorizontalAlignment="Center"
             Classes="secondary"
             IsVisible="{Binding !HasCommandPaletteResults}"
-            Text="No matching commands or resources." />
+            Text="{Binding CommandPaletteEmptyMessage}" />
         <TextBlock
             Grid.Row="2"
             Margin="8,8,8,0"
             HorizontalAlignment="Right"
             Classes="secondary"
             FontSize="10"
-            Text="↑↓ Navigate   Enter Run   Esc Close" />
+            Text="> Commands   : Open sessions   ↑↓ Navigate   Enter Run   Esc Close" />
       </Grid>
     </Border>
   </Panel>

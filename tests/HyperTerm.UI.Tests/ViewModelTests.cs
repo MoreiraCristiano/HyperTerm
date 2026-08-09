@@ -610,6 +610,9 @@ public sealed class ViewModelTests
             new FakePtySessionFactory(),
             psmux);
         await workspace.OpenLocalTerminalCommand.ExecuteAsync(null);
+        await workspace.OpenSessionAsync(explorer.Sessions[0]);
+        await workspace.RefreshPsmuxSessionsAsync(TestContext.Current.CancellationToken);
+        await workspace.OpenPsmuxSessionCommand.ExecuteAsync(workspace.PsmuxSessions[0]);
         var viewModel = new MainWindowViewModel(
             explorer,
             workspace,
@@ -626,7 +629,49 @@ public sealed class ViewModelTests
         Assert.Contains(viewModel.CommandPaletteResults, item => item.Title == "persistent-work");
 
         viewModel.CommandPaletteQuery = "prod server";
-        Assert.Equal("Production server", Assert.Single(viewModel.CommandPaletteResults).Title);
+        Assert.Contains(
+            viewModel.CommandPaletteResults,
+            item => item.Kind == CommandPaletteItemKind.SavedSshSession);
+        Assert.Contains(
+            viewModel.CommandPaletteResults,
+            item => item.Kind == CommandPaletteItemKind.OpenTab);
+
+        viewModel.CommandPaletteQuery = "  > settings";
+        CommandPaletteItemViewModel command = Assert.Single(viewModel.CommandPaletteResults);
+        Assert.Equal(CommandPaletteItemKind.Action, command.Kind);
+        Assert.Equal("Open settings", command.Title);
+
+        viewModel.CommandPaletteQuery = ">";
+        Assert.NotEmpty(viewModel.CommandPaletteResults);
+        Assert.All(
+            viewModel.CommandPaletteResults,
+            item => Assert.Equal(CommandPaletteItemKind.Action, item.Kind));
+
+        viewModel.CommandPaletteQuery = ":";
+        Assert.Equal(workspace.Tabs.Count, viewModel.CommandPaletteResults.Count);
+        Assert.All(
+            viewModel.CommandPaletteResults,
+            item => Assert.Equal(CommandPaletteItemKind.OpenTab, item.Kind));
+        Assert.DoesNotContain(
+            viewModel.CommandPaletteResults,
+            item => item.Kind is CommandPaletteItemKind.SavedSshSession or
+                CommandPaletteItemKind.PsmuxSession);
+
+        viewModel.CommandPaletteQuery = ": prod";
+        CommandPaletteItemViewModel openSession = Assert.Single(
+            viewModel.CommandPaletteResults);
+        Assert.Equal(CommandPaletteItemKind.OpenTab, openSession.Kind);
+        Assert.Equal("Production server", openSession.Title);
+
+        viewModel.CommandPaletteQuery = ": missing";
+        Assert.Empty(viewModel.CommandPaletteResults);
+        Assert.Null(viewModel.SelectedCommandPaletteItem);
+        Assert.Equal("No matching open sessions.", viewModel.CommandPaletteEmptyMessage);
+
+        viewModel.CommandPaletteQuery = "persistent-work";
+        Assert.Contains(
+            viewModel.CommandPaletteResults,
+            item => item.Kind == CommandPaletteItemKind.PsmuxSession);
     }
 
     [Fact]

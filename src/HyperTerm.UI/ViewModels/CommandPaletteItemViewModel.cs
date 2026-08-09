@@ -1,6 +1,15 @@
 namespace HyperTerm.UI.ViewModels;
 
+public enum CommandPaletteItemKind
+{
+    Action,
+    SavedSshSession,
+    OpenTab,
+    PsmuxSession,
+}
+
 public sealed class CommandPaletteItemViewModel(
+    CommandPaletteItemKind kind,
     string category,
     string title,
     string subtitle,
@@ -9,6 +18,8 @@ public sealed class CommandPaletteItemViewModel(
     Func<Task> executeAsync)
 {
     private readonly Func<Task> execute = executeAsync;
+
+    public CommandPaletteItemKind Kind { get; } = kind;
 
     public string Category { get; } = category;
 
