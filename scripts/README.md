@@ -15,5 +15,3 @@ Run these commands from the repository root:
 .\scripts\web-terminal.ps1              # Restore, test, and build the frontend
 .\scripts\reset-data.ps1                # Remove local application data safely
 ```
-
-The root-level scripts remain compatibility entry points for existing automation.

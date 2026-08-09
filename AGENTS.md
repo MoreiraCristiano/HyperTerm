@@ -49,7 +49,7 @@ dotnet build .\HyperTerm.sln --configuration Release
 dotnet test .\HyperTerm.sln --configuration Release --no-build
 
 # Complete distributable package
-.\build.ps1
+.\scripts\build.ps1
 ```
 
 Use `npm.cmd run build` after JavaScript, HTML, xterm.js, or frontend build changes.
