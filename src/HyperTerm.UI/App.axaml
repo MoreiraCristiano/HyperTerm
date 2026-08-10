@@ -2,6 +2,23 @@
     x:Class="HyperTerm.UI.App"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <TrayIcon.Icons>
+    <TrayIcons>
+      <TrayIcon
+          Icon="/Assets/hyperterm_minimal.ico"
+          IsVisible="False"
+          ToolTipText="HyperTerm"
+          Clicked="OnTrayIconClicked">
+        <TrayIcon.Menu>
+          <NativeMenu>
+            <NativeMenuItem Header="Open HyperTerm" Click="OnOpenFromTrayClicked" />
+            <NativeMenuItemSeparator />
+            <NativeMenuItem Header="Exit HyperTerm" Click="OnExitFromTrayClicked" />
+          </NativeMenu>
+        </TrayIcon.Menu>
+      </TrayIcon>
+    </TrayIcons>
+  </TrayIcon.Icons>
   <Application.Styles>
     <FluentTheme DensityStyle="Compact" />
     <StyleInclude Source="avares://HyperTerm/Styles/DesignSystem.axaml" />

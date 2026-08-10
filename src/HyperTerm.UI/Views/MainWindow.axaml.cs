@@ -270,7 +270,9 @@ public sealed partial class MainWindow : Window
                 Bounds.Height,
                 Position.X,
                 Position.Y);
-
+        };
+        Closed += (_, _) =>
+        {
             if (TerminalHost.Parent is Panel terminalParent)
             {
                 terminalParent.Children.Remove(TerminalHost);

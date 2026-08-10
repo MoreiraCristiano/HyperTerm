@@ -63,6 +63,9 @@
                             IsChecked="{Binding Settings.SettingsShowSidebarScrollbar, Mode=TwoWay}"
                             Content="Show sidebar scrollbar" />
                         <CheckBox
+                            IsChecked="{Binding Settings.SettingsCloseToSystemTray, Mode=TwoWay}"
+                            Content="Keep HyperTerm running in the system tray when the window closes" />
+                        <CheckBox
                             IsChecked="{Binding IsStatusBarVisible, Mode=TwoWay}"
                             Content="Show status bar" />
                       </StackPanel>

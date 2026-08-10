@@ -92,6 +92,9 @@ public sealed partial class SettingsViewModel(
     private bool settingsShowSidebarScrollbar;
 
     [ObservableProperty]
+    private bool settingsCloseToSystemTray;
+
+    [ObservableProperty]
     private bool settingsCaptureLogs = true;
 
     [ObservableProperty]

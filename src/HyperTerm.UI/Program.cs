@@ -16,41 +16,67 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
-        using IHost host = CreateHost(args);
-        host.StartAsync().GetAwaiter().GetResult();
-        using ApplicationExceptionMonitor exceptionMonitor =
-            host.Services.GetRequiredService<ApplicationExceptionMonitor>();
-        exceptionMonitor.Start();
-        ILogger logger = host.Services.GetRequiredService<ILoggerFactory>()
-            .CreateLogger("HyperTerm");
-        IApplicationLogService logService =
-            host.Services.GetRequiredService<IApplicationLogService>();
+        var singleInstance = new SingleInstanceCoordinator(
+            SingleInstanceCoordinator.CreateIdentity());
 
         try
         {
-            logger.LogInformation("Avalonia desktop lifetime starting.");
-            BuildAvaloniaApp(host.Services).StartWithClassicDesktopLifetime(args);
+            if (!singleInstance.IsPrimary)
+            {
+                bool activationRequested = singleInstance.RequestActivationAsync(
+                        TimeSpan.FromSeconds(3))
+                    .GetAwaiter()
+                    .GetResult();
+                if (!activationRequested)
+                {
+                    WindowsApplicationActivation.ShowActivationFailure();
+                }
 
-            SynchronizationContext.SetSynchronizationContext(null);
-            ApplicationLifecycleCoordinator lifecycle =
-                host.Services.GetRequiredService<ApplicationLifecycleCoordinator>();
-            lifecycle.ShutdownAsync().GetAwaiter().GetResult();
-            using var stopTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+                return;
+            }
+
+            singleInstance.StartListening();
+            using IHost host = CreateHost(args);
+            host.StartAsync().GetAwaiter().GetResult();
+            using ApplicationExceptionMonitor exceptionMonitor =
+                host.Services.GetRequiredService<ApplicationExceptionMonitor>();
+            exceptionMonitor.Start();
+            ILogger logger = host.Services.GetRequiredService<ILoggerFactory>()
+                .CreateLogger("HyperTerm");
+            IApplicationLogService logService =
+                host.Services.GetRequiredService<IApplicationLogService>();
+
             try
             {
-                host.StopAsync(stopTimeout.Token).GetAwaiter().GetResult();
-            }
-            catch (OperationCanceledException)
-            {
-                logger.LogWarning("Host shutdown exceeded the two-second timeout.");
-            }
+                logger.LogInformation("Avalonia desktop lifetime starting.");
+                BuildAvaloniaApp(host.Services, singleInstance)
+                    .StartWithClassicDesktopLifetime(args);
 
-            logService.CompleteRun();
+                SynchronizationContext.SetSynchronizationContext(null);
+                ApplicationLifecycleCoordinator lifecycle =
+                    host.Services.GetRequiredService<ApplicationLifecycleCoordinator>();
+                lifecycle.ShutdownAsync().GetAwaiter().GetResult();
+                using var stopTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+                try
+                {
+                    host.StopAsync(stopTimeout.Token).GetAwaiter().GetResult();
+                }
+                catch (OperationCanceledException)
+                {
+                    logger.LogWarning("Host shutdown exceeded the two-second timeout.");
+                }
+
+                logService.CompleteRun();
+            }
+            catch (Exception exception)
+            {
+                logger.LogCritical(exception, "HyperTerm terminated unexpectedly.");
+                throw;
+            }
         }
-        catch (Exception exception)
+        finally
         {
-            logger.LogCritical(exception, "HyperTerm terminated unexpectedly.");
-            throw;
+            singleInstance.DisposeAsync().AsTask().GetAwaiter().GetResult();
         }
     }
 
@@ -60,10 +86,13 @@ internal static class Program
             .WithInterFont()
             .LogToTrace();
 
-    private static AppBuilder BuildAvaloniaApp(IServiceProvider services) =>
+    private static AppBuilder BuildAvaloniaApp(
+        IServiceProvider services,
+        SingleInstanceCoordinator singleInstance) =>
         AppBuilder.Configure(() => new App(
                 () => services.GetRequiredService<MainWindow>(),
-                () => services.GetRequiredService<ApplicationLifecycleCoordinator>()))
+                () => services.GetRequiredService<ApplicationLifecycleCoordinator>(),
+                singleInstance))
             .UsePlatformDetect()
             .WithInterFont()
             .LogToTrace();

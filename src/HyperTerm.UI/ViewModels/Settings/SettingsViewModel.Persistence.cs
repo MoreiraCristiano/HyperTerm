@@ -85,6 +85,7 @@ public sealed partial class SettingsViewModel
                 TerminalCursorStyle = cursorStyle,
                 TerminalCursorBlink = SettingsTerminalCursorBlink,
                 ShowSidebarScrollbar = SettingsShowSidebarScrollbar,
+                CloseToSystemTray = SettingsCloseToSystemTray,
                 CaptureLogs = SettingsCaptureLogs,
                 KeepPsmuxSessionsOnExit = SettingsKeepPsmuxSessionsOnExit,
             };
@@ -133,6 +134,7 @@ public sealed partial class SettingsViewModel
             applicationSettings.TerminalCursorStyle);
         SettingsTerminalCursorBlink = applicationSettings.TerminalCursorBlink;
         SettingsShowSidebarScrollbar = applicationSettings.ShowSidebarScrollbar;
+        SettingsCloseToSystemTray = applicationSettings.CloseToSystemTray;
         SettingsCaptureLogs = applicationSettings.CaptureLogs;
         SettingsKeepPsmuxSessionsOnExit = applicationSettings.KeepPsmuxSessionsOnExit;
     }

@@ -18,6 +18,8 @@ public sealed record ApplicationSettings
 
     public bool ShowSidebarScrollbar { get; init; }
 
+    public bool CloseToSystemTray { get; init; }
+
     public bool CaptureLogs { get; init; } = true;
 
     public bool KeepPsmuxSessionsOnExit { get; init; } = true;

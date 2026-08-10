@@ -63,6 +63,7 @@ public sealed class JsonSettingsIntegrationTests
         ApplicationSettings settings = await service.LoadAsync();
 
         Assert.True(settings.KeepPsmuxSessionsOnExit);
+        Assert.False(settings.CloseToSystemTray);
     }
 
     [Fact]
@@ -77,6 +78,7 @@ public sealed class JsonSettingsIntegrationTests
         {
             Theme = "Light",
             TerminalFontSize = 17,
+            CloseToSystemTray = true,
             KeepPsmuxSessionsOnExit = false,
             Window = new WindowSettings { Width = 900, Height = 600, X = 10, Y = 20 },
         };

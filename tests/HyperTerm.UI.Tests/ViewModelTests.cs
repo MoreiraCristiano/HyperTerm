@@ -832,6 +832,20 @@ public sealed class ViewModelTests
     }
 
     [Fact]
+    public async Task SettingsSaveCloseToSystemTrayPreference()
+    {
+        var settingsService = new FakeSettingsService(exists: true);
+        var viewModel = CreateSettingsViewModel(settingsService);
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+        viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.SettingsCloseToSystemTray = true;
+
+        await viewModel.SaveSettingsCommand.ExecuteAsync(null);
+
+        Assert.True(settingsService.Value.CloseToSystemTray);
+    }
+
+    [Fact]
     public async Task SettingsSavePsmuxShutdownPreference()
     {
         var settingsService = new FakeSettingsService(exists: true);
