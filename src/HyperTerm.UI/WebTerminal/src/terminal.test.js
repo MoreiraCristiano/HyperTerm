@@ -283,6 +283,18 @@ describe('terminal host bridge', () => {
     ]);
   });
 
+  it('blocks Ctrl+wheel zoom while preserving ordinary wheel scrolling', async () => {
+    await loadHost();
+    const zoomWheel = new WheelEvent('wheel', { ctrlKey: true, cancelable: true });
+    const scrollWheel = new WheelEvent('wheel', { cancelable: true });
+
+    window.dispatchEvent(zoomWheel);
+    window.dispatchEvent(scrollWheel);
+
+    expect(zoomWheel.defaultPrevented).toBe(true);
+    expect(scrollWheel.defaultPrevented).toBe(false);
+  });
+
   it('switches active tabs, updates options, and focuses only the active terminal', async () => {
     const { host } = await loadHost();
     host.activate('missing');

@@ -136,6 +136,12 @@ function handleKeyEvent(state, event) {
   return true;
 }
 
+function handleWheelEvent(event) {
+  if (event.ctrlKey) {
+    event.preventDefault();
+  }
+}
+
 function activateTerminal(tabId) {
   const next = terminals.get(tabId);
   if (!next) {
@@ -389,6 +395,7 @@ window.terminalHost = {
 };
 
 new ResizeObserver(scheduleFitActiveTerminal).observe(terminalHostElement);
+window.addEventListener('wheel', handleWheelEvent, { passive: false });
 window.addEventListener('load', () => send({ type: 'hostReady' }));
 
 export {
@@ -401,6 +408,7 @@ export {
   fitActiveTerminal,
   focusTerminal,
   handleKeyEvent,
+  handleWheelEvent,
   openSearch,
   closeSearch,
   runSearch,
