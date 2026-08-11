@@ -42,6 +42,18 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     public string Title => Workspace.Title;
     public WindowSettings WindowSettings => Settings.WindowSettings;
     public bool IsTabAreaEmpty => !Workspace.HasOpenTabs;
+    public bool IsOverlayOpen =>
+        Workspace.IsPsmuxCreateOpen ||
+        Workspace.IsPsmuxSessionsOpen ||
+        Workspace.IsPsmuxKillConfirmationOpen ||
+        SessionEditor.IsEditorOpen ||
+        SessionEditor.IsDeleteConfirmationOpen ||
+        Settings.IsSettingsOpen ||
+        Settings.IsPowerShellSetupOpen ||
+        FolderEditor.IsFolderEditorOpen ||
+        FolderEditor.IsFolderDeleteConfirmationOpen ||
+        IsShortcutsOpen ||
+        IsCommandPaletteOpen;
     public ScrollBarVisibility SidebarScrollBarVisibility =>
         showSidebarScrollbar ? ScrollBarVisibility.Auto : ScrollBarVisibility.Hidden;
     public bool AreTerminalHostsVisible =>
@@ -349,7 +361,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             eventArgs.PropertyName == nameof(TerminalWorkspaceViewModel.HasOpenTabs) ||
             ReferenceEquals(sender, Workspace) &&
             eventArgs.PropertyName is nameof(TerminalWorkspaceViewModel.IsPsmuxCreateOpen) or
-                nameof(TerminalWorkspaceViewModel.IsPsmuxSessionsOpen) ||
+                nameof(TerminalWorkspaceViewModel.IsPsmuxSessionsOpen) or
+                nameof(TerminalWorkspaceViewModel.IsPsmuxKillConfirmationOpen) ||
             ReferenceEquals(sender, Settings) &&
             eventArgs.PropertyName is nameof(SettingsViewModel.IsSettingsOpen) or
                 nameof(SettingsViewModel.IsPowerShellSetupOpen) ||
@@ -368,6 +381,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private void NotifyTerminalVisibilityChanged()
     {
         OnPropertyChanged(nameof(IsTabAreaEmpty));
+        OnPropertyChanged(nameof(IsOverlayOpen));
         OnPropertyChanged(nameof(AreTerminalHostsVisible));
     }
 }

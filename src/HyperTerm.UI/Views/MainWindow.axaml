@@ -33,28 +33,26 @@
     <KeyBinding Gesture="F2" Command="{Binding Explorer.EditSessionCommand}" />
     <KeyBinding Gesture="Escape" Command="{Binding CloseActiveOverlayCommand}" />
   </Window.KeyBindings>
-  <Grid RowDefinitions="Auto,*,Auto">
+  <Grid x:Name="WorkspaceGrid" RowDefinitions="Auto,*,Auto">
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition
+          Width="{DynamicResource SidebarDefaultWidth}"
+          MinWidth="{DynamicResource SidebarMinWidth}"
+          MaxWidth="{DynamicResource SidebarMaxWidth}" />
+      <ColumnDefinition Width="{DynamicResource SidebarSplitterWidth}" />
+      <ColumnDefinition Width="*" />
+    </Grid.ColumnDefinitions>
     <Border
         x:Name="TitleBarRoot"
         Grid.Row="0"
+        Grid.Column="2"
         Height="{DynamicResource TitleBarHeight}"
         Background="{DynamicResource HeaderBackgroundBrush}"
         BorderBrush="{DynamicResource BorderBrush}"
         BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto">
-        <Border
-            Width="{DynamicResource TitleBarIdentityWidth}"
-            Padding="{DynamicResource TitleBarIdentityPadding}">
-          <TextBlock
-              FontWeight="SemiBold"
-              Text="{Binding Title}"
-              TextTrimming="CharacterEllipsis"
-              VerticalAlignment="Center" />
-        </Border>
-
+      <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto">
         <ScrollViewer
             x:Name="TabScrollViewer"
-            Grid.Column="1"
             HorizontalScrollBarVisibility="Hidden"
             VerticalScrollBarVisibility="Disabled">
           <StackPanel Orientation="Horizontal">
@@ -154,7 +152,7 @@
         </ScrollViewer>
 
         <Button
-            Grid.Column="2"
+            Grid.Column="1"
             Classes="titleBarButton"
             Command="{Binding OpenShortcutsCommand}"
             ToolTip.Tip="Keyboard shortcuts"
@@ -162,7 +160,7 @@
           <TextBlock Classes="icon buttonIcon" Text="&#xE765;" />
         </Button>
         <Button
-            Grid.Column="3"
+            Grid.Column="2"
             AutomationProperties.AutomationId="OpenSettingsButton"
             Classes="titleBarButton"
             Command="{Binding Settings.OpenSettingsCommand}"
@@ -171,7 +169,7 @@
           <TextBlock Classes="icon buttonIcon" Text="&#xE713;" />
         </Button>
         <Button
-            Grid.Column="4"
+            Grid.Column="3"
             Classes="captionButton"
             Click="OnMinimizeButtonClick"
             ToolTip.Tip="Minimize"
@@ -180,14 +178,14 @@
         </Button>
         <Button
             x:Name="MaximizeRestoreButton"
-            Grid.Column="5"
+            Grid.Column="4"
             Classes="captionButton"
             Click="OnMaximizeRestoreButtonClick"
             WindowDecorationProperties.ElementRole="MaximizeButton">
           <TextBlock x:Name="MaximizeRestoreIcon" />
         </Button>
         <Button
-            Grid.Column="6"
+            Grid.Column="5"
             Classes="captionButton closeCaptionButton"
             Click="OnCloseButtonClick"
             ToolTip.Tip="Close"
@@ -197,17 +195,9 @@
       </Grid>
     </Border>
 
-    <Grid x:Name="WorkspaceGrid" Grid.Row="1">
-      <Grid.ColumnDefinitions>
-        <ColumnDefinition
-            Width="{DynamicResource SidebarDefaultWidth}"
-            MinWidth="{DynamicResource SidebarMinWidth}"
-            MaxWidth="{DynamicResource SidebarMaxWidth}" />
-        <ColumnDefinition
-            Width="{DynamicResource SidebarSplitterWidth}" />
-        <ColumnDefinition Width="*" />
-      </Grid.ColumnDefinitions>
-      <Border
+    <Border
+          Grid.Row="0"
+          Grid.RowSpan="2"
           Grid.Column="0"
           IsVisible="{Binding IsSidebarVisible}"
           Padding="12"
@@ -362,27 +352,30 @@
           </TreeView>
 
         </Grid>
-      </Border>
+    </Border>
 
-      <GridSplitter
+    <GridSplitter
+          Grid.Row="0"
+          Grid.RowSpan="2"
           Grid.Column="1"
           Classes="sidebarSplitter"
           IsVisible="{Binding IsSidebarVisible}"
           ResizeBehavior="PreviousAndNext"
           ResizeDirection="Columns" />
 
-      <controls:WebTerminalHostControl
+    <controls:WebTerminalHostControl
           x:Name="TerminalHost"
           AutomationProperties.AutomationId="TerminalHost"
+          Grid.Row="1"
           Grid.Column="2"
           ActiveTab="{Binding Workspace.SelectedTab}"
           Background="{DynamicResource AppBackgroundBrush}"
           IsVisible="{Binding AreTerminalHostsVisible}"
           Tabs="{Binding Workspace.Tabs}" />
-    </Grid>
 
     <Border
         Grid.Row="2"
+        Grid.ColumnSpan="3"
         IsVisible="{Binding IsStatusBarVisible}"
         Padding="12,0"
         MinHeight="28"
@@ -401,31 +394,38 @@
       </Grid>
     </Border>
 
-    <dialogs:SessionEditorDialog x:Name="SessionEditorDialogHost" Grid.Row="1" Grid.RowSpan="2" />
+    <Border
+        Grid.Row="0"
+        Grid.ColumnSpan="2"
+        Background="{DynamicResource OverlayBrush}"
+        IsVisible="{Binding IsOverlayOpen}" />
 
-    <dialogs:PowerShellSetupDialog Grid.Row="1" Grid.RowSpan="2" />
+    <dialogs:SessionEditorDialog x:Name="SessionEditorDialogHost" Grid.Row="1" Grid.RowSpan="2" Grid.ColumnSpan="3" />
 
-    <dialogs:SessionDeleteDialog Grid.Row="1" Grid.RowSpan="2" />
+    <dialogs:PowerShellSetupDialog Grid.Row="1" Grid.RowSpan="2" Grid.ColumnSpan="3" />
 
-    <dialogs:SettingsDialog Grid.Row="1" Grid.RowSpan="2" />
+    <dialogs:SessionDeleteDialog Grid.Row="1" Grid.RowSpan="2" Grid.ColumnSpan="3" />
 
-    <dialogs:ShortcutsDialog Grid.Row="1" Grid.RowSpan="2" />
+    <dialogs:SettingsDialog Grid.Row="1" Grid.RowSpan="2" Grid.ColumnSpan="3" />
 
-    <dialogs:CommandPaletteDialog x:Name="CommandPaletteDialogHost" Grid.Row="1" Grid.RowSpan="2" />
+    <dialogs:ShortcutsDialog Grid.Row="1" Grid.RowSpan="2" Grid.ColumnSpan="3" />
 
-    <dialogs:FolderEditorDialog x:Name="FolderEditorDialogHost" Grid.Row="1" Grid.RowSpan="2" />
+    <dialogs:CommandPaletteDialog x:Name="CommandPaletteDialogHost" Grid.Row="1" Grid.RowSpan="2" Grid.ColumnSpan="3" />
 
-    <dialogs:FolderDeleteDialog Grid.Row="1" Grid.RowSpan="2" />
+    <dialogs:FolderEditorDialog x:Name="FolderEditorDialogHost" Grid.Row="1" Grid.RowSpan="2" Grid.ColumnSpan="3" />
 
-    <dialogs:PsmuxSessionsDialog x:Name="PsmuxSessionsDialogHost" Grid.Row="1" Grid.RowSpan="2" />
+    <dialogs:FolderDeleteDialog Grid.Row="1" Grid.RowSpan="2" Grid.ColumnSpan="3" />
 
-    <dialogs:PsmuxKillDialog x:Name="PsmuxKillDialogHost" Grid.Row="1" Grid.RowSpan="2" />
+    <dialogs:PsmuxSessionsDialog x:Name="PsmuxSessionsDialogHost" Grid.Row="1" Grid.RowSpan="2" Grid.ColumnSpan="3" />
 
-    <dialogs:PsmuxCreateDialog x:Name="PsmuxCreateDialogHost" Grid.Row="1" Grid.RowSpan="2" />
+    <dialogs:PsmuxKillDialog x:Name="PsmuxKillDialogHost" Grid.Row="1" Grid.RowSpan="2" Grid.ColumnSpan="3" />
+
+    <dialogs:PsmuxCreateDialog x:Name="PsmuxCreateDialogHost" Grid.Row="1" Grid.RowSpan="2" Grid.ColumnSpan="3" />
 
     <Border
         Grid.Row="1"
         Grid.RowSpan="2"
+        Grid.ColumnSpan="3"
         Background="{DynamicResource AppBackgroundBrush}"
         IsVisible="{Binding IsInitializing}">
       <TextBlock
@@ -438,7 +438,8 @@
 
     <Grid
         x:Name="ResizeGripOverlay"
-        Grid.RowSpan="3">
+        Grid.RowSpan="3"
+        Grid.ColumnSpan="3">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="{DynamicResource WindowResizeGripSize}" />
         <ColumnDefinition Width="*" />

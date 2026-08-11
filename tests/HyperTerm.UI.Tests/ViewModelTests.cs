@@ -692,15 +692,26 @@ public sealed class ViewModelTests
             CreateSettingsViewModel(new FakeSettingsService(exists: true)),
             new SessionEditorViewModel(sessions),
             new FolderEditorViewModel(folders));
+        int overlayNotifications = 0;
+        viewModel.PropertyChanged += (_, eventArgs) =>
+        {
+            if (eventArgs.PropertyName == nameof(MainWindowViewModel.IsOverlayOpen))
+            {
+                overlayNotifications++;
+            }
+        };
         viewModel.OpenCommandPaletteCommand.Execute(null);
         Assert.False(viewModel.AreTerminalHostsVisible);
+        Assert.True(viewModel.IsOverlayOpen);
         viewModel.CommandPaletteQuery = "toggle status bar";
 
         await viewModel.ExecuteSelectedCommandPaletteItemCommand.ExecuteAsync(null);
 
         Assert.True(viewModel.IsStatusBarVisible);
         Assert.False(viewModel.IsCommandPaletteOpen);
+        Assert.False(viewModel.IsOverlayOpen);
         Assert.True(viewModel.AreTerminalHostsVisible);
+        Assert.Equal(2, overlayNotifications);
     }
 
     [Fact]
