@@ -12,6 +12,29 @@ namespace HyperTerm.UI.Views;
 
 public sealed partial class MainWindow : Window
 {
+    private void OnTerminalTabsLayoutUpdated(object? sender, EventArgs eventArgs)
+    {
+        if (DataContext is not MainWindowViewModel viewModel ||
+            viewModel.Workspace.Tabs.Count == 0 ||
+            TabScrollViewer.Viewport.Width <= 0)
+        {
+            return;
+        }
+
+        double width = DragDropInteractionRules.GetAdaptiveTabWidth(
+            TabScrollViewer.Viewport.Width - TabActions.Bounds.Width,
+            viewModel.Workspace.Tabs.Count);
+        foreach (ListBoxItem item in TerminalTabs
+                     .GetVisualDescendants()
+                     .OfType<ListBoxItem>())
+        {
+            if (!item.Width.Equals(width))
+            {
+                item.Width = width;
+            }
+        }
+    }
+
     private void OnTerminalTabDoubleTapped(object? sender, TappedEventArgs eventArgs)
     {
         if (eventArgs.Source is Visual source &&
@@ -111,6 +134,27 @@ public sealed partial class MainWindow : Window
     private void OnTerminalTabPointerReleased(
         object? sender,
         PointerReleasedEventArgs eventArgs) => ClearTabDragStart();
+
+    private void OnTerminalTabPointerWheelChanged(
+        object? sender,
+        PointerWheelEventArgs eventArgs)
+    {
+        double maximumOffset = Math.Max(
+            0,
+            TabScrollViewer.Extent.Width - TabScrollViewer.Viewport.Width);
+        double nextOffset = DragDropInteractionRules.GetTabWheelScrollOffset(
+            TabScrollViewer.Offset.X,
+            maximumOffset,
+            eventArgs.Delta.X,
+            eventArgs.Delta.Y);
+        if (nextOffset.Equals(TabScrollViewer.Offset.X))
+        {
+            return;
+        }
+
+        TabScrollViewer.Offset = new Vector(nextOffset, TabScrollViewer.Offset.Y);
+        eventArgs.Handled = true;
+    }
 
     private void OnTerminalTabDragOver(object? sender, DragEventArgs eventArgs)
     {

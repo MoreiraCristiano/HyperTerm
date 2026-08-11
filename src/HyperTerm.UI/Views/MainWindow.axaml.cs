@@ -68,6 +68,11 @@ public sealed partial class MainWindow : Window
             OnTerminalTabPointerReleased,
             RoutingStrategies.Tunnel,
             handledEventsToo: true);
+        TerminalTabs.LayoutUpdated += OnTerminalTabsLayoutUpdated;
+        TabScrollViewer.AddHandler(
+            InputElement.PointerWheelChangedEvent,
+            OnTerminalTabPointerWheelChanged,
+            RoutingStrategies.Tunnel);
         DragDrop.SetAllowDrop(TerminalTabs, true);
         DragDrop.AddDragOverHandler(TerminalTabs, OnTerminalTabDragOver);
         DragDrop.AddDragLeaveHandler(TerminalTabs, OnTerminalTabDragLeave);
