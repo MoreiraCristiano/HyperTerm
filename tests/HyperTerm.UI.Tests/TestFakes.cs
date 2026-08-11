@@ -346,6 +346,9 @@ internal sealed class FakeSystemFontService : ISystemFontService
 
 internal sealed class FakeApplicationLogService : IApplicationLogService
 {
+    private readonly TaskCompletionSource readStarted =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+
     public bool IsEnabled { get; private set; } = true;
     public bool PreviousRunCrashed { get; init; }
     public string LogsDirectory { get; } = @"C:\Logs";
@@ -356,8 +359,14 @@ internal sealed class FakeApplicationLogService : IApplicationLogService
 
     public Task<string> ReadTailAsync(
         int maximumBytes = 512 * 1024,
-        CancellationToken cancellationToken = default) =>
-        Task.FromResult(Content);
+        CancellationToken cancellationToken = default)
+    {
+        readStarted.TrySetResult();
+        return Task.FromResult(Content);
+    }
+
+    public Task WaitForReadAsync(CancellationToken cancellationToken) =>
+        readStarted.Task.WaitAsync(cancellationToken);
 
     public void CompleteRun() { }
 

@@ -142,7 +142,7 @@ public sealed partial class SettingsViewModel
     private void UpdateLogPolling()
     {
         StopLogPolling();
-        if (!IsSettingsOpen || SelectedSettingsTabIndex != 3)
+        if (!IsSettingsOpen)
         {
             return;
         }

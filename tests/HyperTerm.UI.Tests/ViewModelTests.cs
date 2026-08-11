@@ -907,6 +907,29 @@ public sealed class ViewModelTests
     }
 
     [Fact]
+    public async Task SettingsPollLogsWhileDialogIsOpen()
+    {
+        var logs = new FakeApplicationLogService { Content = "live diagnostic entry" };
+        var viewModel = new SettingsViewModel(
+            new FakeSettingsService(exists: true),
+            new FakeThemeService(),
+            new FakeExecutablePicker(),
+            new FakeArchiveService(),
+            new FakeArchiveFilePicker(),
+            new FakeSystemFontService(),
+            logs,
+            new FakeLogInteractionService());
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+
+        viewModel.OpenSettingsCommand.Execute(null);
+        await logs.WaitForReadAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal("live diagnostic entry", viewModel.LogContent);
+        viewModel.CancelSettingsCommand.Execute(null);
+        Assert.False(viewModel.IsSettingsOpen);
+    }
+
+    [Fact]
     public async Task SettingsCancelDoesNotSaveSidebarScrollbarPreference()
     {
         var settingsService = new FakeSettingsService(exists: true);
@@ -954,17 +977,17 @@ public sealed class ViewModelTests
     }
 
     [Fact]
-    public async Task SettingsAlwaysOpenOnGeneralTab()
+    public async Task SettingsOpenLoadsEditorValues()
     {
         var viewModel = CreateSettingsViewModel(new FakeSettingsService(exists: true));
         await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
         viewModel.OpenSettingsCommand.Execute(null);
-        viewModel.SelectedSettingsTabIndex = 2;
+        viewModel.SettingsShowSidebarScrollbar = true;
         viewModel.CancelSettingsCommand.Execute(null);
 
         viewModel.OpenSettingsCommand.Execute(null);
 
-        Assert.Equal(0, viewModel.SelectedSettingsTabIndex);
+        Assert.False(viewModel.SettingsShowSidebarScrollbar);
     }
 
     private static SettingsViewModel CreateSettingsViewModel(
