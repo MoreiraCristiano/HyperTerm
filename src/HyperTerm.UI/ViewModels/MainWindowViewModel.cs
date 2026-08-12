@@ -10,6 +10,20 @@ namespace HyperTerm.UI.ViewModels;
 
 public sealed partial class MainWindowViewModel : ViewModelBase
 {
+    private enum OverlayKind
+    {
+        PsmuxCreate,
+        PsmuxSessions,
+        PsmuxKillConfirmation,
+        SessionEditor,
+        SessionDeleteConfirmation,
+        Settings,
+        FolderEditor,
+        FolderDeleteConfirmation,
+        Shortcuts,
+        CommandPalette,
+    }
+
     public MainWindowViewModel(
         SessionExplorerViewModel explorer,
         TerminalWorkspaceViewModel workspace,
@@ -28,6 +42,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     }
 
     private readonly ILogger<MainWindowViewModel> diagnostics;
+    private bool isCoordinatingOverlays;
 
     public event EventHandler? CloseWindowRequested;
     public event EventHandler? InitializationCompleted;
@@ -84,8 +99,15 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
     public bool IsInitialized { get; private set; }
 
-    partial void OnIsShortcutsOpenChanged(bool value) =>
+    partial void OnIsShortcutsOpenChanged(bool value)
+    {
+        if (value)
+        {
+            CoordinateOverlayOpening(OverlayKind.Shortcuts);
+        }
+
         NotifyTerminalVisibilityChanged();
+    }
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
@@ -245,6 +267,132 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         }
     }
 
+    private void CoordinateOverlayOpening(OverlayKind openedOverlay)
+    {
+        if (isCoordinatingOverlays)
+        {
+            return;
+        }
+
+        isCoordinatingOverlays = true;
+        try
+        {
+            if (openedOverlay != OverlayKind.FolderDeleteConfirmation &&
+                FolderEditor.IsFolderDeleteConfirmationOpen)
+            {
+                FolderEditor.CancelDeleteFolder();
+            }
+
+            if (openedOverlay != OverlayKind.SessionDeleteConfirmation &&
+                SessionEditor.IsDeleteConfirmationOpen)
+            {
+                SessionEditor.CancelDeleteSession();
+            }
+
+            if (openedOverlay != OverlayKind.FolderEditor && FolderEditor.IsFolderEditorOpen)
+            {
+                FolderEditor.CancelFolderEditor();
+            }
+
+            if (openedOverlay != OverlayKind.SessionEditor && SessionEditor.IsEditorOpen)
+            {
+                SessionEditor.CancelEditor();
+            }
+
+            if (openedOverlay != OverlayKind.Settings && Settings.IsSettingsOpen)
+            {
+                Settings.CancelSettings();
+            }
+
+            if (openedOverlay != OverlayKind.Shortcuts && IsShortcutsOpen)
+            {
+                IsShortcutsOpen = false;
+            }
+
+            if (openedOverlay != OverlayKind.CommandPalette && IsCommandPaletteOpen)
+            {
+                CloseCommandPalette(restoreTerminalFocus: false);
+            }
+
+            if (openedOverlay != OverlayKind.PsmuxKillConfirmation &&
+                Workspace.IsPsmuxKillConfirmationOpen)
+            {
+                Workspace.CancelKillPsmuxSessionCommand.Execute(null);
+            }
+
+            if (openedOverlay is not OverlayKind.PsmuxSessions and
+                not OverlayKind.PsmuxKillConfirmation &&
+                Workspace.IsPsmuxSessionsOpen)
+            {
+                Workspace.ClosePsmuxSessionsCommand.Execute(null);
+            }
+
+            if (openedOverlay != OverlayKind.PsmuxCreate && Workspace.IsPsmuxCreateOpen)
+            {
+                Workspace.CancelPsmuxCreateCommand.Execute(null);
+            }
+        }
+        finally
+        {
+            isCoordinatingOverlays = false;
+        }
+    }
+
+    private OverlayKind? GetOpenedOverlay(
+        object? sender,
+        PropertyChangedEventArgs eventArgs)
+    {
+        if (ReferenceEquals(sender, Workspace))
+        {
+            return eventArgs.PropertyName switch
+            {
+                nameof(TerminalWorkspaceViewModel.IsPsmuxCreateOpen)
+                    when Workspace.IsPsmuxCreateOpen => OverlayKind.PsmuxCreate,
+                nameof(TerminalWorkspaceViewModel.IsPsmuxSessionsOpen)
+                    when Workspace.IsPsmuxSessionsOpen => OverlayKind.PsmuxSessions,
+                nameof(TerminalWorkspaceViewModel.IsPsmuxKillConfirmationOpen)
+                    when Workspace.IsPsmuxKillConfirmationOpen =>
+                        OverlayKind.PsmuxKillConfirmation,
+                _ => null,
+            };
+        }
+
+        if (ReferenceEquals(sender, Settings) &&
+            eventArgs.PropertyName == nameof(SettingsViewModel.IsSettingsOpen) &&
+            Settings.IsSettingsOpen)
+        {
+            return OverlayKind.Settings;
+        }
+
+        if (ReferenceEquals(sender, SessionEditor))
+        {
+            return eventArgs.PropertyName switch
+            {
+                nameof(SessionEditorViewModel.IsEditorOpen)
+                    when SessionEditor.IsEditorOpen => OverlayKind.SessionEditor,
+                nameof(SessionEditorViewModel.IsDeleteConfirmationOpen)
+                    when SessionEditor.IsDeleteConfirmationOpen =>
+                        OverlayKind.SessionDeleteConfirmation,
+                _ => null,
+            };
+        }
+
+        if (ReferenceEquals(sender, FolderEditor))
+        {
+            return eventArgs.PropertyName switch
+            {
+                nameof(FolderEditorViewModel.IsFolderEditorOpen)
+                    when FolderEditor.IsFolderEditorOpen => OverlayKind.FolderEditor,
+                nameof(FolderEditorViewModel.IsFolderDeleteConfirmationOpen)
+                    when FolderEditor.IsFolderDeleteConfirmationOpen =>
+                        OverlayKind.FolderDeleteConfirmation,
+                _ => null,
+            };
+        }
+
+        return null;
+    }
+
     private void WireEvents()
     {
         Explorer.SessionOpenRequested += OnSessionOpenRequested;
@@ -363,6 +511,12 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
     private void OnChildPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
     {
+        OverlayKind? openedOverlay = GetOpenedOverlay(sender, eventArgs);
+        if (openedOverlay is OverlayKind overlay)
+        {
+            CoordinateOverlayOpening(overlay);
+        }
+
         if (ReferenceEquals(sender, Workspace) &&
             eventArgs.PropertyName == nameof(TerminalWorkspaceViewModel.Title))
         {

@@ -852,6 +852,127 @@ public sealed class ViewModelTests
     }
 
     [Fact]
+    public async Task Opening_primary_overlay_closes_previous_overlay()
+    {
+        var sessions = new FakeSessionService();
+        var folders = new FakeFolderService();
+        var psmux = new FakePsmuxService();
+        var workspace = new TerminalWorkspaceViewModel(
+            sessions,
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory(),
+            psmux);
+        var settings = CreateSettingsViewModel(new FakeSettingsService(exists: true));
+        await settings.InitializeAsync(TestContext.Current.CancellationToken);
+        var sessionEditor = new SessionEditorViewModel(sessions);
+        var folderEditor = new FolderEditorViewModel(folders);
+        var viewModel = new MainWindowViewModel(
+            new SessionExplorerViewModel(sessions, folders),
+            workspace,
+            settings,
+            sessionEditor,
+            folderEditor);
+
+        settings.OpenSettingsCommand.Execute(null);
+        settings.SettingsTerminalFontSize = 42;
+        viewModel.OpenShortcutsCommand.Execute(null);
+
+        Assert.False(settings.IsSettingsOpen);
+        Assert.True(viewModel.IsShortcutsOpen);
+
+        settings.OpenSettingsCommand.Execute(null);
+        Assert.False(viewModel.IsShortcutsOpen);
+        Assert.Equal(13, settings.SettingsTerminalFontSize);
+
+        viewModel.OpenCommandPaletteCommand.Execute(null);
+        Assert.False(settings.IsSettingsOpen);
+        Assert.True(viewModel.IsCommandPaletteOpen);
+
+        sessionEditor.OpenNew(string.Empty);
+        Assert.False(viewModel.IsCommandPaletteOpen);
+        Assert.True(sessionEditor.IsEditorOpen);
+
+        folderEditor.OpenNew(string.Empty);
+        Assert.False(sessionEditor.IsEditorOpen);
+        Assert.True(folderEditor.IsFolderEditorOpen);
+
+        await workspace.OpenPsmuxSessionsCommand.ExecuteAsync(null);
+        Assert.False(folderEditor.IsFolderEditorOpen);
+        Assert.True(workspace.IsPsmuxSessionsOpen);
+
+        await workspace.OpenPsmuxCreateCommand.ExecuteAsync(null);
+        Assert.False(workspace.IsPsmuxSessionsOpen);
+        Assert.True(workspace.IsPsmuxCreateOpen);
+    }
+
+    [Fact]
+    public async Task Psmux_kill_confirmation_keeps_its_parent_until_another_overlay_opens()
+    {
+        var sessions = new FakeSessionService();
+        var folders = new FakeFolderService();
+        var psmux = new FakePsmuxService();
+        psmux.Sessions.Add(new PsmuxSessionInfo("persistent", 1, false));
+        var workspace = new TerminalWorkspaceViewModel(
+            sessions,
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory(),
+            psmux);
+        var viewModel = new MainWindowViewModel(
+            new SessionExplorerViewModel(sessions, folders),
+            workspace,
+            CreateSettingsViewModel(new FakeSettingsService(exists: true)),
+            new SessionEditorViewModel(sessions),
+            new FolderEditorViewModel(folders));
+
+        await workspace.OpenPsmuxSessionsCommand.ExecuteAsync(null);
+        workspace.RequestKillPsmuxSessionCommand.Execute(workspace.PsmuxSessions[0]);
+
+        Assert.True(workspace.IsPsmuxSessionsOpen);
+        Assert.True(workspace.IsPsmuxKillConfirmationOpen);
+
+        viewModel.OpenShortcutsCommand.Execute(null);
+
+        Assert.False(workspace.IsPsmuxKillConfirmationOpen);
+        Assert.False(workspace.IsPsmuxSessionsOpen);
+        Assert.True(viewModel.IsShortcutsOpen);
+    }
+
+    [Fact]
+    public void Opening_delete_confirmation_closes_unrelated_overlay()
+    {
+        var sessions = new FakeSessionService();
+        var folders = new FakeFolderService();
+        var sessionEditor = new SessionEditorViewModel(sessions);
+        var folderEditor = new FolderEditorViewModel(folders);
+        var settings = CreateSettingsViewModel(new FakeSettingsService(exists: true));
+        var viewModel = new MainWindowViewModel(
+            new SessionExplorerViewModel(sessions, folders),
+            new TerminalWorkspaceViewModel(
+                sessions,
+                new FakeTerminalSessionFactory(),
+                new FakePtySessionFactory()),
+            settings,
+            sessionEditor,
+            folderEditor);
+        var session = new SessionListItemViewModel(FakeSessionService.CreateSession(
+            Guid.NewGuid(),
+            new SessionDetails(
+                "Server", "example.test", 22, "admin", null, string.Empty, null)));
+
+        settings.OpenSettingsCommand.Execute(null);
+        sessionEditor.RequestDelete(session);
+
+        Assert.False(settings.IsSettingsOpen);
+        Assert.True(sessionEditor.IsDeleteConfirmationOpen);
+
+        folderEditor.OpenDelete(["Production"]);
+
+        Assert.False(sessionEditor.IsDeleteConfirmationOpen);
+        Assert.True(folderEditor.IsFolderDeleteConfirmationOpen);
+        Assert.True(viewModel.IsOverlayOpen);
+    }
+
+    [Fact]
     public async Task SessionEditorCreatesSessionAndReportsSelection()
     {
         var service = new FakeSessionService();

@@ -34,6 +34,11 @@ public sealed partial class MainWindowViewModel
 
     partial void OnIsCommandPaletteOpenChanged(bool value)
     {
+        if (value)
+        {
+            CoordinateOverlayOpening(OverlayKind.CommandPalette);
+        }
+
         NotifyTerminalVisibilityChanged();
         if (!value)
         {
@@ -60,13 +65,18 @@ public sealed partial class MainWindowViewModel
     }
 
     [RelayCommand]
-    private void CloseCommandPalette()
+    private void CloseCommandPalette() => CloseCommandPalette(restoreTerminalFocus: true);
+
+    private void CloseCommandPalette(bool restoreTerminalFocus)
     {
         IsCommandPaletteOpen = false;
         CommandPaletteQuery = string.Empty;
         CommandPaletteResults.Clear();
         SelectedCommandPaletteItem = null;
-        Workspace.SelectedTab?.RequestFocus();
+        if (restoreTerminalFocus)
+        {
+            Workspace.SelectedTab?.RequestFocus();
+        }
     }
 
     [RelayCommand]
