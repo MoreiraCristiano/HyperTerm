@@ -13,6 +13,37 @@ public sealed class JsonSettingsServiceTests : IDisposable
         Guid.NewGuid().ToString("N"));
 
     [Fact]
+    public async Task Terminal_profiles_round_trip_without_argument_flattening()
+    {
+        var paths = new TestPathProvider(directory);
+        using var service = new JsonSettingsService(paths);
+        var profile = new TerminalProfile
+        {
+            Id = "custom",
+            Name = "Custom",
+            ExecutablePath = "custom.exe",
+            Arguments = ["--value", "two words"],
+            StartingDirectory = @"C:\Work",
+        };
+        var settings = new ApplicationSettings
+        {
+            TerminalProfiles = [profile],
+            DefaultTerminalProfileId = profile.Id,
+        };
+
+        await service.SaveAsync(settings, TestContext.Current.CancellationToken);
+        ApplicationSettings loaded = await service.LoadAsync(TestContext.Current.CancellationToken);
+
+        TerminalProfile actual = Assert.Single(loaded.TerminalProfiles);
+        Assert.Equal(profile.Id, actual.Id);
+        Assert.Equal(profile.Name, actual.Name);
+        Assert.Equal(profile.ExecutablePath, actual.ExecutablePath);
+        Assert.Equal(profile.Arguments, actual.Arguments);
+        Assert.Equal(profile.StartingDirectory, actual.StartingDirectory);
+        Assert.Equal(profile.Id, loaded.DefaultTerminalProfileId);
+    }
+
+    [Fact]
     public async Task SaveReplacesExistingSettingsAndLeavesNoTemporaryFile()
     {
         var paths = new TestPathProvider(directory);

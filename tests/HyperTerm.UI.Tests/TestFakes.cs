@@ -155,6 +155,15 @@ internal sealed class FakeTerminalSessionFactory : ITerminalSessionFactory
     public Task<TerminalSessionDefinition> CreateLocalAsync(
         CancellationToken cancellationToken = default) => Task.FromResult(Definition);
 
+    public Task<TerminalSessionDefinition> CreateProfileAsync(
+        string profileId,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult(Definition with
+        {
+            ProfileId = profileId,
+            DisplayName = profileId,
+        });
+
     public Task<TerminalSessionDefinition> CreateAsync(
         Session session,
         CancellationToken cancellationToken = default) => Task.FromResult(Definition);
@@ -317,8 +326,22 @@ internal sealed class FakeThemeService : IThemeService
 
 internal sealed class FakeExecutablePicker(string? selectedPath = null) : IExecutableFilePicker
 {
-    public Task<string?> PickPowerShellAsync(CancellationToken cancellationToken = default) =>
+    public Task<string?> PickExecutableAsync(
+        string title,
+        CancellationToken cancellationToken = default) =>
         Task.FromResult(selectedPath);
+}
+
+internal sealed class FakeTerminalProfileResolver(params string[] availableExecutables)
+    : ITerminalProfileResolver
+{
+    public string? TryResolve(string configuredPath) =>
+        availableExecutables.Contains(configuredPath, StringComparer.OrdinalIgnoreCase)
+            ? configuredPath
+            : null;
+
+    public string Resolve(string configuredPath) =>
+        TryResolve(configuredPath) ?? throw new InvalidOperationException();
 }
 
 internal sealed class FakeArchiveService : ISessionArchiveService

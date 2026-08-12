@@ -7,6 +7,7 @@ using HyperTerm.Core.Abstractions.Terminal;
 using HyperTerm.Core.Entities;
 using HyperTerm.Core.Exceptions;
 using HyperTerm.Core.Models;
+using HyperTerm.Core.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -17,7 +18,8 @@ public sealed partial class TerminalWorkspaceViewModel(
     ITerminalSessionFactory terminalSessionFactory,
     IPtySessionFactory ptySessionFactory,
     IPsmuxService? psmuxService = null,
-    ILogger<TerminalWorkspaceViewModel>? logger = null) : ViewModelBase
+    ILogger<TerminalWorkspaceViewModel>? logger = null,
+    ITerminalProfileResolver? terminalProfileResolver = null) : ViewModelBase
 {
     private ApplicationSettings settings = new();
     private readonly ILogger<TerminalWorkspaceViewModel> diagnostics =
@@ -32,6 +34,8 @@ public sealed partial class TerminalWorkspaceViewModel(
     public ObservableCollection<TerminalTabViewModel> Tabs { get; } = [];
 
     public ObservableCollection<PsmuxSessionItemViewModel> PsmuxSessions { get; } = [];
+
+    public ObservableCollection<TerminalLaunchProfileViewModel> TerminalProfiles { get; } = [];
 
     public bool HasPsmuxSessions => PsmuxSessions.Count > 0;
 
@@ -52,7 +56,7 @@ public sealed partial class TerminalWorkspaceViewModel(
     private string statusText = "Ready";
 
     [ObservableProperty]
-    private string terminalStatusText = "PowerShell";
+    private string terminalStatusText = "Terminal";
 
     [ObservableProperty]
     private bool isPsmuxAvailable;
@@ -125,8 +129,22 @@ public sealed partial class TerminalWorkspaceViewModel(
     public void ApplySettings(ApplicationSettings value)
     {
         ArgumentNullException.ThrowIfNull(value);
-        settings = value;
-        TerminalStatusText = $"PowerShell: {Path.GetFileName(settings.PowerShellPath)}";
+        settings = TerminalProfileCatalog.Normalize(value);
+        TerminalProfiles.Clear();
+        foreach (TerminalProfile profile in settings.TerminalProfiles)
+        {
+            bool isAvailable = terminalProfileResolver?.TryResolve(profile.ExecutablePath) is not null ||
+                terminalProfileResolver is null;
+            TerminalProfiles.Add(new TerminalLaunchProfileViewModel(
+                profile,
+                isAvailable,
+                profile.Id.Equals(
+                    settings.DefaultTerminalProfileId,
+                    StringComparison.OrdinalIgnoreCase)));
+        }
+
+        TerminalProfile defaultProfile = TerminalProfileCatalog.GetProfile(settings);
+        TerminalStatusText = $"Default: {defaultProfile.Name}";
 
         foreach (TerminalTabViewModel tab in Tabs)
         {

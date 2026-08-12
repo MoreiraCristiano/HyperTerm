@@ -244,19 +244,29 @@ public sealed partial class MainWindowViewModel
     {
         yield return Action("New SSH session", "Create a saved connection", 0,
             () => SessionEditor.OpenNew(string.Empty));
-        yield return AsyncAction("New PowerShell terminal", "Open a local terminal", 1,
-            () => Workspace.OpenLocalTerminalCommand.ExecuteAsync(null));
-        yield return AsyncAction("Create psmux session", "Start a persistent terminal", 2,
+        int profileOrder = 1;
+        foreach (TerminalLaunchProfileViewModel profile in Workspace.TerminalProfiles.Where(
+                     profile => profile.IsAvailable))
+        {
+            TerminalLaunchProfileViewModel selectedProfile = profile;
+            string subtitle = profile.IsDefault
+                ? "Open the default local terminal"
+                : "Open a local terminal profile";
+            yield return AsyncAction($"New {profile.Name} terminal", subtitle, profileOrder++,
+                () => Workspace.OpenTerminalProfileCommand.ExecuteAsync(selectedProfile));
+        }
+
+        yield return AsyncAction("Create psmux session", "Start a persistent terminal", 20,
             () => Workspace.OpenPsmuxCreateCommand.ExecuteAsync(null));
-        yield return AsyncAction("List psmux sessions", "View persistent terminals", 3,
+        yield return AsyncAction("List psmux sessions", "View persistent terminals", 21,
             () => Workspace.OpenPsmuxSessionsCommand.ExecuteAsync(null));
-        yield return Action("Open settings", "Configure HyperTerm", 4,
+        yield return Action("Open settings", "Configure HyperTerm", 22,
             () => Settings.OpenSettingsCommand.Execute(null));
-        yield return Action("Show keyboard shortcuts", "View all shortcuts", 5,
+        yield return Action("Show keyboard shortcuts", "View all shortcuts", 23,
             () => IsShortcutsOpen = true);
-        yield return Action("Toggle sidebar", "Show or hide saved sessions", 6,
+        yield return Action("Toggle sidebar", "Show or hide saved sessions", 24,
             () => IsSidebarVisible = !IsSidebarVisible);
-        yield return Action("Toggle status bar", "Show or hide terminal status", 7,
+        yield return Action("Toggle status bar", "Show or hide terminal status", 25,
             () => IsStatusBarVisible = !IsStatusBarVisible);
     }
 

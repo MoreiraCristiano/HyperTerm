@@ -248,9 +248,13 @@ public sealed partial class TerminalTabViewModel : ViewModelBase, IAsyncDisposab
                 linkedCancellation.Token);
             ptySession.OutputReceived += OnPtyOutputReceived;
             ptySession.Exited += OnPtyExited;
-            ConnectionStatus = Definition.Kind == TerminalSessionKind.Psmux
-                ? "psmux via xterm.js/WebGL"
-                : "PowerShell via xterm.js/WebGL";
+            string terminalName = Definition.Kind switch
+            {
+                TerminalSessionKind.Psmux => "psmux",
+                TerminalSessionKind.Ssh => "SSH",
+                _ => Definition.DisplayName ?? "Terminal",
+            };
+            ConnectionStatus = $"{terminalName} via xterm.js/WebGL";
             PtyStarted?.Invoke(this, EventArgs.Empty);
         }
         catch (OperationCanceledException) when (linkedCancellation.IsCancellationRequested)
@@ -355,7 +359,10 @@ public sealed partial class TerminalTabViewModel : ViewModelBase, IAsyncDisposab
     internal void RegisterProcess(Action killAction)
     {
         killProcess = killAction;
-        ConnectionStatus = "PowerShell via ConPTY";
+        string terminalName = Definition.Kind == TerminalSessionKind.Ssh
+            ? "SSH"
+            : Definition.DisplayName ?? "Terminal";
+        ConnectionStatus = $"{terminalName} via ConPTY";
     }
 
     internal void ReportWaitingForTerminal()

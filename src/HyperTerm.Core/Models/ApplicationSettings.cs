@@ -4,6 +4,10 @@ public sealed record ApplicationSettings
 {
     public string PowerShellPath { get; init; } = "pwsh.exe";
 
+    public IReadOnlyList<TerminalProfile> TerminalProfiles { get; init; } = [];
+
+    public string DefaultTerminalProfileId { get; init; } = TerminalProfileIds.PowerShell;
+
     public string Theme { get; init; } = "Dark";
 
     public string TerminalFontFamily { get; init; } = "Cascadia Mono";

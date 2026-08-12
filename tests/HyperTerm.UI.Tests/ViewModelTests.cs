@@ -213,6 +213,35 @@ public sealed class ViewModelTests
     }
 
     [Fact]
+    public async Task Workspace_opens_selected_terminal_profile()
+    {
+        const string profileId = "command-prompt";
+        var workspace = new TerminalWorkspaceViewModel(
+            new FakeSessionService(),
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory());
+        workspace.ApplySettings(new ApplicationSettings
+        {
+            TerminalProfiles =
+            [
+                new TerminalProfile
+                {
+                    Id = profileId,
+                    Name = "Command Prompt",
+                    ExecutablePath = "cmd.exe",
+                },
+            ],
+            DefaultTerminalProfileId = profileId,
+        });
+        TerminalLaunchProfileViewModel profile = Assert.Single(workspace.TerminalProfiles);
+
+        await workspace.OpenTerminalProfileCommand.ExecuteAsync(profile);
+
+        TerminalTabViewModel tab = Assert.Single(workspace.Tabs);
+        Assert.Equal(profileId, tab.Definition.ProfileId);
+    }
+
+    [Fact]
     public async Task WorkspaceReordersTabsWithoutChangingSelection()
     {
         var workspace = new TerminalWorkspaceViewModel(
@@ -790,7 +819,7 @@ public sealed class ViewModelTests
     }
 
     [Fact]
-    public async Task FirstRunDefaultPowerShellSavesAndCompletesSetup()
+    public async Task First_run_persists_detected_power_shell_profile()
     {
         var settingsService = new FakeSettingsService(exists: false);
         var viewModel = new SettingsViewModel(
@@ -799,33 +828,33 @@ public sealed class ViewModelTests
             new FakeExecutablePicker(),
             new FakeArchiveService(),
             new FakeArchiveFilePicker(),
-            new FakeSystemFontService());
-        bool completed = false;
-        viewModel.InitialSetupCompleted += () => completed = true;
+            new FakeSystemFontService(),
+            terminalProfileResolver: new FakeTerminalProfileResolver(
+                "pwsh.exe",
+                "powershell.exe"));
         await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
-        viewModel.ShowFirstRunSetup();
 
-        await viewModel.UseDefaultPowerShellCommand.ExecuteAsync(null);
-
-        Assert.Equal("pwsh.exe", settingsService.Value.PowerShellPath);
-        Assert.True(completed);
-        Assert.False(viewModel.IsPowerShellSetupOpen);
+        TerminalProfile profile = Assert.Single(settingsService.Value.TerminalProfiles);
+        Assert.Equal(TerminalProfileIds.PowerShell, profile.Id);
+        Assert.Equal("pwsh.exe", profile.ExecutablePath);
     }
 
     [Fact]
-    public async Task SettingsSavePowerShellCommandFromPath()
+    public async Task First_run_falls_back_to_windows_power_shell()
     {
-        var settingsService = new FakeSettingsService(exists: true);
-        var viewModel = CreateSettingsViewModel(settingsService);
+        var settingsService = new FakeSettingsService(exists: false);
+        var viewModel = new SettingsViewModel(
+            settingsService,
+            new FakeThemeService(),
+            new FakeExecutablePicker(),
+            new FakeArchiveService(),
+            new FakeArchiveFilePicker(),
+            new FakeSystemFontService(),
+            terminalProfileResolver: new FakeTerminalProfileResolver("powershell.exe"));
         await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
-        viewModel.OpenSettingsCommand.Execute(null);
-        viewModel.SettingsPowerShellPath = "powershell.exe";
 
-        await viewModel.SaveSettingsCommand.ExecuteAsync(null);
-
-        Assert.Equal("powershell.exe", settingsService.Value.PowerShellPath);
-        Assert.Null(viewModel.SettingsError);
-        Assert.False(viewModel.IsSettingsOpen);
+        TerminalProfile profile = Assert.Single(settingsService.Value.TerminalProfiles);
+        Assert.Equal("powershell.exe", profile.ExecutablePath);
     }
 
     [Fact]
@@ -868,6 +897,90 @@ public sealed class ViewModelTests
         await viewModel.SaveSettingsCommand.ExecuteAsync(null);
 
         Assert.False(settingsService.Value.KeepPsmuxSessionsOnExit);
+    }
+
+    [Fact]
+    public async Task Settings_can_change_default_terminal_profile()
+    {
+        var settingsService = new FakeSettingsService(exists: true);
+        var viewModel = CreateSettingsViewModel(settingsService);
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+        viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.AddTerminalProfileCommand.Execute(null);
+        TerminalProfileItemViewModel commandPrompt = viewModel.TerminalProfiles.Last();
+        commandPrompt.Name = "Command Prompt";
+        commandPrompt.ExecutablePath = "cmd.exe";
+
+        viewModel.SetDefaultTerminalProfileCommand.Execute(commandPrompt);
+        await viewModel.SaveSettingsCommand.ExecuteAsync(null);
+
+        Assert.Equal(
+            commandPrompt.Id,
+            settingsService.Value.DefaultTerminalProfileId);
+    }
+
+    [Fact]
+    public async Task Settings_can_remove_power_shell_after_changing_default()
+    {
+        var settingsService = new FakeSettingsService(exists: true);
+        var viewModel = CreateSettingsViewModel(settingsService);
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+        viewModel.OpenSettingsCommand.Execute(null);
+        TerminalProfileItemViewModel powerShell = Assert.Single(viewModel.TerminalProfiles);
+
+        viewModel.DeleteTerminalProfileCommand.Execute(powerShell);
+        Assert.Single(viewModel.TerminalProfiles);
+        viewModel.AddTerminalProfileCommand.Execute(null);
+        TerminalProfileItemViewModel custom = viewModel.TerminalProfiles.Last();
+        custom.Name = "Command Prompt";
+        custom.ExecutablePath = "cmd.exe";
+        viewModel.SetDefaultTerminalProfileCommand.Execute(custom);
+        viewModel.DeleteTerminalProfileCommand.Execute(powerShell);
+        await viewModel.SaveSettingsCommand.ExecuteAsync(null);
+
+        TerminalProfile saved = Assert.Single(settingsService.Value.TerminalProfiles);
+        Assert.Equal(custom.Id, saved.Id);
+        Assert.Equal(custom.Id, settingsService.Value.DefaultTerminalProfileId);
+        Assert.Equal("pwsh.exe", settingsService.Value.PowerShellPath);
+    }
+
+    [Fact]
+    public async Task Settings_adds_custom_profile_with_literal_arguments()
+    {
+        var settingsService = new FakeSettingsService(exists: true);
+        var viewModel = CreateSettingsViewModel(settingsService);
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+        viewModel.OpenSettingsCommand.Execute(null);
+
+        viewModel.AddTerminalProfileCommand.Execute(null);
+        TerminalProfileItemViewModel profile = viewModel.TerminalProfiles.Last();
+        profile.Name = "Developer shell";
+        profile.ExecutablePath = "cmd.exe";
+        profile.ArgumentsText = "/Q\r\n/K\r\necho ready";
+        viewModel.SetDefaultTerminalProfileCommand.Execute(profile);
+        await viewModel.SaveSettingsCommand.ExecuteAsync(null);
+
+        TerminalProfile saved = settingsService.Value.TerminalProfiles.Single(item =>
+            item.Id == profile.Id);
+        Assert.Equal(["/Q", "/K", "echo ready"], saved.Arguments);
+        Assert.Equal(profile.Id, settingsService.Value.DefaultTerminalProfileId);
+    }
+
+    [Fact]
+    public async Task Settings_cancel_discards_added_terminal_profile()
+    {
+        var settingsService = new FakeSettingsService(exists: true);
+        var viewModel = CreateSettingsViewModel(settingsService);
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+        viewModel.OpenSettingsCommand.Execute(null);
+
+        viewModel.AddTerminalProfileCommand.Execute(null);
+        Assert.Equal(2, viewModel.TerminalProfiles.Count);
+        viewModel.CancelSettingsCommand.Execute(null);
+        viewModel.OpenSettingsCommand.Execute(null);
+
+        Assert.Single(viewModel.TerminalProfiles);
+        Assert.Empty(settingsService.Value.TerminalProfiles);
     }
 
     [Fact]
@@ -954,37 +1067,6 @@ public sealed class ViewModelTests
 
         Assert.False(settingsService.Value.ShowSidebarScrollbar);
         Assert.False(viewModel.SettingsShowSidebarScrollbar);
-    }
-
-    [Fact]
-    public async Task SettingsBrowseUpdatesPowerShellFieldWithoutSaving()
-    {
-        var settingsService = new FakeSettingsService(exists: true);
-        var viewModel = CreateSettingsViewModel(
-            settingsService,
-            new FakeExecutablePicker(@"C:\Tools\pwsh.exe"));
-        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
-
-        await viewModel.SelectPowerShellCommand.ExecuteAsync(null);
-
-        Assert.Equal(@"C:\Tools\pwsh.exe", viewModel.SettingsPowerShellPath);
-        Assert.Equal("pwsh.exe", settingsService.Value.PowerShellPath);
-    }
-
-    [Fact]
-    public async Task SettingsRejectNonPowerShellExecutable()
-    {
-        var settingsService = new FakeSettingsService(exists: true);
-        var viewModel = CreateSettingsViewModel(settingsService);
-        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
-        viewModel.OpenSettingsCommand.Execute(null);
-        viewModel.SettingsPowerShellPath = "cmd.exe";
-
-        await viewModel.SaveSettingsCommand.ExecuteAsync(null);
-
-        Assert.Contains("pwsh.exe or powershell.exe", viewModel.SettingsError);
-        Assert.True(viewModel.IsSettingsOpen);
-        Assert.Equal("pwsh.exe", settingsService.Value.PowerShellPath);
     }
 
     [Fact]

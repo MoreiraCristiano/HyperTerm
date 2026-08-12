@@ -85,7 +85,9 @@ public sealed class JsonSettingsIntegrationTests
         await service.SaveAsync(expected);
 
         Assert.True(service.Exists());
-        Assert.Equal(expected, await service.LoadAsync());
+        ApplicationSettings loaded = await service.LoadAsync();
+        Assert.Equal(expected with { TerminalProfiles = loaded.TerminalProfiles }, loaded);
+        Assert.Empty(loaded.TerminalProfiles);
         Assert.Empty(Directory.EnumerateFiles(paths.ApplicationDirectory, "*.tmp"));
     }
 

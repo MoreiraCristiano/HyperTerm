@@ -12,6 +12,42 @@ namespace HyperTerm.UI.Views;
 
 public sealed partial class MainWindow : Window
 {
+    private void OnTerminalMenuOpening(object? sender, EventArgs eventArgs)
+    {
+        if (sender is not MenuFlyout menu ||
+            menu.Items.OfType<Separator>().FirstOrDefault() is not { } separator)
+        {
+            return;
+        }
+
+        while (menu.Items.Count > 0 &&
+               !ReferenceEquals(menu.Items[0], separator))
+        {
+            menu.Items.RemoveAt(0);
+        }
+
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        int index = 0;
+        foreach (TerminalLaunchProfileViewModel profile in viewModel.Workspace.TerminalProfiles)
+        {
+            string suffix = profile.IsDefault
+                ? " (Default)"
+                : profile.IsRecommended ? " (Recommended)" : string.Empty;
+            var item = new MenuItem
+            {
+                Header = profile.Name + suffix,
+                Command = viewModel.Workspace.OpenTerminalProfileCommand,
+                CommandParameter = profile,
+                IsEnabled = profile.IsAvailable,
+            };
+            menu.Items.Insert(index++, item);
+        }
+    }
+
     private void OnTerminalTabsLayoutUpdated(object? sender, EventArgs eventArgs)
     {
         if (DataContext is not MainWindowViewModel viewModel ||

@@ -1,4 +1,5 @@
 <UserControl
+    x:Name="SettingsRoot"
     x:Class="HyperTerm.UI.Views.Dialogs.SettingsDialog"
     x:DataType="viewModels:MainWindowViewModel"
     xmlns="https://github.com/avaloniaui"
@@ -23,34 +24,19 @@
           <TextBlock Classes="secondary" Text="Configure HyperTerm, terminal appearance, data, and diagnostics." />
         </StackPanel>
 
-        <Grid Grid.Row="1" Margin="{DynamicResource SettingsBodyMargin}" ColumnDefinitions="Auto,*">
-          <StackPanel Width="{DynamicResource SettingsIndexWidth}" Spacing="4">
-            <Button Classes="settingsIndexItem" Click="OnGeneralClick" Content="General" />
-            <Button Classes="settingsIndexItem" Click="OnTerminalClick" Content="Terminal" />
-            <Button Classes="settingsIndexItem" Click="OnDataClick" Content="Data" />
-            <Button Classes="settingsIndexItem" Click="OnLogsClick" Content="Logs" />
-          </StackPanel>
-
-          <ScrollViewer
-              x:Name="SettingsScrollViewer"
-              Grid.Column="1"
-              Margin="{DynamicResource SettingsContentMargin}"
-              Classes="settingsContent">
-            <StackPanel Spacing="{DynamicResource SettingsGroupSpacing}">
+        <TabControl
+            x:Name="SettingsTabs"
+            Grid.Row="1"
+            Margin="{DynamicResource SettingsBodyMargin}"
+            Classes="settingsTabs"
+            HorizontalContentAlignment="Stretch"
+            TabStripPlacement="Left"
+            VerticalContentAlignment="Stretch">
+          <TabItem Classes="settingsTab" Header="General">
+            <ScrollViewer Margin="{DynamicResource SettingsContentMargin}" Classes="settingsContent">
               <StackPanel x:Name="GeneralGroup">
                 <TextBlock Classes="settingsGroupTitle" Text="General" />
                 <StackPanel Spacing="{DynamicResource SettingsSectionSpacing}">
-                  <Border Classes="settingsSection">
-                    <StackPanel>
-                      <TextBlock Classes="settingsSectionTitle" Text="Shell" />
-                      <TextBlock Classes="settingsSectionDescription" Text="Enter pwsh.exe or powershell.exe from PATH, or browse to the executable used by local and SSH terminals." />
-                      <TextBlock Classes="settingsLabel" Text="PowerShell executable" />
-                      <Grid ColumnDefinitions="*,Auto">
-                        <TextBox PlaceholderText="pwsh.exe or full path" VerticalAlignment="Center" Text="{Binding Settings.SettingsPowerShellPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                        <Button Grid.Column="1" Margin="{DynamicResource SettingsBrowseButtonMargin}" Command="{Binding Settings.SelectPowerShellCommand}" Content="Browse..." />
-                      </Grid>
-                    </StackPanel>
-                  </Border>
                   <Border Classes="settingsSection">
                     <StackPanel>
                       <TextBlock Classes="settingsSectionTitle" Text="Interface" />
@@ -72,7 +58,88 @@
                   </Border>
                 </StackPanel>
               </StackPanel>
+            </ScrollViewer>
+          </TabItem>
 
+          <TabItem Classes="settingsTab" Header="Profiles">
+            <ScrollViewer Margin="{DynamicResource SettingsContentMargin}" Classes="settingsContent">
+              <StackPanel x:Name="ProfilesGroup">
+                <TextBlock Classes="settingsGroupTitle" Text="Profiles" />
+                <StackPanel Spacing="{DynamicResource SettingsSectionSpacing}">
+                  <Border Classes="settingsSection">
+                    <StackPanel>
+                      <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel>
+                          <TextBlock Classes="settingsSectionTitle" Text="Terminal profiles" />
+                          <TextBlock Classes="settingsSectionDescription" Text="Choose the default terminal or configure another shell. PowerShell is recommended." />
+                        </StackPanel>
+                        <Button Grid.Column="1" Command="{Binding Settings.AddTerminalProfileCommand}" Content="Add profile" />
+                      </Grid>
+                      <ItemsControl ItemsSource="{Binding Settings.TerminalProfiles}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="viewModels:TerminalProfileItemViewModel">
+                            <Border
+                                Margin="0,0,0,12"
+                                Padding="12"
+                                Background="{DynamicResource PanelBackgroundBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="{DynamicResource RadiusM}">
+                              <StackPanel Spacing="8">
+                                <Grid ColumnDefinitions="*,Auto">
+                                  <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBox MinWidth="220" Text="{Binding Name, Mode=TwoWay}" />
+                                    <TextBlock VerticalAlignment="Center" Classes="secondary" IsVisible="{Binding IsRecommended}" Text="Recommended" />
+                                    <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource SuccessBrush}" IsVisible="{Binding IsDefault}" Text="Default" />
+                                  </StackPanel>
+                                  <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                    <Button
+                                        IsVisible="{Binding CanSetDefault}"
+                                        Command="{Binding DataContext.Settings.SetDefaultTerminalProfileCommand, ElementName=SettingsRoot}"
+                                        CommandParameter="{Binding}"
+                                        Content="Set default" />
+                                    <Button
+                                        IsVisible="{Binding CanDelete}"
+                                        Command="{Binding DataContext.Settings.DeleteTerminalProfileCommand, ElementName=SettingsRoot}"
+                                        CommandParameter="{Binding}"
+                                        Content="Delete" />
+                                  </StackPanel>
+                                </Grid>
+                                <TextBlock Classes="settingsLabel" Text="Executable" />
+                                <Grid ColumnDefinitions="*,Auto">
+                                  <TextBox Text="{Binding ExecutablePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                  <Button
+                                      Grid.Column="1"
+                                      Margin="{DynamicResource SettingsBrowseButtonMargin}"
+                                      Command="{Binding DataContext.Settings.BrowseTerminalProfileCommand, ElementName=SettingsRoot}"
+                                      CommandParameter="{Binding}"
+                                      Content="Browse..." />
+                                </Grid>
+                                <TextBlock Classes="secondary" Text="{Binding AvailabilityMessage}" />
+                                <Grid ColumnDefinitions="*,16,*">
+                                  <StackPanel>
+                                    <TextBlock Classes="settingsLabel" Text="Arguments (one per line)" />
+                                    <TextBox MinHeight="72" AcceptsReturn="True" Text="{Binding ArgumentsText, Mode=TwoWay}" TextWrapping="NoWrap" />
+                                  </StackPanel>
+                                  <StackPanel Grid.Column="2">
+                                    <TextBlock Classes="settingsLabel" Text="Starting directory (optional)" />
+                                    <TextBox Text="{Binding StartingDirectory, Mode=TwoWay}" />
+                                  </StackPanel>
+                                </Grid>
+                              </StackPanel>
+                            </Border>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </StackPanel>
+                  </Border>
+                </StackPanel>
+              </StackPanel>
+            </ScrollViewer>
+          </TabItem>
+
+          <TabItem Classes="settingsTab" Header="Terminal">
+            <ScrollViewer Margin="{DynamicResource SettingsContentMargin}" Classes="settingsContent">
               <StackPanel x:Name="TerminalGroup">
                 <TextBlock Classes="settingsGroupTitle" Text="Terminal" />
                 <StackPanel Spacing="{DynamicResource SettingsSectionSpacing}">
@@ -120,7 +187,11 @@
                   </Border>
                 </StackPanel>
               </StackPanel>
+            </ScrollViewer>
+          </TabItem>
 
+          <TabItem Classes="settingsTab" Header="Data">
+            <ScrollViewer Margin="{DynamicResource SettingsContentMargin}" Classes="settingsContent">
               <StackPanel x:Name="DataGroup">
                 <TextBlock Classes="settingsGroupTitle" Text="Data" />
                 <Border Classes="settingsSection">
@@ -135,7 +206,11 @@
                   </StackPanel>
                 </Border>
               </StackPanel>
+            </ScrollViewer>
+          </TabItem>
 
+          <TabItem Classes="settingsTab" Header="Logs">
+            <ScrollViewer Margin="{DynamicResource SettingsContentMargin}" Classes="settingsContent">
               <StackPanel x:Name="LogsGroup">
                 <TextBlock Classes="settingsGroupTitle" Text="Logs" />
                 <StackPanel Spacing="{DynamicResource SettingsSectionSpacing}">
@@ -161,9 +236,9 @@
                   </Grid>
                 </StackPanel>
               </StackPanel>
-            </StackPanel>
-          </ScrollViewer>
-        </Grid>
+            </ScrollViewer>
+          </TabItem>
+        </TabControl>
 
         <TextBlock Grid.Row="2" Margin="0,0,0,12" Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap" Text="{Binding Settings.SettingsError}" />
         <Border Grid.Row="3" Padding="{DynamicResource SettingsFooterPadding}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">

@@ -8,6 +8,10 @@ public interface ITerminalSessionFactory
     Task<TerminalSessionDefinition> CreateLocalAsync(
         CancellationToken cancellationToken = default);
 
+    Task<TerminalSessionDefinition> CreateProfileAsync(
+        string profileId,
+        CancellationToken cancellationToken = default);
+
     Task<TerminalSessionDefinition> CreateAsync(
         Session session,
         CancellationToken cancellationToken = default);

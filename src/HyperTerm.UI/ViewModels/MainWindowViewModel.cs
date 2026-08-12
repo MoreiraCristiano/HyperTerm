@@ -49,7 +49,6 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         SessionEditor.IsEditorOpen ||
         SessionEditor.IsDeleteConfirmationOpen ||
         Settings.IsSettingsOpen ||
-        Settings.IsPowerShellSetupOpen ||
         FolderEditor.IsFolderEditorOpen ||
         FolderEditor.IsFolderDeleteConfirmationOpen ||
         IsShortcutsOpen ||
@@ -63,7 +62,6 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         !SessionEditor.IsEditorOpen &&
         !SessionEditor.IsDeleteConfirmationOpen &&
         !Settings.IsSettingsOpen &&
-        !Settings.IsPowerShellSetupOpen &&
         !FolderEditor.IsFolderEditorOpen &&
         !FolderEditor.IsFolderDeleteConfirmationOpen &&
         !IsShortcutsOpen &&
@@ -106,11 +104,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     {
         await Explorer.InitializeAsync(cancellationToken);
         await Workspace.RefreshPsmuxSessionsAsync(cancellationToken);
-        if (!Settings.RequiresInitialPowerShellSelection)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            await Workspace.OpenLocalTerminalCommand.ExecuteAsync(null);
-        }
+        cancellationToken.ThrowIfCancellationRequested();
+        await Workspace.OpenLocalTerminalCommand.ExecuteAsync(null);
     }
 
     internal void CompleteInitialization()
@@ -127,8 +122,6 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         Settings.OpenWithError($"HyperTerm could not finish starting: {exception.Message}");
         InitializationCompleted?.Invoke(this, EventArgs.Empty);
     }
-
-    public void ShowFirstRunSetup() => Settings.ShowFirstRunSetup();
 
     public async Task ShutdownAsync()
     {
@@ -172,11 +165,6 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private void CloseActiveOverlay()
     {
-        if (Settings.IsPowerShellSetupOpen)
-        {
-            return;
-        }
-
         if (FolderEditor.IsFolderDeleteConfirmationOpen)
         {
             FolderEditor.CancelDeleteFolder();
@@ -237,7 +225,6 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         FolderEditor.StatusRequested += Workspace.SetStatus;
 
         Settings.SettingsSaved += OnSettingsSaved;
-        Settings.InitialSetupCompleted += OnInitialSetupCompleted;
         Settings.SessionsImported += OnSessionsImported;
         Settings.StatusRequested += Workspace.SetStatus;
 
@@ -267,15 +254,6 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         Observe(
             Explorer.ReloadAsync(Explorer.SelectedSession?.Id),
             "reload imported sessions");
-
-    private void OnInitialSetupCompleted() =>
-        Observe(CompleteInitialSetupAsync(), "complete initial setup");
-
-    private async Task CompleteInitialSetupAsync()
-    {
-        Workspace.ApplySettings(Settings.Current);
-        await Workspace.OpenLocalTerminalCommand.ExecuteAsync(null);
-    }
 
     private void OnSettingsSaved(ApplicationSettings settings)
     {
@@ -364,8 +342,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
                 nameof(TerminalWorkspaceViewModel.IsPsmuxSessionsOpen) or
                 nameof(TerminalWorkspaceViewModel.IsPsmuxKillConfirmationOpen) ||
             ReferenceEquals(sender, Settings) &&
-            eventArgs.PropertyName is nameof(SettingsViewModel.IsSettingsOpen) or
-                nameof(SettingsViewModel.IsPowerShellSetupOpen) ||
+            eventArgs.PropertyName == nameof(SettingsViewModel.IsSettingsOpen) ||
             ReferenceEquals(sender, SessionEditor) &&
             eventArgs.PropertyName is nameof(SessionEditorViewModel.IsEditorOpen) or
                 nameof(SessionEditorViewModel.IsDeleteConfirmationOpen) ||

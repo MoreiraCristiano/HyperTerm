@@ -5,6 +5,7 @@ using HyperTerm.Core.Abstractions.Services;
 using HyperTerm.Core.Abstractions.Logging;
 using HyperTerm.Core.Abstractions.Settings;
 using HyperTerm.Core.Models;
+using HyperTerm.Core.Services;
 using HyperTerm.UI.Services;
 using Microsoft.Extensions.Logging;
 
@@ -13,56 +14,12 @@ namespace HyperTerm.UI.ViewModels;
 public sealed partial class SettingsViewModel
 {
     [RelayCommand]
-    private async Task SaveSettingsAsync()
-    {
-        bool wasInitialSetup = RequiresInitialPowerShellSelection;
-        if (!await TrySaveSettingsAsync())
-        {
-            return;
-        }
-
-        if (wasInitialSetup)
-        {
-            RequiresInitialPowerShellSelection = false;
-            IsPowerShellSetupOpen = false;
-            InitialSetupCompleted?.Invoke();
-        }
-    }
-
-    private async Task CompletePowerShellSetupAsync()
-    {
-        PowerShellSetupError = null;
-        if (!await TrySaveSettingsAsync())
-        {
-            PowerShellSetupError = SettingsError;
-            return;
-        }
-
-        RequiresInitialPowerShellSelection = false;
-        IsPowerShellSetupOpen = false;
-        InitialSetupCompleted?.Invoke();
-    }
+    private Task<bool> SaveSettingsAsync() => TrySaveSettingsAsync();
 
     private async Task<bool> TrySaveSettingsAsync()
     {
-        string powerShellPath = SettingsPowerShellPath.Trim().Trim('"');
-        if (powerShellPath.Length == 0)
+        if (!TryBuildTerminalProfiles(out IReadOnlyList<TerminalProfile> profiles))
         {
-            SettingsError = "Enter or select pwsh.exe or powershell.exe.";
-            return false;
-        }
-
-        if (Path.IsPathRooted(powerShellPath) && !File.Exists(powerShellPath))
-        {
-            SettingsError = "The selected file does not exist.";
-            return false;
-        }
-
-        string executableName = Path.GetFileName(powerShellPath);
-        if (!executableName.Equals("pwsh.exe", StringComparison.OrdinalIgnoreCase) &&
-            !executableName.Equals("powershell.exe", StringComparison.OrdinalIgnoreCase))
-        {
-            SettingsError = "Enter or select a PowerShell executable named pwsh.exe or powershell.exe.";
             return false;
         }
 
@@ -77,7 +34,8 @@ public sealed partial class SettingsViewModel
             string cursorStyle = NormalizeCursorStyle(SettingsTerminalCursorStyle);
             applicationSettings = applicationSettings with
             {
-                PowerShellPath = powerShellPath,
+                TerminalProfiles = profiles,
+                DefaultTerminalProfileId = DefaultTerminalProfileId,
                 Theme = "Dark",
                 TerminalFontFamily = fontFamily,
                 TerminalFontSize = fontSize,
@@ -107,24 +65,10 @@ public sealed partial class SettingsViewModel
         }
     }
 
-    private async Task<string?> PickPowerShellAsync()
-    {
-        try
-        {
-            return await executableFilePicker.PickPowerShellAsync();
-        }
-        catch (Exception exception) when (
-            exception is InvalidOperationException or IOException)
-        {
-            diagnostics.LogWarning(exception, "PowerShell executable selection failed.");
-            SettingsError = $"Could not select the executable: {exception.Message}";
-            return null;
-        }
-    }
-
     private void LoadEditorValues()
     {
-        SettingsPowerShellPath = applicationSettings.PowerShellPath;
+        applicationSettings = TerminalProfileCatalog.Normalize(applicationSettings);
+        LoadTerminalProfiles(applicationSettings);
         SettingsTheme = "Dark";
         SettingsTerminalFontFamily = applicationSettings.TerminalFontFamily;
         SettingsTerminalFontSize = (decimal)applicationSettings.TerminalFontSize;

@@ -4,7 +4,9 @@ using CommunityToolkit.Mvvm.Input;
 using HyperTerm.Core.Abstractions.Services;
 using HyperTerm.Core.Abstractions.Logging;
 using HyperTerm.Core.Abstractions.Settings;
+using HyperTerm.Core.Abstractions.Terminal;
 using HyperTerm.Core.Models;
+using HyperTerm.Core.Services;
 using HyperTerm.UI.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -20,7 +22,8 @@ public sealed partial class SettingsViewModel(
     ISystemFontService systemFontService,
     IApplicationLogService? applicationLogService = null,
     ILogInteractionService? logInteractionService = null,
-    ILogger<SettingsViewModel>? logger = null) : ViewModelBase, IDisposable
+    ILogger<SettingsViewModel>? logger = null,
+    ITerminalProfileResolver? terminalProfileResolver = null) : ViewModelBase, IDisposable
 {
     private ApplicationSettings applicationSettings = new();
     private bool windowStateChanged;
@@ -29,13 +32,11 @@ public sealed partial class SettingsViewModel(
         logger ?? NullLogger<SettingsViewModel>.Instance;
 
     public event Action<ApplicationSettings>? SettingsSaved;
-    public event Action? InitialSetupCompleted;
     public event Action? SessionsImported;
     public event Action<string>? StatusRequested;
 
     public ApplicationSettings Current => applicationSettings;
     public WindowSettings WindowSettings => applicationSettings.Window;
-    public bool RequiresInitialPowerShellSelection { get; private set; }
     public IReadOnlyList<string> ThemeOptions { get; } = ["Dark"];
     public IReadOnlyList<string> TerminalCursorStyles { get; } =
         ["Bar", "Block", "Underline"];
@@ -49,6 +50,7 @@ public sealed partial class SettingsViewModel(
         new("Silver", "#5B6068"),
     ];
     public ObservableCollection<string> SystemFontFamilies { get; } = [];
+    public ObservableCollection<TerminalProfileItemViewModel> TerminalProfiles { get; } = [];
     public bool HasSettingsDataStatus => !string.IsNullOrWhiteSpace(SettingsDataStatus);
     public bool HasLogContent => !string.IsNullOrEmpty(LogContent);
     public bool HasPreviousRunCrash => applicationLogService?.PreviousRunCrashed == true;
@@ -58,13 +60,7 @@ public sealed partial class SettingsViewModel(
     private bool isSettingsOpen;
 
     [ObservableProperty]
-    private bool isPowerShellSetupOpen;
-
-    [ObservableProperty]
-    private string? powerShellSetupError;
-
-    [ObservableProperty]
-    private string settingsPowerShellPath = "pwsh.exe";
+    private string defaultTerminalProfileId = TerminalProfileIds.PowerShell;
 
     [ObservableProperty]
     private string settingsTheme = "Dark";
@@ -122,13 +118,18 @@ public sealed partial class SettingsViewModel(
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        RequiresInitialPowerShellSelection = !settingsService.Exists();
+        bool isFirstRun = !settingsService.Exists();
         try
         {
-            applicationSettings = await settingsService.LoadAsync(cancellationToken);
-            if (string.IsNullOrWhiteSpace(applicationSettings.PowerShellPath))
+            ApplicationSettings loaded = await settingsService.LoadAsync(cancellationToken);
+            if (isFirstRun && loaded.TerminalProfiles.Count == 0)
             {
-                applicationSettings = applicationSettings with { PowerShellPath = "pwsh.exe" };
+                loaded = loaded with { PowerShellPath = DetectInitialPowerShellPath() };
+            }
+
+            applicationSettings = TerminalProfileCatalog.Normalize(loaded);
+            if (isFirstRun)
+            {
                 await settingsService.SaveAsync(applicationSettings, cancellationToken);
             }
 
@@ -142,17 +143,6 @@ public sealed partial class SettingsViewModel(
             SettingsError = $"Failed to load settings: {exception.Message}";
             IsSettingsOpen = true;
         }
-    }
-
-    public void ShowFirstRunSetup()
-    {
-        if (!RequiresInitialPowerShellSelection)
-        {
-            return;
-        }
-
-        PowerShellSetupError = null;
-        IsPowerShellSetupOpen = true;
     }
 
     public void OpenWithError(string error)
@@ -179,7 +169,7 @@ public sealed partial class SettingsViewModel(
     public async Task ShutdownAsync()
     {
         StopLogPolling();
-        if (windowStateChanged && !RequiresInitialPowerShellSelection)
+        if (windowStateChanged)
         {
             await settingsService.SaveAsync(applicationSettings);
             windowStateChanged = false;
@@ -191,11 +181,6 @@ public sealed partial class SettingsViewModel(
     [RelayCommand]
     private void OpenSettings()
     {
-        if (IsPowerShellSetupOpen)
-        {
-            return;
-        }
-
         LoadEditorValues();
         LoadSystemFonts();
         SettingsError = null;
@@ -209,5 +194,15 @@ public sealed partial class SettingsViewModel(
         IsSettingsOpen = false;
         SettingsError = null;
         StopLogPolling();
+    }
+
+    private string DetectInitialPowerShellPath()
+    {
+        if (terminalProfileResolver?.TryResolve("pwsh.exe") is not null)
+        {
+            return "pwsh.exe";
+        }
+
+        return "powershell.exe";
     }
 }

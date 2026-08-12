@@ -6,7 +6,8 @@ namespace HyperTerm.UI.Services;
 
 internal sealed class ExecutableFilePicker : IExecutableFilePicker
 {
-    public async Task<string?> PickPowerShellAsync(
+    public async Task<string?> PickExecutableAsync(
+        string title,
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -21,15 +22,10 @@ internal sealed class ExecutableFilePicker : IExecutableFilePicker
         IReadOnlyList<IStorageFile> files = await desktop.MainWindow.StorageProvider
             .OpenFilePickerAsync(new FilePickerOpenOptions
             {
-                Title = "Select PowerShell",
+                Title = title,
                 AllowMultiple = false,
                 FileTypeFilter =
                 [
-                    new FilePickerFileType("PowerShell executable")
-                    {
-                        Patterns = ["pwsh.exe", "powershell.exe"],
-                        MimeTypes = ["application/x-msdownload"],
-                    },
                     new FilePickerFileType("Executables")
                     {
                         Patterns = ["*.exe"],

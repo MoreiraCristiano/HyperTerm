@@ -60,6 +60,37 @@ public sealed class AvaloniaHeadlessTests
         Assert.True(query.IsFocused);
         window.Close();
     }
+
+    [AvaloniaFact]
+    [Trait("Category", "Headless")]
+    public void Settings_use_vertical_tabs_with_independent_scrolling()
+    {
+        var dialog = new SettingsDialog { IsVisible = true };
+        var window = new Window
+        {
+            Width = 1100,
+            Height = 760,
+            Content = dialog,
+        };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        TabControl tabs = dialog.FindControl<TabControl>("SettingsTabs")!;
+        TabItem[] items = tabs.Items.OfType<TabItem>().ToArray();
+        Assert.Equal(Dock.Left, tabs.TabStripPlacement);
+        Assert.Equal(5, items.Length);
+        Assert.All(items, item => Assert.IsType<ScrollViewer>(item.Content));
+        Assert.All(items, item => Assert.Contains("settingsTab", item.Classes));
+
+        tabs.SelectedIndex = 2;
+        dialog.IsVisible = false;
+        dialog.IsVisible = true;
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(2, tabs.SelectedIndex);
+        Assert.Same(items[2], tabs.SelectedItem);
+        window.Close();
+    }
 }
 
 public sealed class TerminalOutputBufferTests

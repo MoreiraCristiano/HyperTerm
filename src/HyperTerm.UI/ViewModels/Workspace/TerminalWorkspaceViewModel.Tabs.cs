@@ -56,11 +56,29 @@ public sealed partial class TerminalWorkspaceViewModel
     [RelayCommand]
     private async Task OpenLocalTerminalAsync()
     {
+        await OpenLocalTerminalDefinitionAsync(
+            () => terminalSessionFactory.CreateLocalAsync());
+    }
+
+    [RelayCommand]
+    private async Task OpenTerminalProfileAsync(TerminalLaunchProfileViewModel? profile)
+    {
+        if (profile is null || !profile.IsAvailable)
+        {
+            return;
+        }
+
+        await OpenLocalTerminalDefinitionAsync(
+            () => terminalSessionFactory.CreateProfileAsync(profile.Id));
+    }
+
+    private async Task OpenLocalTerminalDefinitionAsync(
+        Func<Task<TerminalSessionDefinition>> createDefinition)
+    {
         try
         {
-            TerminalSessionDefinition definition =
-                await terminalSessionFactory.CreateLocalAsync();
-            const string title = "PowerShell";
+            TerminalSessionDefinition definition = await createDefinition();
+            string title = definition.DisplayName ?? "Terminal";
             var tab = new TerminalTabViewModel(
                 title,
                 definition,
@@ -75,7 +93,8 @@ public sealed partial class TerminalWorkspaceViewModel
             AttachTab(tab);
             StatusText = $"Local terminal ‘{title}’ opened";
         }
-        catch (TerminalLaunchException exception)
+        catch (Exception exception) when (
+            exception is TerminalLaunchException or KeyNotFoundException)
         {
             diagnostics.LogError(exception, "Failed to prepare a local terminal.");
             StatusText = exception.Message;
@@ -258,7 +277,7 @@ public sealed partial class TerminalWorkspaceViewModel
             exception is InvalidOperationException or Win32Exception)
         {
             diagnostics.LogError(exception, "Failed to stop a terminal.");
-            StatusText = $"Failed to stop PowerShell: {exception.Message}";
+            StatusText = $"Failed to stop terminal: {exception.Message}";
             return;
         }
 

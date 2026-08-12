@@ -263,10 +263,6 @@ public sealed partial class MainWindow : Window
         viewModel.InitializationCompleted += (_, _) =>
         {
             RestoreWindowState(viewModel.WindowSettings);
-            if (viewModel.IsInitialized)
-            {
-                viewModel.ShowFirstRunSetup();
-            }
         };
         Closing += (_, _) =>
         {

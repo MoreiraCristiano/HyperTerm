@@ -56,6 +56,24 @@ internal static class WindowsExecutableResolver
             }
         }
 
+        if (executableName.Equals("bash.exe", StringComparison.OrdinalIgnoreCase))
+        {
+            string[] programFilesDirectories =
+            [
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+            ];
+            foreach (string programFiles in programFilesDirectories.Distinct(
+                         StringComparer.OrdinalIgnoreCase))
+            {
+                string gitBashPath = Path.Combine(programFiles, "Git", "bin", "bash.exe");
+                if (File.Exists(gitBashPath))
+                {
+                    return gitBashPath;
+                }
+            }
+        }
+
         return null;
     }
 

@@ -126,7 +126,8 @@
                 ToolTip.Tip="Terminal profiles and psmux"
                 WindowDecorationProperties.ElementRole="None">
               <Button.Flyout>
-                <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                <MenuFlyout Opening="OnTerminalMenuOpening" Placement="BottomEdgeAlignedLeft">
+                  <Separator />
                   <MenuItem Header="psmux">
                     <MenuItem
                         Header="Create session"
@@ -401,8 +402,6 @@
         IsVisible="{Binding IsOverlayOpen}" />
 
     <dialogs:SessionEditorDialog x:Name="SessionEditorDialogHost" Grid.Row="1" Grid.RowSpan="2" Grid.ColumnSpan="3" />
-
-    <dialogs:PowerShellSetupDialog Grid.Row="1" Grid.RowSpan="2" Grid.ColumnSpan="3" />
 
     <dialogs:SessionDeleteDialog Grid.Row="1" Grid.RowSpan="2" Grid.ColumnSpan="3" />
 
