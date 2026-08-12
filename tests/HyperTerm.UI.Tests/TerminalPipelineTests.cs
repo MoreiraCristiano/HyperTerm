@@ -65,6 +65,7 @@ public sealed class TerminalPipelineTests
     }
 
     [Theory]
+    [InlineData("newTerminal")]
     [InlineData("searchTerminal")]
     [InlineData("commandPalette")]
     public void ParsesSupportedDiscoveryCommands(string command)

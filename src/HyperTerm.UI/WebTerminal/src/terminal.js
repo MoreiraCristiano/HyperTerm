@@ -103,6 +103,7 @@ function handleKeyEvent(state, event) {
 
   if (event.type === 'keydown' && event.ctrlKey && event.shiftKey) {
     const applicationCommands = {
+      KeyT: 'newTerminal',
       KeyN: 'newSession',
       KeyO: 'openSession',
       KeyW: 'closeTab',

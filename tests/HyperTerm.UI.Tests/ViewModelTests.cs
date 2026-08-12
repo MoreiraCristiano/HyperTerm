@@ -782,6 +782,40 @@ public sealed class ViewModelTests
     }
 
     [Fact]
+    public async Task Default_terminal_shortcut_command_ignores_open_overlays()
+    {
+        var sessions = new FakeSessionService();
+        var folders = new FakeFolderService();
+        var workspace = new TerminalWorkspaceViewModel(
+            sessions,
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory());
+        var viewModel = new MainWindowViewModel(
+            new SessionExplorerViewModel(sessions, folders),
+            workspace,
+            CreateSettingsViewModel(new FakeSettingsService(exists: true)),
+            new SessionEditorViewModel(sessions),
+            new FolderEditorViewModel(folders));
+        int focusRequests = 0;
+        workspace.Tabs.CollectionChanged += (_, eventArgs) =>
+        {
+            if (eventArgs.NewItems?[0] is TerminalTabViewModel tab)
+            {
+                tab.FocusRequested += (_, _) => focusRequests++;
+            }
+        };
+
+        await viewModel.OpenDefaultTerminalCommand.ExecuteAsync(null);
+        Assert.Single(workspace.Tabs);
+        Assert.True(focusRequests > 0);
+
+        viewModel.Settings.OpenSettingsCommand.Execute(null);
+        await viewModel.OpenDefaultTerminalCommand.ExecuteAsync(null);
+
+        Assert.Single(workspace.Tabs);
+    }
+
+    [Fact]
     public async Task SessionEditorCreatesSessionAndReportsSelection()
     {
         var service = new FakeSessionService();

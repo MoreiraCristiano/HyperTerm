@@ -18,6 +18,7 @@ internal sealed record WebTerminalMessage(
     private const int MaximumTerminalDimension = 10_000;
     private static readonly HashSet<string> ApplicationCommands =
     [
+        "newTerminal",
         "newSession",
         "openSession",
         "closeTab",

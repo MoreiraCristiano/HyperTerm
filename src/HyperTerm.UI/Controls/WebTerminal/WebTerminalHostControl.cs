@@ -212,6 +212,7 @@ public sealed class WebTerminalHostControl : NativeWebView
         }
 
         Focus();
+        WindowsWebViewFocus.TryMoveFocus(this);
         await InvokeTerminalScriptAsync(
             () => scriptBridge.FocusAsync(tab.Id),
             tab);

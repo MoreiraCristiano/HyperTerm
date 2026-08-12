@@ -19,6 +19,7 @@
     ShowInTaskbar="True"
     Background="{DynamicResource AppBackgroundBrush}">
   <Window.KeyBindings>
+    <KeyBinding Gesture="Ctrl+Shift+T" Command="{Binding OpenDefaultTerminalCommand}" />
     <KeyBinding Gesture="Ctrl+Shift+N" Command="{Binding Explorer.NewSessionCommand}" />
     <KeyBinding Gesture="Ctrl+Shift+O" Command="{Binding Explorer.OpenSelectedSessionCommand}" />
     <KeyBinding Gesture="Ctrl+Shift+W" Command="{Binding Workspace.CloseSelectedTabCommand}" />

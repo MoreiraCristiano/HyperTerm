@@ -166,8 +166,13 @@ describe('terminal host bridge', () => {
       metaKey: false, code: 'KeyN', repeat: false })).toBe(false);
     key({ type: 'keydown', ctrlKey: true, shiftKey: true, altKey: false,
       metaKey: false, code: 'KeyN', repeat: true });
+    expect(key({ type: 'keydown', ctrlKey: true, shiftKey: true, altKey: false,
+      metaKey: false, code: 'KeyT', repeat: false })).toBe(false);
+    key({ type: 'keydown', ctrlKey: true, shiftKey: true, altKey: false,
+      metaKey: false, code: 'KeyT', repeat: true });
 
     expect(sent.filter(message => message.command === 'newSession')).toHaveLength(1);
+    expect(sent.filter(message => message.command === 'newTerminal')).toHaveLength(1);
   });
 
   it('copies selected text without forwarding the key', async () => {

@@ -151,6 +151,16 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private void ToggleSidebar() => IsSidebarVisible = !IsSidebarVisible;
 
     [RelayCommand]
+    private async Task OpenDefaultTerminalAsync()
+    {
+        if (!IsOverlayOpen)
+        {
+            await Workspace.OpenLocalTerminalCommand.ExecuteAsync(null);
+            Workspace.SelectedTab?.RequestFocus();
+        }
+    }
+
+    [RelayCommand]
     private void OpenShortcuts() => IsShortcutsOpen = true;
 
     [RelayCommand]
@@ -277,6 +287,9 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     {
         switch (command)
         {
+            case "newTerminal":
+                await OpenDefaultTerminalAsync();
+                break;
             case "newSession":
                 SessionEditor.OpenNew(string.Empty);
                 break;
