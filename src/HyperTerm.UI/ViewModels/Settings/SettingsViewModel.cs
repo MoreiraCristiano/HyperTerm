@@ -133,6 +133,7 @@ public sealed partial class SettingsViewModel(
                 await settingsService.SaveAsync(applicationSettings, cancellationToken);
             }
 
+            LoadSystemFonts(applicationSettings.TerminalFontFamily);
             LoadEditorValues();
             themeService.Apply(SettingsTheme);
         }
@@ -181,8 +182,8 @@ public sealed partial class SettingsViewModel(
     [RelayCommand]
     private void OpenSettings()
     {
+        LoadSystemFonts(applicationSettings.TerminalFontFamily);
         LoadEditorValues();
-        LoadSystemFonts();
         SettingsError = null;
         SettingsDataStatus = null;
         IsSettingsOpen = true;

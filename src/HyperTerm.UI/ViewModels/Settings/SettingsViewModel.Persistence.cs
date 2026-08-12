@@ -117,21 +117,22 @@ public sealed partial class SettingsViewModel
         }
     }
 
-    private void LoadSystemFonts()
+    private void LoadSystemFonts(string selectedFontFamily)
     {
-        if (SystemFontFamilies.Count > 0)
+        if (SystemFontFamilies.Count == 0)
         {
-            return;
+            foreach (string fontFamily in systemFontService.GetInstalledFontFamilies())
+            {
+                SystemFontFamilies.Add(fontFamily);
+            }
         }
 
-        foreach (string fontFamily in systemFontService.GetInstalledFontFamilies())
+        string normalizedFontFamily = string.IsNullOrWhiteSpace(selectedFontFamily)
+            ? "Cascadia Mono"
+            : selectedFontFamily.Trim();
+        if (!SystemFontFamilies.Contains(normalizedFontFamily))
         {
-            SystemFontFamilies.Add(fontFamily);
-        }
-
-        if (!SystemFontFamilies.Contains(SettingsTerminalFontFamily))
-        {
-            SystemFontFamilies.Insert(0, SettingsTerminalFontFamily);
+            SystemFontFamilies.Insert(0, normalizedFontFamily);
         }
     }
 

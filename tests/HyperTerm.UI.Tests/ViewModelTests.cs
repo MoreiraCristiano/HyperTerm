@@ -1274,6 +1274,22 @@ public sealed class ViewModelTests
         Assert.False(viewModel.SettingsShowSidebarScrollbar);
     }
 
+    [Fact]
+    public async Task Settings_loads_persisted_font_into_picker_options()
+    {
+        var settingsService = new FakeSettingsService(exists: true);
+        await settingsService.SaveAsync(new ApplicationSettings
+        {
+            TerminalFontFamily = "Consolas",
+        });
+        var viewModel = CreateSettingsViewModel(settingsService);
+
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal("Consolas", viewModel.SettingsTerminalFontFamily);
+        Assert.Contains("Consolas", viewModel.SystemFontFamilies);
+    }
+
     private static SettingsViewModel CreateSettingsViewModel(
         FakeSettingsService settingsService,
         FakeExecutablePicker? executablePicker = null) =>
