@@ -1,5 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
+using Avalonia.Markup.Xaml.Styling;
+using Avalonia.Themes.Fluent;
 using Avalonia.Threading;
 using HyperTerm.UI.Controls;
 using HyperTerm.UI.Views.Dialogs;
@@ -89,6 +91,53 @@ public sealed class AvaloniaHeadlessTests
 
         Assert.Equal(2, tabs.SelectedIndex);
         Assert.Same(items[2], tabs.SelectedItem);
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    [Trait("Category", "Headless")]
+    public void Settings_tab_headers_keep_geometry_when_selection_changes()
+    {
+        var first = new TabItem { Header = "General", Content = new Border() };
+        var second = new TabItem { Header = "Terminal", Content = new Border() };
+        first.Classes.Add("settingsTab");
+        second.Classes.Add("settingsTab");
+        var tabHeaders = new StackPanel
+        {
+            Width = 600,
+            Height = 400,
+            Children = { first, second },
+        };
+        first.IsSelected = true;
+        var window = new Window
+        {
+            Width = 600,
+            Height = 400,
+            Content = tabHeaders,
+        };
+        window.Styles.Add(new FluentTheme { DensityStyle = DensityStyle.Compact });
+        window.Styles.Add(new StyleInclude((Uri?)null)
+        {
+            Source = new Uri("avares://HyperTerm/Styles/DesignSystem.axaml"),
+        });
+        window.Show();
+        tabHeaders.Measure(new Avalonia.Size(600, 400));
+        tabHeaders.Arrange(new Avalonia.Rect(0, 0, 600, 400));
+        Dispatcher.UIThread.RunJobs();
+
+        (double Y, double Height)[] initialGeometry =
+        [
+            (first.Bounds.Y, first.Bounds.Height),
+            (second.Bounds.Y, second.Bounds.Height),
+        ];
+        Assert.All(initialGeometry, geometry => Assert.Equal(28, geometry.Height));
+
+        first.IsSelected = false;
+        second.IsSelected = true;
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(initialGeometry[0], (first.Bounds.Y, first.Bounds.Height));
+        Assert.Equal(initialGeometry[1], (second.Bounds.Y, second.Bounds.Height));
         window.Close();
     }
 }
