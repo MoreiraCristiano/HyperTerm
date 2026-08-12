@@ -405,4 +405,18 @@
   <Style Selector="TextBlock.settingsLabel">
     <Setter Property="Margin" Value="{DynamicResource SettingsLabelMargin}" />
   </Style>
+  <Style Selector="TextBlock.shortcutGroupTitle">
+    <Setter Property="Margin" Value="0,0,0,4" />
+    <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
+  </Style>
+  <Style Selector="Grid.shortcutList > TextBlock">
+    <Setter Property="Margin" Value="0,3" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Grid.shortcutList > TextBlock.shortcutGesture">
+    <Setter Property="Margin" Value="24,3,0,3" />
+    <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
+  </Style>
 </Styles>
