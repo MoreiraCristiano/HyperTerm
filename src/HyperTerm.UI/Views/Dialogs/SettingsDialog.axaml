@@ -107,7 +107,10 @@
                                 </Grid>
                                 <TextBlock Classes="settingsLabel" Text="Executable" />
                                 <Grid ColumnDefinitions="*,Auto">
-                                  <TextBox Text="{Binding ExecutablePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                  <TextBox
+                                      VerticalAlignment="Center"
+                                      VerticalContentAlignment="Center"
+                                      Text="{Binding ExecutablePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                   <Button
                                       Grid.Column="1"
                                       Margin="{DynamicResource SettingsBrowseButtonMargin}"
@@ -150,7 +153,12 @@
                       <Grid ColumnDefinitions="*,16,180">
                         <StackPanel>
                           <TextBlock Classes="settingsLabel" Text="Font family" />
-                          <ComboBox IsEditable="True" ItemsSource="{Binding Settings.SystemFontFamilies}" SelectedItem="{Binding Settings.SettingsTerminalFontFamily, Mode=TwoWay}" Text="{Binding Settings.SettingsTerminalFontFamily, Mode=TwoWay}" />
+                          <ComboBox
+                              x:Name="FontFamilyPicker"
+                              Width="360"
+                              HorizontalAlignment="Left"
+                              ItemsSource="{Binding Settings.SystemFontFamilies}"
+                              SelectedItem="{Binding Settings.SettingsTerminalFontFamily, Mode=TwoWay}" />
                         </StackPanel>
                         <StackPanel Grid.Column="2">
                           <TextBlock Classes="settingsLabel" Text="Font size" />

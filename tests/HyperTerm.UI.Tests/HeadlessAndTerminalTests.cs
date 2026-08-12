@@ -83,6 +83,9 @@ public sealed class AvaloniaHeadlessTests
         Assert.Equal(5, items.Length);
         Assert.All(items, item => Assert.IsType<ScrollViewer>(item.Content));
         Assert.All(items, item => Assert.Contains("settingsTab", item.Classes));
+        ComboBox fontFamilyPicker = dialog.FindControl<ComboBox>("FontFamilyPicker")!;
+        Assert.Equal(360, fontFamilyPicker.Width);
+        Assert.False(fontFamilyPicker.IsEditable);
 
         tabs.SelectedIndex = 2;
         dialog.IsVisible = false;
