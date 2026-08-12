@@ -139,6 +139,8 @@ describe('terminal host bridge', () => {
     const contextMenu = new MouseEvent('contextmenu', { cancelable: true });
     terminalInstances[0].element.dispatchEvent(contextMenu);
     expect(contextMenu.defaultPrevented).toBe(true);
+    expect(terminalInstances[0].options.theme.selectionBackground).toBe('#264F78');
+    expect(terminalInstances[0].options.theme.selectionInactiveBackground).toBe('#264F78');
     terminalInstances[0].dataHandler('\u0003');
     expect(sent).toContainEqual({ type: 'input', tabId: 'a', data: '\u0003' });
   });
@@ -347,10 +349,15 @@ describe('terminal host bridge', () => {
     host.activate('b');
     host.focus('a');
     host.focus('b');
-    host.configure({ tabId: 'a', options: { ...createOptions(), fontSize: 18 } });
+    host.configure({
+      tabId: 'a',
+      options: { ...createOptions(), fontSize: 18, selectionBackground: '#007ACC' }
+    });
 
     expect(webglInstances[0].disposed).toBe(true);
     expect(terminalInstances[0].options.fontSize).toBe(18);
+    expect(terminalInstances[0].options.theme.selectionBackground).toBe('#007ACC');
+    expect(terminalInstances[0].options.theme.selectionInactiveBackground).toBe('#007ACC');
     expect(terminalInstances[1].focused).toBe(true);
     expect(document.querySelector('[data-tab-id="a"]').classList.contains('active')).toBe(false);
   });

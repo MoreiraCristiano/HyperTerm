@@ -47,7 +47,7 @@ function createTerminal({ tabId, options }) {
       foreground: '#e6e9ef',
       cursor: '#e6e9ef',
       selectionBackground: options.selectionBackground,
-      selectionInactiveBackground: '#875a16'
+      selectionInactiveBackground: options.selectionBackground
     }
   });
 
@@ -199,7 +199,8 @@ function configureTerminal({ tabId, options }) {
   state.terminal.options.fontSize = options.fontSize;
   state.terminal.options.theme = {
     ...state.terminal.options.theme,
-    selectionBackground: options.selectionBackground
+    selectionBackground: options.selectionBackground,
+    selectionInactiveBackground: options.selectionBackground
   };
   state.terminal.options.cursorStyle = options.cursorStyle;
   state.terminal.options.cursorBlink = options.cursorBlink;
