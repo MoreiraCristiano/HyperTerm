@@ -22,9 +22,9 @@
     <KeyBinding Gesture="Ctrl+Shift+T" Command="{Binding OpenDefaultTerminalCommand}" />
     <KeyBinding Gesture="Ctrl+Shift+N" Command="{Binding Explorer.NewSessionCommand}" />
     <KeyBinding Gesture="Ctrl+Shift+O" Command="{Binding Explorer.OpenSelectedSessionCommand}" />
-    <KeyBinding Gesture="Ctrl+Shift+W" Command="{Binding Workspace.CloseSelectedTabCommand}" />
-    <KeyBinding Gesture="Ctrl+Tab" Command="{Binding Workspace.NextTabCommand}" />
-    <KeyBinding Gesture="Ctrl+Shift+Tab" Command="{Binding Workspace.PreviousTabCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+W" Command="{Binding CloseActiveTerminalTabCommand}" />
+    <KeyBinding Gesture="Ctrl+Tab" Command="{Binding NextTerminalTabCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+Tab" Command="{Binding PreviousTerminalTabCommand}" />
     <KeyBinding Gesture="Alt+F4" Command="{Binding RequestCloseWindowCommand}" />
     <KeyBinding Gesture="Ctrl+Shift+," Command="{Binding Settings.OpenSettingsCommand}" />
     <KeyBinding Gesture="Ctrl+Shift+B" Command="{Binding ToggleSidebarCommand}" />
@@ -54,6 +54,8 @@
       <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto">
         <ScrollViewer
             x:Name="TabScrollViewer"
+            Classes="tabArea"
+            IsEnabled="{Binding CanUseTerminalTabs}"
             HorizontalScrollBarVisibility="Hidden"
             VerticalScrollBarVisibility="Disabled">
           <StackPanel Orientation="Horizontal">

@@ -816,6 +816,42 @@ public sealed class ViewModelTests
     }
 
     [Fact]
+    public async Task Tab_commands_are_disabled_while_an_overlay_is_open()
+    {
+        var sessions = new FakeSessionService();
+        var folders = new FakeFolderService();
+        var workspace = new TerminalWorkspaceViewModel(
+            sessions,
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory());
+        var viewModel = new MainWindowViewModel(
+            new SessionExplorerViewModel(sessions, folders),
+            workspace,
+            CreateSettingsViewModel(new FakeSettingsService(exists: true)),
+            new SessionEditorViewModel(sessions),
+            new FolderEditorViewModel(folders));
+        await workspace.OpenLocalTerminalCommand.ExecuteAsync(null);
+        await workspace.OpenLocalTerminalCommand.ExecuteAsync(null);
+        TerminalTabViewModel selected = workspace.SelectedTab!;
+
+        viewModel.Settings.OpenSettingsCommand.Execute(null);
+        Assert.False(viewModel.CanUseTerminalTabs);
+        viewModel.NextTerminalTabCommand.Execute(null);
+        viewModel.PreviousTerminalTabCommand.Execute(null);
+        await viewModel.CloseActiveTerminalTabCommand.ExecuteAsync(null);
+
+        Assert.Equal(2, workspace.Tabs.Count);
+        Assert.Same(selected, workspace.SelectedTab);
+
+        viewModel.Settings.CancelSettingsCommand.Execute(null);
+        Assert.True(viewModel.CanUseTerminalTabs);
+        viewModel.NextTerminalTabCommand.Execute(null);
+        Assert.NotSame(selected, workspace.SelectedTab);
+        await viewModel.CloseActiveTerminalTabCommand.ExecuteAsync(null);
+        Assert.Single(workspace.Tabs);
+    }
+
+    [Fact]
     public async Task SessionEditorCreatesSessionAndReportsSelection()
     {
         var service = new FakeSessionService();

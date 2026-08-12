@@ -53,6 +53,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         FolderEditor.IsFolderDeleteConfirmationOpen ||
         IsShortcutsOpen ||
         IsCommandPaletteOpen;
+    public bool CanUseTerminalTabs => !IsOverlayOpen;
     public ScrollBarVisibility SidebarScrollBarVisibility =>
         showSidebarScrollbar ? ScrollBarVisibility.Auto : ScrollBarVisibility.Hidden;
     public bool AreTerminalHostsVisible =>
@@ -157,6 +158,33 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         {
             await Workspace.OpenLocalTerminalCommand.ExecuteAsync(null);
             Workspace.SelectedTab?.RequestFocus();
+        }
+    }
+
+    [RelayCommand]
+    private async Task CloseActiveTerminalTabAsync()
+    {
+        if (CanUseTerminalTabs && Workspace.CloseSelectedTabCommand.CanExecute(null))
+        {
+            await Workspace.CloseSelectedTabCommand.ExecuteAsync(null);
+        }
+    }
+
+    [RelayCommand]
+    private void NextTerminalTab()
+    {
+        if (CanUseTerminalTabs && Workspace.NextTabCommand.CanExecute(null))
+        {
+            Workspace.NextTabCommand.Execute(null);
+        }
+    }
+
+    [RelayCommand]
+    private void PreviousTerminalTab()
+    {
+        if (CanUseTerminalTabs && Workspace.PreviousTabCommand.CanExecute(null))
+        {
+            Workspace.PreviousTabCommand.Execute(null);
         }
     }
 
@@ -372,6 +400,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(IsTabAreaEmpty));
         OnPropertyChanged(nameof(IsOverlayOpen));
+        OnPropertyChanged(nameof(CanUseTerminalTabs));
         OnPropertyChanged(nameof(AreTerminalHostsVisible));
     }
 }

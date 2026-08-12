@@ -333,6 +333,29 @@
   <Style Selector="GridSplitter.sidebarSplitter:pointerover">
     <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
   </Style>
+  <Style Selector="ScrollViewer.tabArea:disabled">
+    <Setter Property="Opacity" Value="0.40" />
+  </Style>
+  <Style Selector="ScrollViewer.tabArea:disabled ListBox.terminalTabs > ListBoxItem /template/ Border#PART_LayoutRoot,
+                   ScrollViewer.tabArea:disabled ListBox.terminalTabs > ListBoxItem:pointerover /template/ Border#PART_LayoutRoot,
+                   ScrollViewer.tabArea:disabled ListBox.terminalTabs > ListBoxItem:selected /template/ Border#PART_LayoutRoot,
+                   ScrollViewer.tabArea:disabled ListBox.terminalTabs > ListBoxItem:selected:pointerover /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource HeaderBackgroundBrush}" />
+  </Style>
+  <Style Selector="ScrollViewer.tabArea:disabled Button.newTerminalPrimaryButton,
+                   ScrollViewer.tabArea:disabled Button.newTerminalMenuButton">
+    <Setter Property="Background" Value="{DynamicResource HeaderBackgroundBrush}" />
+  </Style>
+  <Style Selector="ScrollViewer.tabArea:disabled Button.newTerminalPrimaryButton /template/ ContentPresenter,
+                   ScrollViewer.tabArea:disabled Button.newTerminalMenuButton /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource HeaderBackgroundBrush}" />
+  </Style>
+  <Style Selector="ScrollViewer.tabArea:disabled Button.tabCloseButton">
+    <Setter Property="Background" Value="{DynamicResource HeaderBackgroundBrush}" />
+  </Style>
+  <Style Selector="ScrollViewer.tabArea:disabled Button.tabCloseButton /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource HeaderBackgroundBrush}" />
+  </Style>
   <Style Selector="Border.settingsSection">
     <Setter Property="Padding" Value="{DynamicResource SettingsSectionPadding}" />
     <Setter Property="Background" Value="{DynamicResource SecondaryBackgroundBrush}" />
