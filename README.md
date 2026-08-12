@@ -1,255 +1,112 @@
-# HyperTerm
+<p align="center">
+  <img src="assets/hyperterm_minimal.svg" width="128" alt="HyperTerm logo">
+</p>
 
-HyperTerm is a modern Windows terminal and SSH session manager built with .NET and Avalonia. It provides a developer-tool interface for organizing connections while using PowerShell (`pwsh.exe` or `powershell.exe`), Windows OpenSSH, ConPTY, and xterm.js for the actual terminal experience.
+<h1 align="center">HyperTerm</h1>
 
-> HyperTerm is under active MVP development. It does not implement the SSH protocol and does not store passwords. SSH connections are executed by the Windows OpenSSH client inside PowerShell.
+<p align="center">
+  A Windows terminal and SSH session manager built with .NET, Avalonia, and xterm.js.
+</p>
 
-## Features
+HyperTerm combines local terminal profiles, saved SSH connections, and optional
+persistent psmux sessions in one focused desktop application. PowerShell is the
+recommended default, while custom profiles can launch other shells and tools.
 
-- Local PowerShell terminal opened automatically at startup
-- Optional native psmux sessions with create, attach, detach, and explicit shutdown controls
-- SSH session management with host, port, username, folder, and notes
-- Nested folders with mouse-driven creation, editing, deletion, and session drag-and-drop
-- Multiple terminal tabs with isolated processes and editable titles
-- Shared WebView terminal host optimized for multiple concurrent tabs
-- WebGL-accelerated xterm.js renderer with safe DOM fallback
-- Native Windows clipboard integration
-- Scrollback search with match navigation and optional case sensitivity
-- Command palette for actions, SSH sessions, open tabs, and active psmux sessions
-- Resizable and collapsible session sidebar
-- Configurable terminal font, font size, cursor, blinking, and selection color
-- Dark-only interface inspired by modern developer tools
-- SQLite persistence and JSON application settings
+## Preview
+
+![HyperTerm terminal workspace](docs/prints/01.png)
+
+![HyperTerm profile settings](docs/prints/02.png)
+
+![HyperTerm new SSH session](docs/prints/03.png)
+
+## Highlights
+
+- Configurable local terminal profiles with a selectable default
+- Saved SSH sessions organized in nested folders
+- Multiple isolated tabs with editable titles
+- Persistent psmux sessions with attach, detach, and shutdown controls
+- Terminal output search and command palette
+- Configurable font, cursor, and selection appearance
+- WebGL-accelerated xterm.js renderer with DOM fallback
+- Local SQLite storage with no remote telemetry
+
+HyperTerm uses the installed Windows OpenSSH client and never stores passwords
+or other SSH credentials.
 
 ## Requirements
 
 - Windows 10 or Windows 11
 - [.NET SDK 10](https://dotnet.microsoft.com/download/dotnet/10.0) or newer
 - [Node.js](https://nodejs.org/) with npm
-- PowerShell (`pwsh.exe` or Windows `powershell.exe`)
-- Windows OpenSSH Client (`ssh.exe`) for SSH sessions
 - Microsoft Edge WebView2 Runtime
-- [psmux](https://github.com/psmux/psmux) is included in the complete release ZIP; development builds can use `psmux.exe` on `PATH`
+- PowerShell for the recommended default profile
+- Windows OpenSSH Client (`ssh.exe`) for SSH sessions
 
-HyperTerm targets `net10.0` and follows the .NET 10 LTS support line.
+[psmux](https://github.com/psmux/psmux) is bundled in complete release packages.
+Development builds can also resolve `psmux.exe` from `PATH`.
 
-## Quick start
+## Run from source
 
-From the repository root, run:
+From the repository root:
 
 ```powershell
 .\scripts\bootstrap.ps1
 ```
 
-The bootstrap script:
-
-1. Installs the web terminal dependencies.
-2. Builds the xterm.js bundle.
-3. Builds HyperTerm in Release mode.
-4. Starts the newly generated executable.
-
-Each run receives an isolated output directory under `artifacts/runs/`. The script also closes the previous instance that it started, preventing stale development builds from accumulating.
-
-To build without launching the application:
+This installs web terminal dependencies, builds HyperTerm in Release mode, and
+starts the generated executable. To build without launching:
 
 ```powershell
 .\scripts\bootstrap.ps1 -BuildOnly
 ```
 
-## Release builds
+## Build a release
 
-Create the complete self-contained release ZIP with one command:
+Create a self-contained Windows release ZIP:
 
 ```powershell
 .\scripts\build.ps1
 ```
 
-The complete ZIP is written to:
+Output is written under `artifacts\releases\`. The package includes the .NET
+runtime, native libraries, web terminal assets, and verified psmux binary.
 
-```text
-artifacts\releases\HyperTerm-1.0.0-win-x64.zip
-```
+## Verify changes
 
-The complete ZIP includes the tested psmux binary and its MIT license. It works
-without a separate psmux installation and supports an alternative HyperTerm
-version or Windows architecture:
-
-```powershell
-.\scripts\build.ps1 -Version 1.1.0 -Runtime win-arm64
-```
-
-Extract the complete ZIP before running HyperTerm. The package contains the
-.NET runtime, native libraries, web terminal assets, and matching psmux binary.
-
-Release builds download the pinned psmux 3.3.7 archive from the official GitHub
-release on first use, verify its SHA-256 hash, and reuse the validated copy under
-`artifacts\cache\`. HyperTerm never downloads or updates psmux at runtime.
-
-The destination computer still needs PowerShell (`pwsh.exe` or `powershell.exe`) and Microsoft Edge WebView2
-Runtime. Windows OpenSSH Client is also required for SSH sessions.
-
-## Local verification
-
-Run the complete local quality gate before committing:
+Run the local quality gate:
 
 ```powershell
 .\scripts\verify.ps1
 ```
 
-This verifies locked dependencies, vulnerability audits, formatting, the web
-terminal build, the Release build, and all tests. Add `-Package` to also create
-and validate the complete Windows release ZIP:
+Use `-Package` to also build and validate the release ZIP, or `-Coverage` to run
+the coverage-enforcing checks used by CI.
 
-```powershell
-.\scripts\verify.ps1 -Package
-```
+## Local data
 
-Use `.\scripts\verify.ps1 -Coverage` to run the same coverage-enforcing gate as
-the main CI workflow.
-
-## Manual build
-
-Build the web terminal first because its generated `dist` directory is intentionally excluded from Git:
-
-```powershell
-npm ci --prefix .\src\HyperTerm.UI\WebTerminal --no-audit --no-fund
-npm run build --prefix .\src\HyperTerm.UI\WebTerminal
-dotnet build .\src\HyperTerm.UI\HyperTerm.UI.csproj --configuration Release
-```
-
-The executable is named `HyperTerm.exe`.
-
-## First run
-
-On the first launch, HyperTerm displays an initial setup dialog. The user can
-apply the default `pwsh.exe` available on `PATH`, or choose `pwsh.exe` or
-`powershell.exe` with the Windows file picker. The selected option is saved for
-subsequent launches. To change it later:
-
-1. Open **Settings**.
-2. Under **Shell**, select the desired `pwsh.exe` or `powershell.exe` with the Windows file picker.
-3. Save the settings.
-
-SSH sessions require the Windows OpenSSH Client. HyperTerm launches `ssh.exe` through the configured PowerShell executable and leaves authentication prompts inside the terminal.
-
-## Keyboard shortcuts
-
-Application shortcuts use `Ctrl+Shift` where possible so regular `Ctrl` combinations remain available to terminal applications.
-
-| Action | Shortcut |
-| --- | --- |
-| Toggle sidebar | `Ctrl+Shift+B` |
-| Create session | `Ctrl+Shift+N` |
-| Open selected session | `Ctrl+Shift+O` |
-| Edit selected session | `F2` |
-| Close active tab | `Ctrl+Shift+W` |
-| Open settings | `Ctrl+Shift+,` |
-| Search terminal output | `Ctrl+Shift+F` |
-| Open command palette | `Ctrl+Shift+K` |
-| Show shortcuts | `F1` |
-| Copy terminal selection | `Ctrl+Shift+C` |
-| Paste into terminal | `Ctrl+Shift+V` |
-| Close active non-terminal screen | `Esc` |
-
-Inside the command palette, prefix the query with `>` to search only commands
-or with `:` to search only open SSH, PowerShell, and psmux tabs. Queries without
-a prefix continue to search all available items.
-
-Double-click a saved session to open it. Double-click a terminal tab to rename it.
-
-The `+` button in the tab bar opens either a regular PowerShell terminal or a
-persistent psmux session. HyperTerm keeps its psmux sessions isolated in the
-`hyperterm` namespace. Closing a psmux tab detaches it. End persistent sessions
-from the active-session list after confirming the action. General Settings can
-also end all detached sessions in that namespace when HyperTerm
-closes; sessions still attached by another client are preserved. By default,
-sessions continue running after HyperTerm closes for backward compatibility.
-The `psmux` submenu also lists active sessions so they can be refreshed and
-attached to a new tab.
-
-HyperTerm resolves `tools\psmux\psmux.exe` beside the application first, then
-falls back to `psmux.exe` on `PATH`. This keeps complete ZIP releases on the
-tested bundled version while preserving development workflows.
-
-## Data storage
-
-User data is stored locally under:
+HyperTerm stores its data under `%LocalAppData%\HyperTerm\`:
 
 ```text
-%LocalAppData%\HyperTerm\
-├── hyperterm.db
-└── settings.json
+hyperterm.db   Saved sessions and folders
+settings.json Application, profile, and appearance settings
 ```
 
-- `hyperterm.db` stores sessions and folders in SQLite.
-- `settings.json` stores the PowerShell path, terminal appearance, and window state.
-
-Existing data from the previous `hyperTerms` or `SuperTerminal` application directories is copied automatically when the current files do not yet exist.
-
-To permanently remove all sessions, folders, settings, and legacy data, close
-HyperTerm and run:
-
-```powershell
-.\scripts\reset-data.ps1
-```
-
-The script displays every target directory and requires `DELETE` confirmation.
-Use `-Force` only when running it from an automated environment.
+Settings writes are atomic, imported archives are validated before mutation,
+and diagnostics remain local without capturing terminal input or credentials.
 
 ## Architecture
 
-The solution follows a simplified Clean Architecture structure:
-
 ```text
-HyperTerm.sln
-└── src
-    ├── HyperTerm.Core
-    ├── HyperTerm.Infrastructure
-    └── HyperTerm.UI
+Avalonia UI -> WebView2 -> xterm.js -> C# bridge -> ConPTY -> shell / ssh.exe
 ```
 
-- **Core** contains entities, models, service contracts, and terminal abstractions.
-- **Infrastructure** implements SQLite, settings, PowerShell/OpenSSH launching, and ConPTY sessions.
-- **UI** contains Avalonia views, MVVM view models, the design system, and the xterm.js host.
-
-The product, solution, projects, assemblies, and namespaces use the final **HyperTerm** name consistently.
-See [the architecture guide](docs/architecture.md) for dependency direction,
-feature-folder conventions, and terminal boundaries.
-
-## Terminal pipeline
-
-```text
-HyperTerm UI → shared WebView2 host → xterm.js → C# bridge → ConPTY → PowerShell → ssh.exe
-```
-
-Each tab owns an independent ConPTY process and xterm buffer. A shared WebView2 host reduces memory usage, while bounded output queues and backpressure keep high-volume terminals from freezing the UI.
-
-Terminal sessions expose explicit running, exited, faulted, and disposal states.
-Input writes are serialized against shutdown, pipe closure after process exit is
-treated as normal lifecycle behavior, and repeated disposal is safe. Messages
-from the WebView are schema-validated before reaching the PTY.
-
-Settings updates use atomic file replacement. Session archives are size-limited
-for seekable and non-seekable streams, fully validated before mutation, and
-applied in a SQLite transaction. Application diagnostics stay local and never
-capture terminal input or SSH credentials.
+The solution follows a simplified Clean Architecture split across
+`HyperTerm.Core`, `HyperTerm.Infrastructure`, and `HyperTerm.UI`. See the
+[architecture guide](docs/architecture.md) for project boundaries and terminal
+lifecycle details.
 
 ## Technology
 
-- C# and .NET 10 LTS
-- Avalonia UI 12
-- CommunityToolkit.Mvvm
-- Microsoft.Extensions.Hosting and dependency injection
-- Entity Framework Core 10 with SQLite
-- Porta.Pty and Windows ConPTY
-- xterm.js 5 with WebGL
-- PowerShell (`pwsh.exe` or `powershell.exe`) and Windows OpenSSH
-
-## Current MVP boundaries
-
-- Windows only
-- Dark theme only
-- SSH depends on the locally installed Windows OpenSSH client
-- No password or credential storage
-- No built-in SSH implementation
-- No terminal session restoration after restarting the application
+.NET 10, Avalonia UI 12, CommunityToolkit.Mvvm, Entity Framework Core, SQLite,
+Porta.Pty, Windows ConPTY, WebView2, xterm.js, PowerShell, OpenSSH, and psmux.
