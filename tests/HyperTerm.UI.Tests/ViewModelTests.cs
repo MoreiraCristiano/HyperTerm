@@ -242,6 +242,24 @@ public sealed class ViewModelTests
     }
 
     [Fact]
+    public async Task Workspace_updates_theme_for_open_and_future_tabs()
+    {
+        var workspace = new TerminalWorkspaceViewModel(
+            new FakeSessionService(),
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory());
+        workspace.ApplySettings(new ApplicationSettings());
+        await workspace.OpenLocalTerminalCommand.ExecuteAsync(null);
+        TerminalTabViewModel existing = Assert.Single(workspace.Tabs);
+
+        workspace.ApplySettings(new ApplicationSettings { Theme = "Default Light" });
+        await workspace.OpenLocalTerminalCommand.ExecuteAsync(null);
+
+        Assert.Equal("Default Light", existing.Theme);
+        Assert.Equal("Default Light", workspace.Tabs[1].Theme);
+    }
+
+    [Fact]
     public async Task WorkspaceReordersTabsWithoutChangingSelection()
     {
         var workspace = new TerminalWorkspaceViewModel(
@@ -1028,6 +1046,7 @@ public sealed class ViewModelTests
         TerminalProfile profile = Assert.Single(settingsService.Value.TerminalProfiles);
         Assert.Equal(TerminalProfileIds.PowerShell, profile.Id);
         Assert.Equal("pwsh.exe", profile.ExecutablePath);
+        Assert.Equal("Default Dark", settingsService.Value.Theme);
     }
 
     [Fact]
@@ -1288,6 +1307,100 @@ public sealed class ViewModelTests
 
         Assert.Equal("Consolas", viewModel.SettingsTerminalFontFamily);
         Assert.Contains("Consolas", viewModel.SystemFontFamilies);
+        Assert.Equal(0, viewModel.SettingsTerminalFontFamilyIndex);
+
+        viewModel.SettingsTerminalFontFamilyIndex = -1;
+
+        Assert.Equal("Consolas", viewModel.SettingsTerminalFontFamily);
+    }
+
+    [Theory]
+    [InlineData("Dark")]
+    [InlineData("Unknown")]
+    public async Task Settings_normalizes_legacy_or_unknown_theme(string persistedTheme)
+    {
+        var settingsService = new FakeSettingsService(exists: true);
+        await settingsService.SaveAsync(new ApplicationSettings { Theme = persistedTheme });
+        var viewModel = CreateSettingsViewModel(settingsService);
+
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal("Default Dark", viewModel.SettingsTheme.Value);
+        Assert.Equal("Default Dark", viewModel.Current.Theme);
+    }
+
+    [Fact]
+    public async Task Settings_saves_and_applies_default_dark_theme()
+    {
+        var settingsService = new FakeSettingsService(exists: true);
+        var themeService = new FakeThemeService();
+        var viewModel = new SettingsViewModel(
+            settingsService,
+            themeService,
+            new FakeExecutablePicker(),
+            new FakeArchiveService(),
+            new FakeArchiveFilePicker(),
+            new FakeSystemFontService());
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+        viewModel.OpenSettingsCommand.Execute(null);
+
+        await viewModel.SaveSettingsCommand.ExecuteAsync(null);
+
+        Assert.Equal("Default Dark", settingsService.Value.Theme);
+        Assert.Equal("Default Dark", themeService.AppliedThemes.Last());
+    }
+
+    [Fact]
+    public async Task Settings_saves_and_applies_default_light_theme()
+    {
+        var settingsService = new FakeSettingsService(exists: true);
+        var themeService = new FakeThemeService();
+        var viewModel = new SettingsViewModel(
+            settingsService,
+            themeService,
+            new FakeExecutablePicker(),
+            new FakeArchiveService(),
+            new FakeArchiveFilePicker(),
+            new FakeSystemFontService());
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+        viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.SettingsTheme = viewModel.ThemeOptions.Single(option =>
+            option.Value == "Default Light");
+
+        await viewModel.SaveSettingsCommand.ExecuteAsync(null);
+
+        Assert.Equal("Default Light", settingsService.Value.Theme);
+        Assert.Equal("Default Light", themeService.AppliedThemes.Last());
+    }
+
+    [Fact]
+    public async Task Settings_cancel_restores_saved_theme_without_applying_editor_value()
+    {
+        var settingsService = new FakeSettingsService(exists: true);
+        var themeService = new FakeThemeService();
+        var viewModel = new SettingsViewModel(
+            settingsService,
+            themeService,
+            new FakeExecutablePicker(),
+            new FakeArchiveService(),
+            new FakeArchiveFilePicker(),
+            new FakeSystemFontService());
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+        int initialApplyCount = themeService.AppliedThemes.Count;
+        viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.SettingsTheme = new ThemeOption(
+            "Temporary",
+            "Temporary",
+            "Test only",
+            "#000000",
+            "#000000",
+            "#000000");
+
+        viewModel.CancelSettingsCommand.Execute(null);
+        viewModel.OpenSettingsCommand.Execute(null);
+
+        Assert.Equal("Default Dark", viewModel.SettingsTheme.Value);
+        Assert.Equal(initialApplyCount, themeService.AppliedThemes.Count);
     }
 
     private static SettingsViewModel CreateSettingsViewModel(

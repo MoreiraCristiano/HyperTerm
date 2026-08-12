@@ -1,9 +1,11 @@
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Markup.Xaml.Styling;
+using Avalonia.Media;
 using Avalonia.Themes.Fluent;
 using Avalonia.Threading;
 using HyperTerm.UI.Controls;
+using HyperTerm.UI.Services;
 using HyperTerm.UI.Views.Dialogs;
 
 namespace HyperTerm.UI.Tests;
@@ -17,6 +19,33 @@ public sealed class AvaloniaHeadlessTests
         Avalonia.Application? application = Avalonia.Application.Current;
         Assert.NotNull(application);
         Assert.NotNull(application!.Resources);
+    }
+
+    [AvaloniaFact]
+    [Trait("Category", "Headless")]
+    public void Theme_service_applies_light_and_dark_variants()
+    {
+        var service = new AvaloniaThemeService();
+        var window = new Window();
+        window.Styles.Add(new StyleInclude((Uri?)null)
+        {
+            Source = new Uri("avares://HyperTerm/Styles/DesignSystem.axaml"),
+        });
+        window.Show();
+
+        service.Apply("Default Light");
+        Assert.Equal(Avalonia.Styling.ThemeVariant.Light, Avalonia.Application.Current!.RequestedThemeVariant);
+        Assert.True(window.TryGetResource(
+            "AppBackgroundBrush",
+            Avalonia.Styling.ThemeVariant.Light,
+            out object? lightBackground));
+        Assert.Equal(
+            Color.Parse("#F3F3F3"),
+            Assert.IsType<SolidColorBrush>(lightBackground).Color);
+
+        service.Apply("Default Dark");
+        Assert.Equal(Avalonia.Styling.ThemeVariant.Dark, Avalonia.Application.Current.RequestedThemeVariant);
+        window.Close();
     }
 
     [AvaloniaFact]
@@ -80,12 +109,16 @@ public sealed class AvaloniaHeadlessTests
         TabControl tabs = dialog.FindControl<TabControl>("SettingsTabs")!;
         TabItem[] items = tabs.Items.OfType<TabItem>().ToArray();
         Assert.Equal(Dock.Left, tabs.TabStripPlacement);
-        Assert.Equal(5, items.Length);
+        Assert.Equal(6, items.Length);
+        Assert.Equal(
+            ["General", "Themes", "Profiles", "Terminal", "Data", "Logs"],
+            items.Select(item => item.Header).ToArray());
         Assert.All(items, item => Assert.IsType<ScrollViewer>(item.Content));
         Assert.All(items, item => Assert.Contains("settingsTab", item.Classes));
         ComboBox fontFamilyPicker = dialog.FindControl<ComboBox>("FontFamilyPicker")!;
         Assert.Equal(360, fontFamilyPicker.Width);
         Assert.False(fontFamilyPicker.IsEditable);
+        Assert.Contains("themePicker", dialog.FindControl<ListBox>("ThemePicker")!.Classes);
 
         tabs.SelectedIndex = 2;
         dialog.IsVisible = false;

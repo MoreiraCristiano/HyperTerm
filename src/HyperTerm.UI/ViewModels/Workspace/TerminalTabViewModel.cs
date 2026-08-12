@@ -26,8 +26,9 @@ public sealed partial class TerminalTabViewModel : ViewModelBase, IAsyncDisposab
         string selectionColor,
         string cursorStyle,
         bool cursorBlink,
+        string theme,
         Func<TerminalTabViewModel, Task> closeAction)
-        : this(session.Id, session.Name, session.Endpoint, session.Folder, definition, ptySessionFactory, fontFamily, fontSize, selectionColor, cursorStyle, cursorBlink, closeAction)
+        : this(session.Id, session.Name, session.Endpoint, session.Folder, definition, ptySessionFactory, fontFamily, fontSize, selectionColor, cursorStyle, cursorBlink, theme, closeAction)
     {
     }
 
@@ -40,6 +41,7 @@ public sealed partial class TerminalTabViewModel : ViewModelBase, IAsyncDisposab
         string selectionColor,
         string cursorStyle,
         bool cursorBlink,
+        string theme,
         Func<TerminalTabViewModel, Task> closeAction)
         : this(
             null,
@@ -55,6 +57,7 @@ public sealed partial class TerminalTabViewModel : ViewModelBase, IAsyncDisposab
             selectionColor,
             cursorStyle,
             cursorBlink,
+            theme,
             closeAction)
     {
     }
@@ -71,6 +74,7 @@ public sealed partial class TerminalTabViewModel : ViewModelBase, IAsyncDisposab
         string selectionColor,
         string cursorStyle,
         bool cursorBlink,
+        string theme,
         Func<TerminalTabViewModel, Task> closeAction)
     {
         ArgumentNullException.ThrowIfNull(definition);
@@ -91,6 +95,7 @@ public sealed partial class TerminalTabViewModel : ViewModelBase, IAsyncDisposab
         SelectionColor = selectionColor;
         CursorStyle = cursorStyle;
         CursorBlink = cursorBlink;
+        Theme = theme;
     }
 
     public Guid Id { get; }
@@ -114,6 +119,8 @@ public sealed partial class TerminalTabViewModel : ViewModelBase, IAsyncDisposab
     public string CursorStyle { get; private set; }
 
     public bool CursorBlink { get; private set; }
+
+    public string Theme { get; private set; }
 
     public event EventHandler<string>? TerminalOutputReceived;
 
@@ -289,13 +296,15 @@ public sealed partial class TerminalTabViewModel : ViewModelBase, IAsyncDisposab
         double fontSize,
         string selectionColor,
         string cursorStyle,
-        bool cursorBlink)
+        bool cursorBlink,
+        string theme)
     {
         FontFamily = fontFamily;
         FontSize = Math.Clamp(fontSize, 8, 32);
         SelectionColor = selectionColor;
         CursorStyle = cursorStyle;
         CursorBlink = cursorBlink;
+        Theme = theme;
         AppearanceChanged?.Invoke(this, EventArgs.Empty);
     }
 

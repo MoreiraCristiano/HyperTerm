@@ -2,40 +2,49 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <Styles.Resources>
-    <Color x:Key="ColorBackground">#1E1E1E</Color>
-    <Color x:Key="ColorBackgroundSecondary">#252526</Color>
-    <Color x:Key="ColorPanel">#2D2D30</Color>
-    <Color x:Key="ColorBorder">#3C3C3C</Color>
-    <Color x:Key="ColorBorderHover">#5A5A5E</Color>
-    <Color x:Key="ColorAccent">#007ACC</Color>
-    <Color x:Key="ColorHover">#2A2D2E</Color>
-    <Color x:Key="ColorInput">#252526</Color>
-    <Color x:Key="ColorSelection">#094771</Color>
-    <Color x:Key="ColorTextPrimary">#D4D4D4</Color>
-    <Color x:Key="ColorTextSecondary">#9D9D9D</Color>
-    <Color x:Key="ColorError">#F14C4C</Color>
-    <Color x:Key="ColorWarning">#CCA700</Color>
-    <Color x:Key="ColorSuccess">#4EC9B0</Color>
-    <Color x:Key="ColorOverlay">#B3000000</Color>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="AppBackgroundBrush" Color="#1E1E1E" />
+          <SolidColorBrush x:Key="SecondaryBackgroundBrush" Color="#252526" />
+          <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#2D2D30" />
+          <SolidColorBrush x:Key="HeaderBackgroundBrush" Color="#252526" />
+          <SolidColorBrush x:Key="BorderBrush" Color="#3C3C3C" />
+          <SolidColorBrush x:Key="BorderHoverBrush" Color="#5A5A5E" />
+          <SolidColorBrush x:Key="AccentBrush" Color="#007ACC" />
+          <SolidColorBrush x:Key="HoverBrush" Color="#2A2D2E" />
+          <SolidColorBrush x:Key="InputBackgroundBrush" Color="#252526" />
+          <SolidColorBrush x:Key="SelectionBrush" Color="#094771" />
+          <SolidColorBrush x:Key="PrimaryTextBrush" Color="#D4D4D4" />
+          <SolidColorBrush x:Key="MutedTextBrush" Color="#9D9D9D" />
+          <SolidColorBrush x:Key="DangerBrush" Color="#F14C4C" />
+          <SolidColorBrush x:Key="WarningBrush" Color="#CCA700" />
+          <SolidColorBrush x:Key="SuccessBrush" Color="#4EC9B0" />
+          <SolidColorBrush x:Key="OverlayBrush" Color="#B3000000" />
+          <SolidColorBrush x:Key="SidebarScrollBarHoverBrush" Color="#484848" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="AppBackgroundBrush" Color="#F3F3F3" />
+          <SolidColorBrush x:Key="SecondaryBackgroundBrush" Color="#E9E9E9" />
+          <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="HeaderBackgroundBrush" Color="#E9E9E9" />
+          <SolidColorBrush x:Key="BorderBrush" Color="#D1D1D1" />
+          <SolidColorBrush x:Key="BorderHoverBrush" Color="#A6A6A6" />
+          <SolidColorBrush x:Key="AccentBrush" Color="#007ACC" />
+          <SolidColorBrush x:Key="HoverBrush" Color="#E1E1E1" />
+          <SolidColorBrush x:Key="InputBackgroundBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="SelectionBrush" Color="#CCE8FF" />
+          <SolidColorBrush x:Key="PrimaryTextBrush" Color="#1F1F1F" />
+          <SolidColorBrush x:Key="MutedTextBrush" Color="#5F5F5F" />
+          <SolidColorBrush x:Key="DangerBrush" Color="#C42B1C" />
+          <SolidColorBrush x:Key="WarningBrush" Color="#9D5D00" />
+          <SolidColorBrush x:Key="SuccessBrush" Color="#107C10" />
+          <SolidColorBrush x:Key="OverlayBrush" Color="#66000000" />
+          <SolidColorBrush x:Key="SidebarScrollBarHoverBrush" Color="#A0A0A0" />
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
 
-    <SolidColorBrush x:Key="AppBackgroundBrush" Color="{StaticResource ColorBackground}" />
-    <SolidColorBrush x:Key="SecondaryBackgroundBrush" Color="{StaticResource ColorBackgroundSecondary}" />
-    <SolidColorBrush x:Key="PanelBackgroundBrush" Color="{StaticResource ColorPanel}" />
-    <SolidColorBrush x:Key="HeaderBackgroundBrush" Color="{StaticResource ColorBackgroundSecondary}" />
-    <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource ColorBorder}" />
-    <SolidColorBrush x:Key="BorderHoverBrush" Color="{StaticResource ColorBorderHover}" />
-    <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource ColorAccent}" />
-    <SolidColorBrush x:Key="HoverBrush" Color="{StaticResource ColorHover}" />
-    <SolidColorBrush x:Key="InputBackgroundBrush" Color="{StaticResource ColorInput}" />
-    <SolidColorBrush x:Key="SelectionBrush" Color="{StaticResource ColorSelection}" />
-    <SolidColorBrush x:Key="PrimaryTextBrush" Color="{StaticResource ColorTextPrimary}" />
-    <SolidColorBrush x:Key="MutedTextBrush" Color="{StaticResource ColorTextSecondary}" />
-    <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource ColorError}" />
-    <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource ColorWarning}" />
-    <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource ColorSuccess}" />
-    <SolidColorBrush x:Key="OverlayBrush" Color="{StaticResource ColorOverlay}" />
     <SolidColorBrush x:Key="TransparentBrush" Color="Transparent" />
-    <SolidColorBrush x:Key="SidebarScrollBarHoverBrush" Color="#484848" />
 
     <FontFamily x:Key="AppFontFamily">Segoe UI, Inter</FontFamily>
     <FontFamily x:Key="IconFontFamily">Segoe Fluent Icons</FontFamily>
@@ -99,6 +108,7 @@
     <CornerRadius x:Key="RadiusS">3</CornerRadius>
     <CornerRadius x:Key="RadiusM">6</CornerRadius>
     <CornerRadius x:Key="RadiusL">8</CornerRadius>
+    </ResourceDictionary>
   </Styles.Resources>
 
   <Style Selector="Window">
@@ -392,6 +402,24 @@
   </Style>
   <Style Selector="TabItem.settingsTab:selected:pointerover">
     <Setter Property="Background" Value="{DynamicResource HoverBrush}" />
+  </Style>
+  <Style Selector="ListBox.themePicker">
+    <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+  </Style>
+  <Style Selector="ListBox.themePicker > ListBoxItem">
+    <Setter Property="MinWidth" Value="360" />
+    <Setter Property="Margin" Value="0,0,0,8" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusM}" />
+  </Style>
+  <Style Selector="ListBox.themePicker > ListBoxItem:pointerover /template/ Border#PART_LayoutRoot,
+                   ListBox.themePicker > ListBoxItem:selected /template/ Border#PART_LayoutRoot,
+                   ListBox.themePicker > ListBoxItem:selected:pointerover /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource SecondaryBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderHoverBrush}" />
   </Style>
   <Style Selector="TextBlock.settingsGroupTitle">
     <Setter Property="Margin" Value="0,0,0,10" />

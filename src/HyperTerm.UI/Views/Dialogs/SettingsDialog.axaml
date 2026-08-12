@@ -61,6 +61,51 @@
             </ScrollViewer>
           </TabItem>
 
+          <TabItem Classes="settingsTab" Header="Themes">
+            <ScrollViewer Margin="{DynamicResource SettingsContentMargin}" Classes="settingsContent">
+              <StackPanel x:Name="ThemesGroup">
+                <TextBlock Classes="settingsGroupTitle" Text="Themes" />
+                <Border Classes="settingsSection">
+                  <StackPanel>
+                    <TextBlock Classes="settingsSectionTitle" Text="Application theme" />
+                    <TextBlock Classes="settingsSectionDescription" Text="Choose the appearance used throughout HyperTerm." />
+                    <ListBox
+                        x:Name="ThemePicker"
+                        MaxWidth="520"
+                        HorizontalAlignment="Left"
+                        Classes="themePicker"
+                        ItemsSource="{Binding Settings.ThemeOptions}"
+                        SelectedItem="{Binding Settings.SettingsTheme, Mode=TwoWay}">
+                      <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="viewModels:ThemeOption">
+                          <Grid Margin="12" ColumnDefinitions="64,*">
+                            <Border
+                                Width="52"
+                                Height="34"
+                                VerticalAlignment="Center"
+                                Background="{Binding PreviewBackground}"
+                                BorderBrush="{DynamicResource BorderHoverBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4">
+                              <Grid RowDefinitions="8,*">
+                                <Border Background="{Binding PreviewHeader}" CornerRadius="3,3,0,0" />
+                                <Border Grid.Row="1" Width="12" HorizontalAlignment="Left" Background="{Binding PreviewSidebar}" CornerRadius="0,0,0,3" />
+                              </Grid>
+                            </Border>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                              <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
+                              <TextBlock Classes="secondary" Text="{Binding Description}" />
+                            </StackPanel>
+                          </Grid>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+            </ScrollViewer>
+          </TabItem>
+
           <TabItem Classes="settingsTab" Header="Profiles">
             <ScrollViewer Margin="{DynamicResource SettingsContentMargin}" Classes="settingsContent">
               <StackPanel x:Name="ProfilesGroup">
@@ -158,7 +203,7 @@
                               Width="360"
                               HorizontalAlignment="Left"
                               ItemsSource="{Binding Settings.SystemFontFamilies}"
-                              SelectedItem="{Binding Settings.SettingsTerminalFontFamily, Mode=TwoWay}" />
+                              SelectedIndex="{Binding Settings.SettingsTerminalFontFamilyIndex, Mode=TwoWay}" />
                         </StackPanel>
                         <StackPanel Grid.Column="2">
                           <TextBlock Classes="settingsLabel" Text="Font size" />

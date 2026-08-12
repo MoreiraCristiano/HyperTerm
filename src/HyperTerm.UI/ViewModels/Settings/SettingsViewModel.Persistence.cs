@@ -31,12 +31,13 @@ public sealed partial class SettingsViewModel
             double fontSize = Math.Clamp((double)SettingsTerminalFontSize, 8, 32);
             TerminalSelectionColorOption selectionColor =
                 FindSelectionColorOption(SettingsTerminalSelectionColor.Value);
+            ThemeOption theme = FindThemeOption(SettingsTheme.Value);
             string cursorStyle = NormalizeCursorStyle(SettingsTerminalCursorStyle);
             applicationSettings = applicationSettings with
             {
                 TerminalProfiles = profiles,
                 DefaultTerminalProfileId = DefaultTerminalProfileId,
-                Theme = "Dark",
+                Theme = theme.Value,
                 TerminalFontFamily = fontFamily,
                 TerminalFontSize = fontSize,
                 TerminalSelectionColor = selectionColor.Value,
@@ -50,7 +51,7 @@ public sealed partial class SettingsViewModel
             await settingsService.SaveAsync(applicationSettings);
             applicationLogService?.Configure(applicationSettings.CaptureLogs);
             LoadEditorValues();
-            themeService.Apply("Dark");
+            themeService.Apply(applicationSettings.Theme);
             SettingsError = null;
             IsSettingsOpen = false;
             SettingsSaved?.Invoke(applicationSettings);
@@ -68,8 +69,10 @@ public sealed partial class SettingsViewModel
     private void LoadEditorValues()
     {
         applicationSettings = TerminalProfileCatalog.Normalize(applicationSettings);
+        ThemeOption theme = FindThemeOption(applicationSettings.Theme);
+        applicationSettings = applicationSettings with { Theme = theme.Value };
         LoadTerminalProfiles(applicationSettings);
-        SettingsTheme = "Dark";
+        SettingsTheme = theme;
         SettingsTerminalFontFamily = applicationSettings.TerminalFontFamily;
         SettingsTerminalFontSize = (decimal)applicationSettings.TerminalFontSize;
         SettingsTerminalSelectionColor =
@@ -134,6 +137,8 @@ public sealed partial class SettingsViewModel
         {
             SystemFontFamilies.Insert(0, normalizedFontFamily);
         }
+
+        OnPropertyChanged(nameof(SettingsTerminalFontFamilyIndex));
     }
 
     private static string NormalizeCursorStyle(string? cursorStyle) =>
@@ -148,4 +153,16 @@ public sealed partial class SettingsViewModel
         TerminalSelectionColors.FirstOrDefault(option =>
             option.Value.Equals(value, StringComparison.OrdinalIgnoreCase))
         ?? TerminalSelectionColors[0];
+
+    private ThemeOption FindThemeOption(string? value)
+    {
+        if (string.Equals(value, "Dark", StringComparison.OrdinalIgnoreCase))
+        {
+            return DefaultTheme;
+        }
+
+        return ThemeOptions.FirstOrDefault(option =>
+            option.Value.Equals(value, StringComparison.OrdinalIgnoreCase))
+            ?? DefaultTheme;
+    }
 }

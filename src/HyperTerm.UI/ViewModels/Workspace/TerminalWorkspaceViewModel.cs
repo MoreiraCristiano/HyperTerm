@@ -153,7 +153,8 @@ public sealed partial class TerminalWorkspaceViewModel(
                 settings.TerminalFontSize,
                 settings.TerminalSelectionColor,
                 settings.TerminalCursorStyle,
-                settings.TerminalCursorBlink);
+                settings.TerminalCursorBlink,
+                settings.Theme);
         }
     }
 

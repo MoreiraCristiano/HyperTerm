@@ -321,7 +321,9 @@ internal sealed class FakeSettingsService(bool exists) : ISettingsService
 
 internal sealed class FakeThemeService : IThemeService
 {
-    public void Apply(string theme) { }
+    public List<string> AppliedThemes { get; } = [];
+
+    public void Apply(string theme) => AppliedThemes.Add(theme);
 }
 
 internal sealed class FakeExecutablePicker(string? selectedPath = null) : IExecutableFilePicker

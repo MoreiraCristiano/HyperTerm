@@ -34,6 +34,7 @@ public sealed partial class TerminalWorkspaceViewModel
                 settings.TerminalSelectionColor,
                 settings.TerminalCursorStyle,
                 settings.TerminalCursorBlink,
+                settings.Theme,
                 CloseTabAsync);
 
             AttachTab(tab);
@@ -88,6 +89,7 @@ public sealed partial class TerminalWorkspaceViewModel
                 settings.TerminalSelectionColor,
                 settings.TerminalCursorStyle,
                 settings.TerminalCursorBlink,
+                settings.Theme,
                 CloseTabAsync);
 
             AttachTab(tab);
@@ -193,6 +195,7 @@ public sealed partial class TerminalWorkspaceViewModel
             settings.TerminalSelectionColor,
             settings.TerminalCursorStyle,
             settings.TerminalCursorBlink,
+            settings.Theme,
             CloseTabAsync);
         AttachTab(tab);
     }

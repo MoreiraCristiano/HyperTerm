@@ -8,7 +8,7 @@ public sealed record ApplicationSettings
 
     public string DefaultTerminalProfileId { get; init; } = TerminalProfileIds.PowerShell;
 
-    public string Theme { get; init; } = "Dark";
+    public string Theme { get; init; } = "Default Dark";
 
     public string TerminalFontFamily { get; init; } = "Cascadia Mono";
 

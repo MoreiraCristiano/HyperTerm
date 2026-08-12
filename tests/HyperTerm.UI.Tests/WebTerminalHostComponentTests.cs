@@ -45,6 +45,7 @@ public sealed class WebTerminalScriptBridgeTests
         Assert.Contains(tab.Id.ToString("N"), script, StringComparison.Ordinal);
         Assert.Contains("\"fontFamily\":\"Cascadia Mono\"", script, StringComparison.Ordinal);
         Assert.Contains("\"cursorStyle\":\"bar\"", script, StringComparison.Ordinal);
+        Assert.Contains("\"theme\":\"Default Dark\"", script, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -77,6 +78,7 @@ public sealed class WebTerminalScriptBridgeTests
         "#123456",
         "Bar",
         true,
+        "Default Dark",
         _ => Task.CompletedTask);
 
     private sealed class UnusedPtySessionFactory : IPtySessionFactory

@@ -39,6 +39,7 @@ internal sealed class WebTerminalScriptBridge(Func<string, Task> invokeScript)
                 selectionBackground = tab.SelectionColor,
                 cursorStyle = tab.CursorStyle.ToLowerInvariant(),
                 cursorBlink = tab.CursorBlink,
+                theme = tab.Theme,
             },
         });
 

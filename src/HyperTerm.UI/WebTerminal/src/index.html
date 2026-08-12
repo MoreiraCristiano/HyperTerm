@@ -13,6 +13,30 @@
       --terminal-padding-bottom: 5px;
       --scrollbar-thumb: #3c3c3c;
       --scrollbar-hover: #555555;
+      --search-foreground: #e6e9ef;
+      --search-background: #292d33;
+      --search-border: #4b535d;
+      --search-input-background: #1e1e1e;
+      --search-input-border: #59636f;
+      --search-focus-border: #69a7e8;
+      --search-hover: #46515e;
+      --search-muted: #adb6c2;
+      --search-shadow: #0008;
+    }
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --terminal-background: #ffffff;
+      --scrollbar-thumb: #c5c5c5;
+      --scrollbar-hover: #a0a0a0;
+      --search-foreground: #1f1f1f;
+      --search-background: #f3f3f3;
+      --search-border: #d1d1d1;
+      --search-input-background: #ffffff;
+      --search-input-border: #a6a6a6;
+      --search-focus-border: #007acc;
+      --search-hover: #e1e1e1;
+      --search-muted: #5f5f5f;
+      --search-shadow: #0003;
     }
     html, body, #terminal-host { width: 100%; height: 100%; margin: 0; overflow: hidden; background: var(--terminal-background); }
     #terminal-host { position: relative; }
@@ -55,36 +79,36 @@
       align-items: center;
       gap: 4px;
       padding: 5px;
-      color: #e6e9ef;
-      background: #292d33;
-      border: 1px solid #4b535d;
+      color: var(--search-foreground);
+      background: var(--search-background);
+      border: 1px solid var(--search-border);
       border-radius: 5px;
-      box-shadow: 0 4px 14px #0008;
+      box-shadow: 0 4px 14px var(--search-shadow);
       font: 12px "Segoe UI", sans-serif;
     }
     #terminal-search.open { display: flex; }
     #terminal-search input {
       width: 220px;
       padding: 4px 7px;
-      color: #e6e9ef;
-      background: #1e1e1e;
-      border: 1px solid #59636f;
+      color: var(--search-foreground);
+      background: var(--search-input-background);
+      border: 1px solid var(--search-input-border);
       border-radius: 3px;
       outline: none;
       cursor: text !important;
     }
-    #terminal-search input:focus { border-color: #69a7e8; }
+    #terminal-search input:focus { border-color: var(--search-focus-border); }
     #terminal-search button {
       min-width: 27px;
       height: 27px;
       padding: 0 6px;
-      color: #e6e9ef;
+      color: var(--search-foreground);
       background: transparent;
       border: 0;
       border-radius: 3px;
     }
-    #terminal-search button:hover, #terminal-search button.active { background: #46515e; }
-    #terminal-search-results { min-width: 62px; text-align: center; color: #adb6c2; }
+    #terminal-search button:hover, #terminal-search button.active { background: var(--search-hover); }
+    #terminal-search-results { min-width: 62px; text-align: center; color: var(--search-muted); }
   </style>
 </head>
 <body>

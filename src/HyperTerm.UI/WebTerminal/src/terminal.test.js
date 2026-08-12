@@ -114,7 +114,8 @@ function createOptions() {
     cursorStyle: 'bar',
     fontFamily: 'Cascadia Mono',
     fontSize: 13,
-    selectionBackground: '#264F78'
+    selectionBackground: '#264F78',
+    theme: 'Default Dark'
   };
 }
 
@@ -141,6 +142,8 @@ describe('terminal host bridge', () => {
     expect(contextMenu.defaultPrevented).toBe(true);
     expect(terminalInstances[0].options.theme.selectionBackground).toBe('#264F78');
     expect(terminalInstances[0].options.theme.selectionInactiveBackground).toBe('#264F78');
+    expect(terminalInstances[0].options.theme.background).toBe('#1e1e1e');
+    expect(document.documentElement.dataset.theme).toBe('dark');
     terminalInstances[0].dataHandler('\u0003');
     expect(sent).toContainEqual({ type: 'input', tabId: 'a', data: '\u0003' });
   });
@@ -360,6 +363,26 @@ describe('terminal host bridge', () => {
     expect(terminalInstances[0].options.theme.selectionInactiveBackground).toBe('#007ACC');
     expect(terminalInstances[1].focused).toBe(true);
     expect(document.querySelector('[data-tab-id="a"]').classList.contains('active')).toBe(false);
+  });
+
+  it('applies light palette when terminals are created and reconfigured', async () => {
+    const { host } = await loadHost();
+    host.create({
+      tabId: 'a',
+      options: { ...createOptions(), theme: 'Default Light' }
+    });
+
+    expect(terminalInstances[0].options.theme.background).toBe('#ffffff');
+    expect(terminalInstances[0].options.theme.foreground).toBe('#1f1f1f');
+    expect(document.documentElement.dataset.theme).toBe('light');
+
+    host.configure({
+      tabId: 'a',
+      options: { ...createOptions(), theme: 'Default Dark' }
+    });
+
+    expect(terminalInstances[0].options.theme.background).toBe('#1e1e1e');
+    expect(document.documentElement.dataset.theme).toBe('dark');
   });
 
   it('skips fit for hidden or invalid terminals', async () => {

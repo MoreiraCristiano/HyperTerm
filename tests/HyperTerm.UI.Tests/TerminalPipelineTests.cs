@@ -151,5 +151,6 @@ public sealed class TerminalPipelineTests
             "#264F78",
             "Bar",
             true,
+            "Default Dark",
             _ => Task.CompletedTask);
 }

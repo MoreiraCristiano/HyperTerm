@@ -12,6 +12,9 @@ internal sealed class AvaloniaThemeService : IThemeService
             return;
         }
 
-        Application.Current.RequestedThemeVariant = ThemeVariant.Dark;
+        Application.Current.RequestedThemeVariant =
+            theme.Equals("Default Light", StringComparison.OrdinalIgnoreCase)
+                ? ThemeVariant.Light
+                : ThemeVariant.Dark;
     }
 }

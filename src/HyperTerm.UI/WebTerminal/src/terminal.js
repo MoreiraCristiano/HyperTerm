@@ -14,6 +14,81 @@ const searchCloseElement = document.getElementById('terminal-search-close');
 const terminals = new Map();
 let activeTabId = null;
 let resizeFrame = null;
+let activeTheme = 'dark';
+
+const terminalThemes = {
+  dark: {
+    background: '#1e1e1e',
+    foreground: '#e6e9ef',
+    cursor: '#e6e9ef',
+    black: '#000000',
+    red: '#cd3131',
+    green: '#0dbc79',
+    yellow: '#e5e510',
+    blue: '#2472c8',
+    magenta: '#bc3fbc',
+    cyan: '#11a8cd',
+    white: '#e5e5e5',
+    brightBlack: '#666666',
+    brightRed: '#f14c4c',
+    brightGreen: '#23d18b',
+    brightYellow: '#f5f543',
+    brightBlue: '#3b8eea',
+    brightMagenta: '#d670d6',
+    brightCyan: '#29b8db',
+    brightWhite: '#ffffff',
+    search: {
+      matchBackground: '#515c6a',
+      matchOverviewRuler: '#748496',
+      activeMatchBackground: '#d18616',
+      activeMatchColorOverviewRuler: '#d18616'
+    }
+  },
+  light: {
+    background: '#ffffff',
+    foreground: '#1f1f1f',
+    cursor: '#1f1f1f',
+    black: '#000000',
+    red: '#cd3131',
+    green: '#008000',
+    yellow: '#795e26',
+    blue: '#0451a5',
+    magenta: '#af00db',
+    cyan: '#0598bc',
+    white: '#e5e5e5',
+    brightBlack: '#666666',
+    brightRed: '#cd3131',
+    brightGreen: '#14ce14',
+    brightYellow: '#b5ba00',
+    brightBlue: '#0451a5',
+    brightMagenta: '#bc05bc',
+    brightCyan: '#0598bc',
+    brightWhite: '#a5a5a5',
+    search: {
+      matchBackground: '#c8def5',
+      matchOverviewRuler: '#6b9ac4',
+      activeMatchBackground: '#f6c177',
+      activeMatchColorOverviewRuler: '#c77700'
+    }
+  }
+};
+
+function resolveTheme(theme) {
+  return typeof theme === 'string' && theme.toLowerCase() === 'default light'
+    ? 'light'
+    : 'dark';
+}
+
+function applyHostTheme(theme) {
+  activeTheme = resolveTheme(theme);
+  document.documentElement.dataset.theme = activeTheme;
+  return terminalThemes[activeTheme];
+}
+
+function xtermTheme(palette) {
+  const { search: _, ...theme } = palette;
+  return theme;
+}
 
 function send(message) {
   if (typeof invokeCSharpAction === 'function') {
@@ -32,6 +107,7 @@ function createTerminal({ tabId, options }) {
   element.addEventListener('contextmenu', event => event.preventDefault());
   terminalHostElement.appendChild(element);
 
+  const palette = applyHostTheme(options.theme);
   const fitAddon = new FitAddon();
   const searchAddon = new SearchAddon();
   const terminal = new Terminal({
@@ -43,9 +119,7 @@ function createTerminal({ tabId, options }) {
     scrollback: 5000,
     allowTransparency: false,
     theme: {
-      background: '#1e1e1e',
-      foreground: '#e6e9ef',
-      cursor: '#e6e9ef',
+      ...xtermTheme(palette),
       selectionBackground: options.selectionBackground,
       selectionInactiveBackground: options.selectionBackground
     }
@@ -195,10 +269,11 @@ function configureTerminal({ tabId, options }) {
     return;
   }
 
+  const palette = applyHostTheme(options.theme);
   state.terminal.options.fontFamily = options.fontFamily;
   state.terminal.options.fontSize = options.fontSize;
   state.terminal.options.theme = {
-    ...state.terminal.options.theme,
+    ...xtermTheme(palette),
     selectionBackground: options.selectionBackground,
     selectionInactiveBackground: options.selectionBackground
   };
@@ -232,14 +307,12 @@ function focusTerminal(tabId) {
 }
 
 function searchOptions() {
+  const search = terminalThemes[activeTheme].search;
   return {
     caseSensitive: searchCaseElement.classList.contains('active'),
     incremental: true,
     decorations: {
-      matchBackground: '#515c6a',
-      matchOverviewRuler: '#748496',
-      activeMatchBackground: '#d18616',
-      activeMatchColorOverviewRuler: '#d18616'
+      ...search
     }
   };
 }

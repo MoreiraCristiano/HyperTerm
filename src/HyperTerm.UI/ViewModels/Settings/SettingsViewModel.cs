@@ -25,6 +25,20 @@ public sealed partial class SettingsViewModel(
     ILogger<SettingsViewModel>? logger = null,
     ITerminalProfileResolver? terminalProfileResolver = null) : ViewModelBase, IDisposable
 {
+    private static readonly ThemeOption DefaultTheme = new(
+        "Default Dark",
+        "Default Dark",
+        "HyperTerm's original dark appearance.",
+        "#1E1E1E",
+        "#252526",
+        "#2D2D30");
+    private static readonly ThemeOption DefaultLightTheme = new(
+        "Default Light",
+        "Default Light",
+        "A neutral light appearance inspired by Windows.",
+        "#F3F3F3",
+        "#E9E9E9",
+        "#FFFFFF");
     private ApplicationSettings applicationSettings = new();
     private bool windowStateChanged;
     private CancellationTokenSource? logPollingCancellation;
@@ -37,7 +51,8 @@ public sealed partial class SettingsViewModel(
 
     public ApplicationSettings Current => applicationSettings;
     public WindowSettings WindowSettings => applicationSettings.Window;
-    public IReadOnlyList<string> ThemeOptions { get; } = ["Dark"];
+    public IReadOnlyList<ThemeOption> ThemeOptions { get; } =
+        [DefaultTheme, DefaultLightTheme];
     public IReadOnlyList<string> TerminalCursorStyles { get; } =
         ["Bar", "Block", "Underline"];
     public IReadOnlyList<TerminalSelectionColorOption> TerminalSelectionColors { get; } =
@@ -63,10 +78,22 @@ public sealed partial class SettingsViewModel(
     private string defaultTerminalProfileId = TerminalProfileIds.PowerShell;
 
     [ObservableProperty]
-    private string settingsTheme = "Dark";
+    private ThemeOption settingsTheme = DefaultTheme;
 
     [ObservableProperty]
     private string settingsTerminalFontFamily = "Cascadia Mono";
+
+    public int SettingsTerminalFontFamilyIndex
+    {
+        get => SystemFontFamilies.IndexOf(SettingsTerminalFontFamily);
+        set
+        {
+            if (value >= 0 && value < SystemFontFamilies.Count)
+            {
+                SettingsTerminalFontFamily = SystemFontFamilies[value];
+            }
+        }
+    }
 
     [ObservableProperty]
     private decimal settingsTerminalFontSize = 13;
@@ -108,6 +135,9 @@ public sealed partial class SettingsViewModel(
     partial void OnSettingsDataStatusChanged(string? value) =>
         OnPropertyChanged(nameof(HasSettingsDataStatus));
 
+    partial void OnSettingsTerminalFontFamilyChanged(string value) =>
+        OnPropertyChanged(nameof(SettingsTerminalFontFamilyIndex));
+
     partial void OnLogContentChanged(string value)
     {
         OnPropertyChanged(nameof(HasLogContent));
@@ -135,7 +165,7 @@ public sealed partial class SettingsViewModel(
 
             LoadSystemFonts(applicationSettings.TerminalFontFamily);
             LoadEditorValues();
-            themeService.Apply(SettingsTheme);
+            themeService.Apply(SettingsTheme.Value);
         }
         catch (Exception exception) when (
             exception is IOException or System.Text.Json.JsonException)
