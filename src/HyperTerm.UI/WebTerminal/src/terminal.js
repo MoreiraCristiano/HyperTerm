@@ -46,7 +46,8 @@ function createTerminal({ tabId, options }) {
       background: '#1e1e1e',
       foreground: '#e6e9ef',
       cursor: '#e6e9ef',
-      selectionBackground: options.selectionBackground
+      selectionBackground: options.selectionBackground,
+      selectionInactiveBackground: '#875a16'
     }
   });
 
@@ -57,6 +58,7 @@ function createTerminal({ tabId, options }) {
     fitAddon,
     searchAddon,
     searchResultsDisposable: null,
+    lastSearchResults: null,
     webglAddon: null,
     webglContextLossDisposable: null,
     webglDisabled: false,
@@ -68,8 +70,11 @@ function createTerminal({ tabId, options }) {
   terminal.loadAddon(fitAddon);
   terminal.loadAddon(searchAddon);
   state.searchResultsDisposable = searchAddon.onDidChangeResults(results => {
+    state.lastSearchResults = results;
     if (activeTabId === tabId && searchBarElement.classList.contains('open')) {
-      updateSearchResults(results);
+      if (results.resultCount > 0 && results.resultIndex >= 0) {
+        updateSearchResults(results);
+      }
     }
   });
   terminal.open(element);
@@ -271,9 +276,33 @@ function runSearch(forward) {
     return false;
   }
 
-  return forward
-    ? state.searchAddon.findNext(query, searchOptions())
-    : state.searchAddon.findPrevious(query, searchOptions());
+  const find = options => forward
+    ? state.searchAddon.findNext(query, options)
+    : state.searchAddon.findPrevious(query, options);
+  state.lastSearchResults = null;
+  let found;
+  try {
+    found = find(searchOptions());
+  } catch {
+    state.searchAddon.clearDecorations();
+    state.lastSearchResults = null;
+    try {
+      found = find({
+        caseSensitive: searchCaseElement.classList.contains('active'),
+        incremental: true
+      });
+    } catch {
+      found = false;
+    }
+  }
+
+  const results = state.lastSearchResults;
+  if (results?.resultCount > 0 && results.resultIndex >= 0) {
+    updateSearchResults(results);
+  } else {
+    searchResultsElement.textContent = found ? 'Found' : 'No results';
+  }
+  return found;
 }
 
 function updateSearchResults({ resultIndex, resultCount }) {

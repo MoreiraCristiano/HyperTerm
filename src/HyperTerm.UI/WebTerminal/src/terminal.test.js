@@ -5,6 +5,9 @@ const webglInstances = [];
 const searchInstances = [];
 let throwWebglConstructor = false;
 let throwWebglDispose = false;
+let searchResult = true;
+let throwSearchDecorations = false;
+let searchResultsDuringFind = null;
 
 vi.mock('@xterm/xterm', () => ({
   Terminal: class {
@@ -63,8 +66,18 @@ vi.mock('@xterm/addon-search', () => ({
       this.resultsHandler = handler;
       return { dispose: () => { this.listenerDisposed = true; } };
     }
-    findNext(term, options) { this.next = { term, options }; return true; }
-    findPrevious(term, options) { this.previous = { term, options }; return true; }
+    findNext(term, options) {
+      this.next = { term, options };
+      if (throwSearchDecorations && options.decorations) throw new Error('markers unavailable');
+      if (searchResultsDuringFind) this.resultsHandler(searchResultsDuringFind);
+      return searchResult;
+    }
+    findPrevious(term, options) {
+      this.previous = { term, options };
+      if (throwSearchDecorations && options.decorations) throw new Error('markers unavailable');
+      if (searchResultsDuringFind) this.resultsHandler(searchResultsDuringFind);
+      return searchResult;
+    }
     clearDecorations() { this.cleared = true; }
   }
 }));
@@ -112,6 +125,9 @@ describe('terminal host bridge', () => {
     searchInstances.length = 0;
     throwWebglConstructor = false;
     throwWebglDispose = false;
+    searchResult = true;
+    throwSearchDecorations = false;
+    searchResultsDuringFind = null;
   });
 
   it('creates one isolated terminal per tab and forwards raw input', async () => {
@@ -206,11 +222,10 @@ describe('terminal host bridge', () => {
 
     host.openSearch('a');
     const input = document.getElementById('terminal-search-input');
+    searchResultsDuringFind = { resultIndex: 1, resultCount: 3 };
     input.value = 'Needle';
     input.dispatchEvent(new Event('input'));
     expect(searchInstances[0].next.term).toBe('Needle');
-
-    searchInstances[0].resultsHandler({ resultIndex: 1, resultCount: 3 });
     expect(document.getElementById('terminal-search-results').textContent).toBe('2/3');
 
     input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', shiftKey: true }));
@@ -226,6 +241,28 @@ describe('terminal host bridge', () => {
     expect(searchInstances[0].next.term).toBe('Needle');
     document.getElementById('terminal-search-close').click();
     expect(document.getElementById('terminal-search').classList.contains('open')).toBe(false);
+  });
+
+  it('reports no results and falls back when search decorations fail', async () => {
+    const { host } = await loadHost();
+    host.create({ tabId: 'a', options: createOptions() });
+    host.activate('a');
+    host.openSearch('a');
+    const input = document.getElementById('terminal-search-input');
+
+    searchResult = false;
+    searchResultsDuringFind = { resultIndex: -1, resultCount: 0 };
+    input.value = 'Missing';
+    input.dispatchEvent(new Event('input'));
+    expect(document.getElementById('terminal-search-results').textContent).toBe('No results');
+
+    searchResult = true;
+    throwSearchDecorations = true;
+    input.value = 'Fallback';
+    input.dispatchEvent(new Event('input'));
+    expect(searchInstances[0].next.term).toBe('Fallback');
+    expect(searchInstances[0].next.options.decorations).toBeUndefined();
+    expect(document.getElementById('terminal-search-results').textContent).toBe('Found');
   });
 
   it('clears search on escape, tab switch, and disposal', async () => {
