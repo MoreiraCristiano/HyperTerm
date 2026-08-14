@@ -46,6 +46,27 @@ public sealed partial class SettingsViewModel(
         "#2B2B2B",
         "#292A2C",
         "#343537");
+    private static readonly ThemeOption MintaraTheme = new(
+        "Mintara",
+        "Mintara",
+        "A calm, modern dark appearance with a restrained mint accent.",
+        "#161B1A",
+        "#1B211F",
+        "#202624");
+    private static readonly ThemeOption VesperTheme = new(
+        "Vesper",
+        "Vesper",
+        "A sophisticated dark appearance with deep violet undertones.",
+        "#17151C",
+        "#1D1A24",
+        "#221E2A");
+    private static readonly ThemeOption AbyssTheme = new(
+        "Abyss",
+        "Abyss",
+        "A deep navy appearance inspired by oceanic and nocturnal tones.",
+        "#0D1117",
+        "#111820",
+        "#161D27");
     private ApplicationSettings applicationSettings = new();
     private bool windowStateChanged;
     private CancellationTokenSource? logPollingCancellation;
@@ -59,7 +80,7 @@ public sealed partial class SettingsViewModel(
     public ApplicationSettings Current => applicationSettings;
     public WindowSettings WindowSettings => applicationSettings.Window;
     public IReadOnlyList<ThemeOption> ThemeOptions { get; } =
-        [DefaultTheme, DarculaTheme, DefaultLightTheme];
+        [DefaultTheme, DarculaTheme, MintaraTheme, VesperTheme, AbyssTheme, DefaultLightTheme];
     public IReadOnlyList<string> TerminalCursorStyles { get; } =
         ["Bar", "Block", "Underline"];
     public IReadOnlyList<TerminalSelectionColorOption> TerminalSelectionColors { get; } =

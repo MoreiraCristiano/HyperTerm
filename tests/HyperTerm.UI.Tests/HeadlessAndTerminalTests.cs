@@ -136,6 +136,207 @@ public sealed class AvaloniaHeadlessTests
 
     [AvaloniaFact]
     [Trait("Category", "Headless")]
+    public void Mintara_exposes_the_complete_semantic_palette()
+    {
+        var service = new AvaloniaThemeService();
+        var window = new Window();
+        window.Styles.Add(new StyleInclude((Uri?)null)
+        {
+            Source = new Uri("avares://HyperTerm/Styles/DesignSystem.axaml"),
+        });
+        window.Show();
+
+        service.Apply("Mintara");
+
+        Assert.Equal(
+            ApplicationThemeVariants.Mintara,
+            Avalonia.Application.Current!.RequestedThemeVariant);
+        Dictionary<string, string> expectedColors = new()
+        {
+            ["AppBackgroundBrush"] = "#161B1A",
+            ["SecondaryBackgroundBrush"] = "#1B211F",
+            ["PanelBackgroundBrush"] = "#202624",
+            ["CardBackgroundBrush"] = "#242B29",
+            ["HeaderBackgroundBrush"] = "#1B211F",
+            ["InputBackgroundBrush"] = "#181E1C",
+            ["BorderBrush"] = "#343D3A",
+            ["BorderHoverBrush"] = "#4A5753",
+            ["BorderFocusBrush"] = "#70CFA9",
+            ["HoverBackgroundBrush"] = "#29322F",
+            ["NavigationHoverBackgroundBrush"] = "#29322F",
+            ["PressedBackgroundBrush"] = "#303B37",
+            ["SelectionBackgroundBrush"] = "#315C4D",
+            ["SelectionForegroundBrush"] = "#E4F2EC",
+            ["AccentBrush"] = "#70CFA9",
+            ["AccentForegroundBrush"] = "#102019",
+            ["AccentHoverBrush"] = "#82D9B6",
+            ["AccentPressedBrush"] = "#5DBD98",
+            ["PrimaryTextBrush"] = "#D7E0DC",
+            ["MutedTextBrush"] = "#8F9D98",
+            ["DisabledForegroundBrush"] = "#65706C",
+            ["DisabledBackgroundBrush"] = "#202624",
+            ["DangerBrush"] = "#E06C75",
+            ["DangerBackgroundBrush"] = "#3B2428",
+            ["DangerHoverBackgroundBrush"] = "#4A2B31",
+            ["DangerPressedBackgroundBrush"] = "#E06C75",
+            ["DangerForegroundBrush"] = "#161B1A",
+            ["WarningBrush"] = "#D9B76E",
+            ["SuccessBrush"] = "#70CFA9",
+            ["OverlayBrush"] = "#B3000000",
+            ["ScrollbarBrush"] = "#343D3A",
+            ["ScrollbarHoverBrush"] = "#53615C",
+            ["FocusRingBrush"] = "#82D9B6",
+        };
+        foreach ((string key, string color) in expectedColors)
+        {
+            Assert.True(window.TryGetResource(
+                key,
+                ApplicationThemeVariants.Mintara,
+                out object? resource));
+            Assert.Equal(
+                Color.Parse(color),
+                Assert.IsType<SolidColorBrush>(resource).Color);
+        }
+
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    [Trait("Category", "Headless")]
+    public void Vesper_exposes_the_complete_semantic_palette()
+    {
+        var service = new AvaloniaThemeService();
+        var window = new Window();
+        window.Styles.Add(new StyleInclude((Uri?)null)
+        {
+            Source = new Uri("avares://HyperTerm/Styles/DesignSystem.axaml"),
+        });
+        window.Show();
+
+        service.Apply("Vesper");
+
+        Assert.Equal(
+            ApplicationThemeVariants.Vesper,
+            Avalonia.Application.Current!.RequestedThemeVariant);
+        Dictionary<string, string> expectedColors = new()
+        {
+            ["AppBackgroundBrush"] = "#17151C",
+            ["SecondaryBackgroundBrush"] = "#1D1A24",
+            ["PanelBackgroundBrush"] = "#221E2A",
+            ["CardBackgroundBrush"] = "#282330",
+            ["HeaderBackgroundBrush"] = "#1D1A24",
+            ["InputBackgroundBrush"] = "#1A171F",
+            ["BorderBrush"] = "#393241",
+            ["BorderHoverBrush"] = "#554A61",
+            ["BorderFocusBrush"] = "#A277C7",
+            ["HoverBackgroundBrush"] = "#302A39",
+            ["NavigationHoverBackgroundBrush"] = "#302A39",
+            ["PressedBackgroundBrush"] = "#393143",
+            ["SelectionBackgroundBrush"] = "#493665",
+            ["SelectionForegroundBrush"] = "#F1EAF7",
+            ["AccentBrush"] = "#A277C7",
+            ["AccentForegroundBrush"] = "#FFFFFF",
+            ["AccentHoverBrush"] = "#B58AD7",
+            ["AccentPressedBrush"] = "#8D63B3",
+            ["PrimaryTextBrush"] = "#DDD7E3",
+            ["MutedTextBrush"] = "#958D9E",
+            ["DisabledForegroundBrush"] = "#69626F",
+            ["DisabledBackgroundBrush"] = "#211D27",
+            ["DangerBrush"] = "#DF707A",
+            ["DangerBackgroundBrush"] = "#3C242B",
+            ["DangerHoverBackgroundBrush"] = "#4B2A33",
+            ["DangerPressedBackgroundBrush"] = "#DF707A",
+            ["DangerForegroundBrush"] = "#17151C",
+            ["WarningBrush"] = "#D7AE69",
+            ["SuccessBrush"] = "#72B99A",
+            ["OverlayBrush"] = "#B3000000",
+            ["ScrollbarBrush"] = "#393241",
+            ["ScrollbarHoverBrush"] = "#62566E",
+            ["FocusRingBrush"] = "#B58AD7",
+        };
+        foreach ((string key, string color) in expectedColors)
+        {
+            Assert.True(window.TryGetResource(
+                key,
+                ApplicationThemeVariants.Vesper,
+                out object? resource));
+            Assert.Equal(
+                Color.Parse(color),
+                Assert.IsType<SolidColorBrush>(resource).Color);
+        }
+
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    [Trait("Category", "Headless")]
+    public void Abyss_exposes_the_complete_semantic_palette()
+    {
+        var service = new AvaloniaThemeService();
+        var window = new Window();
+        window.Styles.Add(new StyleInclude((Uri?)null)
+        {
+            Source = new Uri("avares://HyperTerm/Styles/DesignSystem.axaml"),
+        });
+        window.Show();
+
+        service.Apply("Abyss");
+
+        Assert.Equal(
+            ApplicationThemeVariants.Abyss,
+            Avalonia.Application.Current!.RequestedThemeVariant);
+        Dictionary<string, string> expectedColors = new()
+        {
+            ["AppBackgroundBrush"] = "#0D1117",
+            ["SecondaryBackgroundBrush"] = "#111820",
+            ["PanelBackgroundBrush"] = "#161D27",
+            ["CardBackgroundBrush"] = "#1B2430",
+            ["HeaderBackgroundBrush"] = "#111820",
+            ["InputBackgroundBrush"] = "#0F151D",
+            ["BorderBrush"] = "#293544",
+            ["BorderHoverBrush"] = "#42546A",
+            ["BorderFocusBrush"] = "#58A6FF",
+            ["HoverBackgroundBrush"] = "#1D2936",
+            ["NavigationHoverBackgroundBrush"] = "#1D2936",
+            ["PressedBackgroundBrush"] = "#253547",
+            ["SelectionBackgroundBrush"] = "#234A70",
+            ["SelectionForegroundBrush"] = "#E6F2FF",
+            ["AccentBrush"] = "#58A6FF",
+            ["AccentForegroundBrush"] = "#08111C",
+            ["AccentHoverBrush"] = "#79B8FF",
+            ["AccentPressedBrush"] = "#388BFD",
+            ["PrimaryTextBrush"] = "#D6E2EE",
+            ["MutedTextBrush"] = "#8294A6",
+            ["DisabledForegroundBrush"] = "#5D6B78",
+            ["DisabledBackgroundBrush"] = "#151C25",
+            ["DangerBrush"] = "#E06C75",
+            ["DangerBackgroundBrush"] = "#37232A",
+            ["DangerHoverBackgroundBrush"] = "#472A33",
+            ["DangerPressedBackgroundBrush"] = "#E06C75",
+            ["DangerForegroundBrush"] = "#0D1117",
+            ["WarningBrush"] = "#D7B66F",
+            ["SuccessBrush"] = "#65C89B",
+            ["OverlayBrush"] = "#B3000000",
+            ["ScrollbarBrush"] = "#293544",
+            ["ScrollbarHoverBrush"] = "#4B6075",
+            ["FocusRingBrush"] = "#79B8FF",
+        };
+        foreach ((string key, string color) in expectedColors)
+        {
+            Assert.True(window.TryGetResource(
+                key,
+                ApplicationThemeVariants.Abyss,
+                out object? resource));
+            Assert.Equal(
+                Color.Parse(color),
+                Assert.IsType<SolidColorBrush>(resource).Color);
+        }
+
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    [Trait("Category", "Headless")]
     public void Pointer_over_applies_hover_background_and_restores_normal_background()
     {
         Avalonia.Application.Current!.RequestedThemeVariant =

@@ -77,6 +77,96 @@ const terminalThemes = {
       activeMatchColorOverviewRuler: '#cc7832'
     }
   },
+  mintara: {
+    background: '#161b1a',
+    foreground: '#d7e0dc',
+    cursor: '#70cfa9',
+    cursorAccent: '#161b1a',
+    black: '#202624',
+    red: '#e06c75',
+    green: '#70cfa9',
+    yellow: '#d9b76e',
+    blue: '#6fa8dc',
+    magenta: '#b58bd2',
+    cyan: '#68c5c0',
+    white: '#c8d2ce',
+    brightBlack: '#66736e',
+    brightRed: '#ed858d',
+    brightGreen: '#89ddbb',
+    brightYellow: '#e6c985',
+    brightBlue: '#86b8e5',
+    brightMagenta: '#c5a0dc',
+    brightCyan: '#82d4cf',
+    brightWhite: '#eef3f1',
+    selection: '#315c4d',
+    selectionForeground: '#e4f2ec',
+    search: {
+      matchBackground: '#315c4d',
+      matchOverviewRuler: '#53615c',
+      activeMatchBackground: '#d9b76e',
+      activeMatchColorOverviewRuler: '#d9b76e'
+    }
+  },
+  vesper: {
+    background: '#17151c',
+    foreground: '#ddd7e3',
+    cursor: '#b58ad7',
+    cursorAccent: '#17151c',
+    black: '#211d27',
+    red: '#df707a',
+    green: '#72b99a',
+    yellow: '#d7ae69',
+    blue: '#7697d0',
+    magenta: '#a277c7',
+    cyan: '#70b7bc',
+    white: '#cfc8d5',
+    brightBlack: '#716978',
+    brightRed: '#ea8991',
+    brightGreen: '#8ac9ac',
+    brightYellow: '#e3c17f',
+    brightBlue: '#8caae0',
+    brightMagenta: '#bc91dc',
+    brightCyan: '#89c9cd',
+    brightWhite: '#f2edf5',
+    selection: '#493665',
+    selectionForeground: '#f1eaf7',
+    search: {
+      matchBackground: '#493665',
+      matchOverviewRuler: '#62566e',
+      activeMatchBackground: '#d7ae69',
+      activeMatchColorOverviewRuler: '#d7ae69'
+    }
+  },
+  abyss: {
+    background: '#0d1117',
+    foreground: '#d6e2ee',
+    cursor: '#79b8ff',
+    cursorAccent: '#0d1117',
+    black: '#161d27',
+    red: '#e06c75',
+    green: '#65c89b',
+    yellow: '#d7b66f',
+    blue: '#58a6ff',
+    magenta: '#a88bd4',
+    cyan: '#56c7d9',
+    white: '#c5d2df',
+    brightBlack: '#617386',
+    brightRed: '#eb858d',
+    brightGreen: '#7cd7ae',
+    brightYellow: '#e4c782',
+    brightBlue: '#79b8ff',
+    brightMagenta: '#bda1e0',
+    brightCyan: '#75d8e6',
+    brightWhite: '#f0f6fc',
+    selection: '#234a70',
+    selectionForeground: '#e6f2ff',
+    search: {
+      matchBackground: '#234a70',
+      matchOverviewRuler: '#4b6075',
+      activeMatchBackground: '#d7b66f',
+      activeMatchColorOverviewRuler: '#d7b66f'
+    }
+  },
   light: {
     background: '#fafaf9',
     foreground: '#202428',
@@ -115,6 +205,9 @@ function resolveTheme(theme) {
   switch (theme.toLowerCase()) {
     case 'default light': return 'light';
     case 'darcula': return 'darcula';
+    case 'mintara': return 'mintara';
+    case 'vesper': return 'vesper';
+    case 'abyss': return 'abyss';
     default: return 'dark';
   }
 }

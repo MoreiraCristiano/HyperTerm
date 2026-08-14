@@ -430,6 +430,136 @@ describe('terminal host bridge', () => {
     expect(terminalInstances[0].options.theme.selectionInactiveBackground).toBe('#275D4E');
   });
 
+  it('applies Mintara palette, search, and theme selection', async () => {
+    const { host } = await loadHost();
+    host.create({
+      tabId: 'a',
+      options: {
+        ...createOptions(),
+        theme: 'Mintara',
+        selectionBackground: 'Theme'
+      }
+    });
+
+    const theme = terminalInstances[0].options.theme;
+    expect(theme.background).toBe('#161b1a');
+    expect(theme.foreground).toBe('#d7e0dc');
+    expect(theme.cursor).toBe('#70cfa9');
+    expect(theme.cursorAccent).toBe('#161b1a');
+    expect(theme.green).toBe('#70cfa9');
+    expect(theme.blue).toBe('#6fa8dc');
+    expect(theme.cyan).toBe('#68c5c0');
+    expect(theme.brightGreen).toBe('#89ddbb');
+    expect(theme.brightBlue).toBe('#86b8e5');
+    expect(theme.brightCyan).toBe('#82d4cf');
+    expect(theme.green).not.toBe(theme.cyan);
+    expect(theme.blue).not.toBe(theme.cyan);
+    expect(theme.brightGreen).not.toBe(theme.green);
+    expect(theme.brightWhite).not.toBe(theme.white);
+    expect(theme.foreground).not.toBe(theme.white);
+    expect(theme.selectionForeground).toBe('#e4f2ec');
+    expect(theme.selectionBackground).toBe('#315c4d');
+    expect(theme.selectionInactiveBackground).toBe('#315c4d');
+    expect(theme.selection).toBeUndefined();
+    expect(document.documentElement.dataset.theme).toBe('mintara');
+
+    host.activate('a');
+    document.getElementById('terminal-search-input').value = 'mint';
+    host.openSearch('a');
+
+    expect(searchInstances[0].next.options.decorations.matchBackground).toBe('#315c4d');
+    expect(searchInstances[0].next.options.decorations.matchOverviewRuler).toBe('#53615c');
+    expect(searchInstances[0].next.options.decorations.activeMatchBackground).toBe('#d9b76e');
+  });
+
+  it('applies Vesper palette, search, and theme selection', async () => {
+    const { host } = await loadHost();
+    host.create({
+      tabId: 'a',
+      options: {
+        ...createOptions(),
+        theme: 'Vesper',
+        selectionBackground: 'Theme'
+      }
+    });
+
+    const theme = terminalInstances[0].options.theme;
+    expect(theme.background).toBe('#17151c');
+    expect(theme.foreground).toBe('#ddd7e3');
+    expect(theme.cursor).toBe('#b58ad7');
+    expect(theme.cursorAccent).toBe('#17151c');
+    expect(theme.green).toBe('#72b99a');
+    expect(theme.blue).toBe('#7697d0');
+    expect(theme.magenta).toBe('#a277c7');
+    expect(theme.cyan).toBe('#70b7bc');
+    expect(theme.brightGreen).toBe('#8ac9ac');
+    expect(theme.brightBlue).toBe('#8caae0');
+    expect(theme.brightMagenta).toBe('#bc91dc');
+    expect(theme.brightCyan).toBe('#89c9cd');
+    expect(theme.blue).not.toBe(theme.magenta);
+    expect(theme.magenta).not.toBe(theme.brightMagenta);
+    expect(theme.green).not.toBe(theme.cyan);
+    expect(theme.foreground).not.toBe(theme.white);
+    expect(theme.white).not.toBe(theme.brightWhite);
+    expect(theme.selectionForeground).toBe('#f1eaf7');
+    expect(theme.selectionBackground).toBe('#493665');
+    expect(theme.selectionInactiveBackground).toBe('#493665');
+    expect(theme.selection).toBeUndefined();
+    expect(document.documentElement.dataset.theme).toBe('vesper');
+
+    host.activate('a');
+    document.getElementById('terminal-search-input').value = 'violet';
+    host.openSearch('a');
+
+    expect(searchInstances[0].next.options.decorations.matchBackground).toBe('#493665');
+    expect(searchInstances[0].next.options.decorations.matchOverviewRuler).toBe('#62566e');
+    expect(searchInstances[0].next.options.decorations.activeMatchBackground).toBe('#d7ae69');
+  });
+
+  it('applies Abyss palette, search, and theme selection', async () => {
+    const { host } = await loadHost();
+    host.create({
+      tabId: 'a',
+      options: {
+        ...createOptions(),
+        theme: 'Abyss',
+        selectionBackground: 'Theme'
+      }
+    });
+
+    const theme = terminalInstances[0].options.theme;
+    expect(theme.background).toBe('#0d1117');
+    expect(theme.foreground).toBe('#d6e2ee');
+    expect(theme.cursor).toBe('#79b8ff');
+    expect(theme.cursorAccent).toBe('#0d1117');
+    expect(theme.green).toBe('#65c89b');
+    expect(theme.blue).toBe('#58a6ff');
+    expect(theme.magenta).toBe('#a88bd4');
+    expect(theme.cyan).toBe('#56c7d9');
+    expect(theme.brightGreen).toBe('#7cd7ae');
+    expect(theme.brightBlue).toBe('#79b8ff');
+    expect(theme.brightCyan).toBe('#75d8e6');
+    expect(theme.blue).not.toBe(theme.cyan);
+    expect(theme.blue).not.toBe(theme.brightBlue);
+    expect(theme.cyan).not.toBe(theme.brightCyan);
+    expect(theme.green).not.toBe(theme.cyan);
+    expect(theme.foreground).not.toBe(theme.white);
+    expect(theme.white).not.toBe(theme.brightWhite);
+    expect(theme.selectionForeground).toBe('#e6f2ff');
+    expect(theme.selectionBackground).toBe('#234a70');
+    expect(theme.selectionInactiveBackground).toBe('#234a70');
+    expect(theme.selection).toBeUndefined();
+    expect(document.documentElement.dataset.theme).toBe('abyss');
+
+    host.activate('a');
+    document.getElementById('terminal-search-input').value = 'ocean';
+    host.openSearch('a');
+
+    expect(searchInstances[0].next.options.decorations.matchBackground).toBe('#234a70');
+    expect(searchInstances[0].next.options.decorations.matchOverviewRuler).toBe('#4b6075');
+    expect(searchInstances[0].next.options.decorations.activeMatchBackground).toBe('#d7b66f');
+  });
+
   it('follows each theme selection color when reconfigured', async () => {
     const { host } = await loadHost();
     host.create({

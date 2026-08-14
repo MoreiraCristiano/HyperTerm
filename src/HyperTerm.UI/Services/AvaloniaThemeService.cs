@@ -18,6 +18,12 @@ internal sealed class AvaloniaThemeService : IThemeService
                 ThemeVariant.Light,
             string value when value.Equals("Darcula", StringComparison.OrdinalIgnoreCase) =>
                 ApplicationThemeVariants.Darcula,
+            string value when value.Equals("Mintara", StringComparison.OrdinalIgnoreCase) =>
+                ApplicationThemeVariants.Mintara,
+            string value when value.Equals("Vesper", StringComparison.OrdinalIgnoreCase) =>
+                ApplicationThemeVariants.Vesper,
+            string value when value.Equals("Abyss", StringComparison.OrdinalIgnoreCase) =>
+                ApplicationThemeVariants.Abyss,
             _ => ThemeVariant.Dark,
         };
     }

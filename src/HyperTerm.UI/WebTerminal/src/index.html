@@ -17,7 +17,8 @@
       --search-background: #292d33;
       --search-border: #4b535d;
       --search-input-background: #1e1e1e;
-      --search-input-border: #59636f;
+      --search-input-border: #3c3c3c;
+      --search-input-hover-border: #5a5a5e;
       --search-focus-border: #69a7e8;
       --search-hover: #46515e;
       --search-active: #264f78;
@@ -34,7 +35,8 @@
       --search-background: #fafafb;
       --search-border: #c9ced4;
       --search-input-background: #ffffff;
-      --search-input-border: #9ba4ae;
+      --search-input-border: #c9ced4;
+      --search-input-hover-border: #9ba4ae;
       --search-focus-border: #2f77aa;
       --search-hover: #e3e7eb;
       --search-active: #c7ddf2;
@@ -51,12 +53,67 @@
       --search-background: #343537;
       --search-border: #4b4d50;
       --search-input-background: #292a2c;
-      --search-input-border: #686b70;
+      --search-input-border: #4b4d50;
+      --search-input-hover-border: #686b70;
       --search-focus-border: #6897bb;
       --search-hover: #404244;
       --search-active: #214283;
       --search-active-foreground: #d5e5f3;
       --search-muted: #969fa7;
+      --search-shadow: #0009;
+    }
+    :root[data-theme="mintara"] {
+      color-scheme: dark;
+      --terminal-background: #161b1a;
+      --scrollbar-thumb: #343d3a;
+      --scrollbar-hover: #53615c;
+      --search-foreground: #d7e0dc;
+      --search-background: #202624;
+      --search-border: #343d3a;
+      --search-input-background: #181e1c;
+      --search-input-border: #343d3a;
+      --search-input-hover-border: #4a5753;
+      --search-focus-border: #70cfa9;
+      --search-hover: #29322f;
+      --search-active: #315c4d;
+      --search-active-foreground: #e4f2ec;
+      --search-muted: #8f9d98;
+      --search-shadow: #0009;
+    }
+    :root[data-theme="vesper"] {
+      color-scheme: dark;
+      --terminal-background: #17151c;
+      --scrollbar-thumb: #393241;
+      --scrollbar-hover: #62566e;
+      --search-foreground: #ddd7e3;
+      --search-background: #221e2a;
+      --search-border: #393241;
+      --search-input-background: #1a171f;
+      --search-input-border: #393241;
+      --search-input-hover-border: #554a61;
+      --search-focus-border: #a277c7;
+      --search-hover: #302a39;
+      --search-active: #493665;
+      --search-active-foreground: #f1eaf7;
+      --search-muted: #958d9e;
+      --search-shadow: #0009;
+    }
+    :root[data-theme="abyss"] {
+      color-scheme: dark;
+      --terminal-background: #0d1117;
+      --scrollbar-thumb: #293544;
+      --scrollbar-hover: #4b6075;
+      --search-foreground: #d6e2ee;
+      --search-background: #161d27;
+      --search-border: #293544;
+      --search-input-background: #0f151d;
+      --search-input-border: #293544;
+      --search-input-hover-border: #42546a;
+      --search-focus-border: #58a6ff;
+      --search-hover: #1d2936;
+      --search-active: #234a70;
+      --search-active-foreground: #e6f2ff;
+      --search-muted: #8294a6;
       --search-shadow: #0009;
     }
     html, body, #terminal-host { width: 100%; height: 100%; margin: 0; overflow: hidden; background: var(--terminal-background); }
@@ -119,6 +176,7 @@
       cursor: text !important;
     }
     #terminal-search input::placeholder { color: var(--search-muted); }
+    #terminal-search input:hover:not(:focus) { border-color: var(--search-input-hover-border); }
     #terminal-search input:focus {
       border-color: var(--search-focus-border);
       box-shadow: 0 0 0 1px var(--search-focus-border);

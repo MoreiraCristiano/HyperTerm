@@ -1634,6 +1634,93 @@ public sealed class ViewModelTests
     }
 
     [Fact]
+    public async Task Settings_persists_and_restores_mintara()
+    {
+        var settingsService = new FakeSettingsService(exists: true);
+        var themeService = new FakeThemeService();
+        var viewModel = new SettingsViewModel(
+            settingsService,
+            themeService,
+            new FakeExecutablePicker(),
+            new FakeArchiveService(),
+            new FakeArchiveFilePicker(),
+            new FakeSystemFontService());
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+        viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.SettingsTheme = viewModel.ThemeOptions.Single(option =>
+            option.Value == "Mintara");
+
+        await viewModel.SaveSettingsCommand.ExecuteAsync(null);
+
+        Assert.Equal("Mintara", settingsService.Value.Theme);
+        Assert.Equal("Mintara", themeService.AppliedThemes.Last());
+
+        var restoredViewModel = CreateSettingsViewModel(settingsService);
+        await restoredViewModel.InitializeAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal("Mintara", restoredViewModel.SettingsTheme.Value);
+        Assert.Equal("Mintara", restoredViewModel.Current.Theme);
+    }
+
+    [Fact]
+    public async Task Settings_persists_and_restores_vesper()
+    {
+        var settingsService = new FakeSettingsService(exists: true);
+        var themeService = new FakeThemeService();
+        var viewModel = new SettingsViewModel(
+            settingsService,
+            themeService,
+            new FakeExecutablePicker(),
+            new FakeArchiveService(),
+            new FakeArchiveFilePicker(),
+            new FakeSystemFontService());
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+        viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.SettingsTheme = viewModel.ThemeOptions.Single(option =>
+            option.Value == "Vesper");
+
+        await viewModel.SaveSettingsCommand.ExecuteAsync(null);
+
+        Assert.Equal("Vesper", settingsService.Value.Theme);
+        Assert.Equal("Vesper", themeService.AppliedThemes.Last());
+
+        var restoredViewModel = CreateSettingsViewModel(settingsService);
+        await restoredViewModel.InitializeAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal("Vesper", restoredViewModel.SettingsTheme.Value);
+        Assert.Equal("Vesper", restoredViewModel.Current.Theme);
+    }
+
+    [Fact]
+    public async Task Settings_persists_and_restores_abyss()
+    {
+        var settingsService = new FakeSettingsService(exists: true);
+        var themeService = new FakeThemeService();
+        var viewModel = new SettingsViewModel(
+            settingsService,
+            themeService,
+            new FakeExecutablePicker(),
+            new FakeArchiveService(),
+            new FakeArchiveFilePicker(),
+            new FakeSystemFontService());
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+        viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.SettingsTheme = viewModel.ThemeOptions.Single(option =>
+            option.Value == "Abyss");
+
+        await viewModel.SaveSettingsCommand.ExecuteAsync(null);
+
+        Assert.Equal("Abyss", settingsService.Value.Theme);
+        Assert.Equal("Abyss", themeService.AppliedThemes.Last());
+
+        var restoredViewModel = CreateSettingsViewModel(settingsService);
+        await restoredViewModel.InitializeAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal("Abyss", restoredViewModel.SettingsTheme.Value);
+        Assert.Equal("Abyss", restoredViewModel.Current.Theme);
+    }
+
+    [Fact]
     public async Task Settings_persists_follow_current_theme_selection_color()
     {
         var settingsService = new FakeSettingsService(exists: true);
