@@ -14,34 +14,27 @@ recommended default, while custom profiles can launch other shells and tools.
 
 ## Preview
 
-### Terminal workspace
-
-The main workspace keeps saved sessions in the sidebar and local or remote
-terminals in editable tabs.
-
-![HyperTerm terminal workspace](docs/prints/01.png)
-
 ### Split panes
 
-Run independent terminals side by side inside one tab. Panes can be split
-horizontally or vertically, resized with the divider, and navigated with
-`Alt+Arrow`.
+Run independent terminals side by side inside the same tab. Panes support
+horizontal and vertical layouts, draggable dividers, directional keyboard
+navigation, and a subtle active-pane indicator.
 
-![HyperTerm tab with nested split panes](docs/prints/04.png)
-
-### Terminal profiles
-
-Configure the default local shell, executable, arguments, and starting
-directory. Additional profiles can be created for other shells and tools.
-
-![HyperTerm profile settings](docs/prints/02.png)
+![Two independent PowerShell terminals split inside one HyperTerm tab](docs/prints/split%20panes.png)
 
 ### SSH session manager
 
-Save connection metadata for quick access and organize SSH sessions in nested
-folders. Credentials are never stored by HyperTerm.
+Search and sort saved SSH connections, edit connection details, and assign
+sessions to folders without storing passwords or other credentials.
 
-![HyperTerm new SSH session](docs/prints/03.png)
+![HyperTerm SSH session manager with session details and folder organization](docs/prints/ssh%20manager.png)
+
+### Local terminal profiles
+
+Choose the default shell and configure its executable, arguments, and starting
+directory. Additional profiles can launch other local shells and tools.
+
+![HyperTerm settings showing the local terminal profile editor](docs/prints/profiles.png)
 
 ## Highlights
 
