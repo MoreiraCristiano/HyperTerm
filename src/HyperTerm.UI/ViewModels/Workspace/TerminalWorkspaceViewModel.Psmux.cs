@@ -17,6 +17,12 @@ public sealed partial class TerminalWorkspaceViewModel
     public async Task RefreshPsmuxSessionsAsync(
         CancellationToken cancellationToken = default)
     {
+        if (!IsPsmuxEnabled)
+        {
+            ResetPsmuxState();
+            return;
+        }
+
         string? selectedName = SelectedPsmuxSession?.Name;
         IsRefreshingPsmuxSessions = true;
         PsmuxSessionsMessage = "Loading psmux sessions...";
@@ -78,6 +84,11 @@ public sealed partial class TerminalWorkspaceViewModel
     [RelayCommand]
     private async Task OpenPsmuxSessionsAsync()
     {
+        if (!IsPsmuxEnabled)
+        {
+            return;
+        }
+
         IsPsmuxSessionsOpen = true;
         await RefreshPsmuxSessionsAsync();
     }
@@ -92,7 +103,7 @@ public sealed partial class TerminalWorkspaceViewModel
     [RelayCommand]
     private void RequestKillPsmuxSession(PsmuxSessionItemViewModel? session)
     {
-        if (session is null || IsKillingPsmuxSession)
+        if (!IsPsmuxEnabled || session is null || IsKillingPsmuxSession)
         {
             return;
         }
@@ -120,7 +131,7 @@ public sealed partial class TerminalWorkspaceViewModel
     private async Task ConfirmKillPsmuxSessionAsync()
     {
         PsmuxSessionItemViewModel? session = PsmuxSessionPendingKill;
-        if (session is null || psmuxService is null || IsKillingPsmuxSession)
+        if (!IsPsmuxEnabled || session is null || psmuxService is null || IsKillingPsmuxSession)
         {
             return;
         }
@@ -162,6 +173,11 @@ public sealed partial class TerminalWorkspaceViewModel
     [RelayCommand]
     private async Task AttachSelectedPsmuxSessionAsync()
     {
+        if (!IsPsmuxEnabled)
+        {
+            return;
+        }
+
         PsmuxSessionItemViewModel? session = SelectedPsmuxSession;
         if (session is null)
         {
@@ -180,6 +196,11 @@ public sealed partial class TerminalWorkspaceViewModel
     [RelayCommand]
     private async Task OpenPsmuxCreateAsync()
     {
+        if (!IsPsmuxEnabled)
+        {
+            return;
+        }
+
         await RefreshPsmuxSessionsAsync();
         if (!IsPsmuxAvailable)
         {
@@ -208,6 +229,11 @@ public sealed partial class TerminalWorkspaceViewModel
     [RelayCommand]
     private async Task ConfirmPsmuxCreateAsync()
     {
+        if (!IsPsmuxEnabled)
+        {
+            return;
+        }
+
         string name = PsmuxSessionName.Trim();
         if (!PsmuxSessionNameValidator.IsValid(name))
         {
@@ -257,7 +283,7 @@ public sealed partial class TerminalWorkspaceViewModel
     [RelayCommand]
     private async Task OpenPsmuxSessionAsync(PsmuxSessionItemViewModel? session)
     {
-        if (session is null || psmuxService is null)
+        if (!IsPsmuxEnabled || session is null || psmuxService is null)
         {
             return;
         }

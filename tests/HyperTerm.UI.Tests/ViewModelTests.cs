@@ -328,6 +328,53 @@ public sealed class ViewModelTests
     }
 
     [Fact]
+    public async Task DisabledPsmuxDoesNotProbeOrOpenDialogs()
+    {
+        var psmux = new FakePsmuxService();
+        psmux.Sessions.Add(new PsmuxSessionInfo("work", 1, false));
+        var workspace = new TerminalWorkspaceViewModel(
+            new FakeSessionService(),
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory(),
+            psmux);
+        workspace.ApplySettings(new ApplicationSettings());
+
+        await workspace.RefreshPsmuxSessionsAsync(TestContext.Current.CancellationToken);
+        await workspace.OpenPsmuxCreateCommand.ExecuteAsync(null);
+        await workspace.OpenPsmuxSessionsCommand.ExecuteAsync(null);
+
+        Assert.False(workspace.IsPsmuxEnabled);
+        Assert.Equal(0, psmux.ProbeCalls);
+        Assert.Equal(0, psmux.ListSessionsCalls);
+        Assert.False(workspace.IsPsmuxCreateOpen);
+        Assert.False(workspace.IsPsmuxSessionsOpen);
+        Assert.Empty(workspace.PsmuxSessions);
+    }
+
+    [Fact]
+    public async Task DisablingPsmuxClosesTabsAndStopsServer()
+    {
+        var psmux = new FakePsmuxService();
+        psmux.Sessions.Add(new PsmuxSessionInfo("work", 1, false));
+        var workspace = new TerminalWorkspaceViewModel(
+            new FakeSessionService(),
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory(),
+            psmux);
+        await workspace.ApplySettingsAsync(new ApplicationSettings { PsmuxEnabled = true });
+        await workspace.RefreshPsmuxSessionsAsync(TestContext.Current.CancellationToken);
+        await workspace.OpenPsmuxSessionCommand.ExecuteAsync(workspace.PsmuxSessions[0]);
+        await workspace.OpenLocalTerminalCommand.ExecuteAsync(null);
+
+        await workspace.ApplySettingsAsync(new ApplicationSettings());
+
+        Assert.False(workspace.IsPsmuxEnabled);
+        Assert.DoesNotContain(workspace.Tabs, tab => tab.IsPsmux);
+        Assert.Contains(workspace.Tabs, tab => !tab.IsPsmux);
+        Assert.Equal(1, psmux.StopServerCalls);
+    }
+
+    [Fact]
     public async Task WorkspaceOpensPsmuxSessionsDialogAndSelectsFirstSession()
     {
         var psmux = new FakePsmuxService();
@@ -452,6 +499,7 @@ public sealed class ViewModelTests
             psmux);
         workspace.ApplySettings(new ApplicationSettings
         {
+            PsmuxEnabled = true,
             KeepPsmuxSessionsOnExit = false,
         });
         await workspace.RefreshPsmuxSessionsAsync(TestContext.Current.CancellationToken);
@@ -722,6 +770,37 @@ public sealed class ViewModelTests
         Assert.Contains(
             viewModel.CommandPaletteResults,
             item => item.Kind == CommandPaletteItemKind.PsmuxSession);
+    }
+
+    [Fact]
+    public async Task CommandPaletteOmitsPsmuxWhenDisabled()
+    {
+        var sessions = new FakeSessionService();
+        var folders = new FakeFolderService();
+        var explorer = new SessionExplorerViewModel(sessions, folders);
+        await explorer.InitializeAsync(TestContext.Current.CancellationToken);
+        var psmux = new FakePsmuxService();
+        psmux.Sessions.Add(new PsmuxSessionInfo("hidden", 1, false));
+        var workspace = new TerminalWorkspaceViewModel(
+            sessions,
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory(),
+            psmux);
+        workspace.ApplySettings(new ApplicationSettings());
+        var viewModel = new MainWindowViewModel(
+            explorer,
+            workspace,
+            CreateSettingsViewModel(new FakeSettingsService(exists: true)),
+            new SessionEditorViewModel(sessions),
+            new SessionManagerViewModel(sessions, folders),
+            new FolderEditorViewModel(folders));
+
+        viewModel.OpenCommandPaletteCommand.Execute(null);
+
+        Assert.DoesNotContain(
+            viewModel.CommandPaletteResults,
+            item => item.Title.Contains("psmux", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal(0, psmux.ProbeCalls);
     }
 
     [Fact]
@@ -1287,10 +1366,12 @@ public sealed class ViewModelTests
         var viewModel = CreateSettingsViewModel(settingsService);
         await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
         viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.SettingsPsmuxEnabled = true;
         viewModel.SettingsKeepPsmuxSessionsOnExit = false;
 
         await viewModel.SaveSettingsCommand.ExecuteAsync(null);
 
+        Assert.True(settingsService.Value.PsmuxEnabled);
         Assert.False(settingsService.Value.KeepPsmuxSessionsOnExit);
     }
 

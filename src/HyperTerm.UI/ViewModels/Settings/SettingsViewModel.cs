@@ -154,6 +154,9 @@ public sealed partial class SettingsViewModel(
     private bool settingsCaptureLogs = true;
 
     [ObservableProperty]
+    private bool settingsPsmuxEnabled;
+
+    [ObservableProperty]
     private bool settingsKeepPsmuxSessionsOnExit = true;
 
     [ObservableProperty]

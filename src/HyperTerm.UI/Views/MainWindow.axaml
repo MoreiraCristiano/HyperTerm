@@ -130,8 +130,8 @@
                 WindowDecorationProperties.ElementRole="None">
               <Button.Flyout>
                 <MenuFlyout Opening="OnTerminalMenuOpening" Placement="BottomEdgeAlignedLeft">
-                  <Separator />
-                  <MenuItem Header="psmux">
+                  <Separator IsVisible="{Binding Workspace.IsPsmuxEnabled}" />
+                  <MenuItem Header="psmux" IsVisible="{Binding Workspace.IsPsmuxEnabled}">
                     <MenuItem
                         Header="Create session"
                         Command="{Binding Workspace.OpenPsmuxCreateCommand}" />

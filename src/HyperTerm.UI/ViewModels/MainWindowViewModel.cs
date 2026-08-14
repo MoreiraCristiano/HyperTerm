@@ -126,7 +126,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     {
         await Settings.InitializeAsync(cancellationToken);
         ApplySidebarScrollbarSetting(Settings.Current);
-        Workspace.ApplySettings(Settings.Current);
+        await Workspace.ApplySettingsAsync(Settings.Current);
     }
 
     internal async Task InitializeWorkspaceAsync(CancellationToken cancellationToken = default)
@@ -472,7 +472,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
     private void OnSettingsSaved(ApplicationSettings settings)
     {
-        Workspace.ApplySettings(settings);
+        Observe(Workspace.ApplySettingsAsync(settings), "apply settings");
         ApplySidebarScrollbarSetting(settings);
     }
 

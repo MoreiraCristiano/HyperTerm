@@ -59,9 +59,17 @@ public sealed partial class MainWindowViewModel
         CommandPaletteQuery = string.Empty;
         IsCommandPaletteOpen = true;
         RebuildCommandPalette();
-        Observe(
-            RefreshPalettePsmuxSessionsAsync(refreshCancellation, cancelRefresh),
-            "refresh command palette psmux sessions");
+        if (Workspace.IsPsmuxEnabled)
+        {
+            Observe(
+                RefreshPalettePsmuxSessionsAsync(refreshCancellation, cancelRefresh),
+                "refresh command palette psmux sessions");
+        }
+        else
+        {
+            cancelPaletteRefresh = null;
+            refreshCancellation.Dispose();
+        }
     }
 
     [RelayCommand]
@@ -237,7 +245,8 @@ public sealed partial class MainWindowViewModel
                 });
         }
 
-        foreach (PsmuxSessionItemViewModel session in Workspace.PsmuxSessions)
+        foreach (PsmuxSessionItemViewModel session in Workspace.PsmuxSessions.Where(
+                     _ => Workspace.IsPsmuxEnabled))
         {
             yield return new CommandPaletteItemViewModel(
                 CommandPaletteItemKind.PsmuxSession,
@@ -266,10 +275,13 @@ public sealed partial class MainWindowViewModel
                 () => Workspace.OpenTerminalProfileCommand.ExecuteAsync(selectedProfile));
         }
 
-        yield return AsyncAction("Create psmux session", "Start a persistent terminal", 20,
-            () => Workspace.OpenPsmuxCreateCommand.ExecuteAsync(null));
-        yield return AsyncAction("List psmux sessions", "View persistent terminals", 21,
-            () => Workspace.OpenPsmuxSessionsCommand.ExecuteAsync(null));
+        if (Workspace.IsPsmuxEnabled)
+        {
+            yield return AsyncAction("Create psmux session", "Start a persistent terminal", 20,
+                () => Workspace.OpenPsmuxCreateCommand.ExecuteAsync(null));
+            yield return AsyncAction("List psmux sessions", "View persistent terminals", 21,
+                () => Workspace.OpenPsmuxSessionsCommand.ExecuteAsync(null));
+        }
         yield return Action("Open settings", "Configure HyperTerm", 22,
             () => Settings.OpenSettingsCommand.Execute(null));
         yield return Action("Show keyboard shortcuts", "View all shortcuts", 23,

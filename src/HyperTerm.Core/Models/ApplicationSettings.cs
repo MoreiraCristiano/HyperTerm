@@ -26,6 +26,8 @@ public sealed record ApplicationSettings
 
     public bool CaptureLogs { get; init; } = true;
 
+    public bool PsmuxEnabled { get; init; }
+
     public bool KeepPsmuxSessionsOnExit { get; init; } = true;
 
     public WindowSettings Window { get; init; } = new();

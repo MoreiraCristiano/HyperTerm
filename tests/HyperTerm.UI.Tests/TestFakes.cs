@@ -245,18 +245,26 @@ internal sealed class FakePsmuxService : IPsmuxService
     public bool StopServerResult { get; set; } = true;
     public Exception? StopServerError { get; set; }
     public int StopServerCalls { get; private set; }
+    public int ProbeCalls { get; private set; }
+    public int ListSessionsCalls { get; private set; }
 
     public Task<PsmuxAvailability> ProbeAsync(
-        CancellationToken cancellationToken = default) =>
-        Task.FromResult(new PsmuxAvailability(
+        CancellationToken cancellationToken = default)
+    {
+        ProbeCalls++;
+        return Task.FromResult(new PsmuxAvailability(
             IsAvailable,
             IsAvailable ? @"C:\Tools\psmux.exe" : null,
             IsAvailable ? "psmux 3.3.7" : null,
             Error));
+    }
 
     public Task<IReadOnlyList<PsmuxSessionInfo>> ListSessionsAsync(
-        CancellationToken cancellationToken = default) =>
-        Task.FromResult<IReadOnlyList<PsmuxSessionInfo>>(Sessions.ToArray());
+        CancellationToken cancellationToken = default)
+    {
+        ListSessionsCalls++;
+        return Task.FromResult<IReadOnlyList<PsmuxSessionInfo>>(Sessions.ToArray());
+    }
 
     public Task<TerminalSessionDefinition> CreateSessionDefinitionAsync(
         string name,

@@ -336,6 +336,11 @@ public sealed partial class TerminalWorkspaceViewModel
         int[] delays = [100, 250, 500, 1000];
         foreach (int delay in delays)
         {
+            if (!IsPsmuxEnabled)
+            {
+                return;
+            }
+
             await Task.Delay(delay);
             await RefreshPsmuxSessionsAsync();
             if (PsmuxSessions.Any(session => session.Name.Equals(
@@ -345,7 +350,7 @@ public sealed partial class TerminalWorkspaceViewModel
                 return;
             }
 
-            if (Tabs.Contains(tab))
+            if (IsPsmuxEnabled && Tabs.Contains(tab))
             {
                 PsmuxSessions.Add(new PsmuxSessionItemViewModel(
                     new PsmuxSessionInfo(tab.PsmuxSessionName, 1, true)));

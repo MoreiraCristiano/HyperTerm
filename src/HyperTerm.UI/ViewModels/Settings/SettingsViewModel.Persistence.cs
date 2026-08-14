@@ -46,6 +46,7 @@ public sealed partial class SettingsViewModel
                 ShowSidebarScrollbar = SettingsShowSidebarScrollbar,
                 CloseToSystemTray = SettingsCloseToSystemTray,
                 CaptureLogs = SettingsCaptureLogs,
+                PsmuxEnabled = SettingsPsmuxEnabled,
                 KeepPsmuxSessionsOnExit = SettingsKeepPsmuxSessionsOnExit,
             };
             await settingsService.SaveAsync(applicationSettings);
@@ -83,6 +84,7 @@ public sealed partial class SettingsViewModel
         SettingsShowSidebarScrollbar = applicationSettings.ShowSidebarScrollbar;
         SettingsCloseToSystemTray = applicationSettings.CloseToSystemTray;
         SettingsCaptureLogs = applicationSettings.CaptureLogs;
+        SettingsPsmuxEnabled = applicationSettings.PsmuxEnabled;
         SettingsKeepPsmuxSessionsOnExit = applicationSettings.KeepPsmuxSessionsOnExit;
     }
 

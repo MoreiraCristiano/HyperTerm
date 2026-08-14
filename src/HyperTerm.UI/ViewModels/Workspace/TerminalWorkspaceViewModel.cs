@@ -22,6 +22,7 @@ public sealed partial class TerminalWorkspaceViewModel(
     ITerminalProfileResolver? terminalProfileResolver = null) : ViewModelBase
 {
     private ApplicationSettings settings = new();
+    private bool hasAppliedSettings;
     private readonly ILogger<TerminalWorkspaceViewModel> diagnostics =
         logger ?? NullLogger<TerminalWorkspaceViewModel>.Instance;
 
@@ -60,6 +61,9 @@ public sealed partial class TerminalWorkspaceViewModel(
 
     [ObservableProperty]
     private bool isPsmuxAvailable;
+
+    [ObservableProperty]
+    private bool isPsmuxEnabled = true;
 
     [ObservableProperty]
     private bool isPsmuxSessionsOpen;
@@ -128,8 +132,31 @@ public sealed partial class TerminalWorkspaceViewModel(
 
     public void ApplySettings(ApplicationSettings value)
     {
+        Task cleanup = ApplySettingsCore(value);
+        if (!cleanup.IsCompletedSuccessfully)
+        {
+            Observe(cleanup, "disable psmux integration");
+        }
+    }
+
+    public async Task ApplySettingsAsync(ApplicationSettings value)
+    {
+        Task cleanup = ApplySettingsCore(value);
+        await cleanup;
+    }
+
+    private Task ApplySettingsCore(ApplicationSettings value)
+    {
         ArgumentNullException.ThrowIfNull(value);
+        bool disablePsmux = hasAppliedSettings && IsPsmuxEnabled && !value.PsmuxEnabled;
         settings = TerminalProfileCatalog.Normalize(value);
+        hasAppliedSettings = true;
+        IsPsmuxEnabled = settings.PsmuxEnabled;
+        if (!IsPsmuxEnabled)
+        {
+            ResetPsmuxState();
+        }
+
         TerminalProfiles.Clear();
         foreach (TerminalProfile profile in settings.TerminalProfiles)
         {
@@ -156,6 +183,47 @@ public sealed partial class TerminalWorkspaceViewModel(
                 settings.TerminalCursorBlink,
                 settings.Theme);
         }
+
+        return disablePsmux ? DisablePsmuxAsync() : Task.CompletedTask;
+    }
+
+    private async Task DisablePsmuxAsync()
+    {
+        foreach (TerminalTabViewModel tab in Tabs.Where(tab => tab.IsPsmux).ToArray())
+        {
+            await CloseTabAsync(tab);
+        }
+
+        if (Tabs.Any(tab => tab.IsPsmux))
+        {
+            StatusText = "psmux integration disabled; a psmux tab could not be closed";
+            return;
+        }
+
+        if (psmuxService is null)
+        {
+            return;
+        }
+
+        bool stopped = await psmuxService.TryStopServerAsync();
+        StatusText = stopped
+            ? "psmux integration disabled"
+            : "psmux integration disabled; sessions attached by another client were preserved";
+    }
+
+    private void ResetPsmuxState()
+    {
+        IsPsmuxAvailable = false;
+        IsPsmuxSessionsOpen = false;
+        IsPsmuxCreateOpen = false;
+        IsPsmuxKillConfirmationOpen = false;
+        PsmuxSessionPendingKill = null;
+        PsmuxKillError = null;
+        PsmuxError = null;
+        PsmuxSessions.Clear();
+        SelectedPsmuxSession = null;
+        PsmuxSessionsMessage = null;
+        NotifyPsmuxSessionsChanged();
     }
 
     public void SetStatus(string value) => StatusText = value;
