@@ -107,83 +107,138 @@
           </TabItem>
 
           <TabItem Classes="settingsTab" Header="Profiles">
-            <ScrollViewer Margin="{DynamicResource SettingsContentMargin}" Classes="settingsContent">
-              <StackPanel x:Name="ProfilesGroup">
-                <TextBlock Classes="settingsGroupTitle" Text="Profiles" />
-                <StackPanel Spacing="{DynamicResource SettingsSectionSpacing}">
-                  <Border Classes="settingsSection">
-                    <StackPanel>
-                      <Grid ColumnDefinitions="*,Auto">
-                        <StackPanel>
-                          <TextBlock Classes="settingsSectionTitle" Text="Terminal profiles" />
-                          <TextBlock Classes="settingsSectionDescription" Text="Choose the default terminal or configure another shell. PowerShell is recommended." />
-                        </StackPanel>
-                        <Button Grid.Column="1" Command="{Binding Settings.AddTerminalProfileCommand}" Content="Add profile" />
-                      </Grid>
-                      <ItemsControl ItemsSource="{Binding Settings.TerminalProfiles}">
-                        <ItemsControl.ItemTemplate>
-                          <DataTemplate x:DataType="viewModels:TerminalProfileItemViewModel">
-                            <Border
-                                Margin="0,0,0,12"
-                                Padding="12"
-                                Background="{DynamicResource PanelBackgroundBrush}"
-                                BorderBrush="{DynamicResource BorderBrush}"
-                                BorderThickness="1"
-                                CornerRadius="{DynamicResource RadiusM}">
-                              <StackPanel Spacing="8">
-                                <Grid ColumnDefinitions="*,Auto">
-                                  <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <TextBox MinWidth="220" Text="{Binding Name, Mode=TwoWay}" />
-                                    <TextBlock VerticalAlignment="Center" Classes="secondary" IsVisible="{Binding IsRecommended}" Text="Recommended" />
-                                    <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource SuccessBrush}" IsVisible="{Binding IsDefault}" Text="Default" />
-                                  </StackPanel>
-                                  <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                                    <Button
-                                        IsVisible="{Binding CanSetDefault}"
-                                        Command="{Binding DataContext.Settings.SetDefaultTerminalProfileCommand, ElementName=SettingsRoot}"
-                                        CommandParameter="{Binding}"
-                                        Content="Set default" />
-                                    <Button
-                                        IsVisible="{Binding CanDelete}"
-                                        Command="{Binding DataContext.Settings.DeleteTerminalProfileCommand, ElementName=SettingsRoot}"
-                                        CommandParameter="{Binding}"
-                                        Content="Delete" />
-                                  </StackPanel>
-                                </Grid>
-                                <TextBlock Classes="settingsLabel" Text="Executable" />
-                                <Grid ColumnDefinitions="*,Auto">
-                                  <TextBox
-                                      VerticalAlignment="Center"
-                                      VerticalContentAlignment="Center"
-                                      Text="{Binding ExecutablePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                  <Button
-                                      Grid.Column="1"
-                                      Margin="{DynamicResource SettingsBrowseButtonMargin}"
-                                      Command="{Binding DataContext.Settings.BrowseTerminalProfileCommand, ElementName=SettingsRoot}"
-                                      CommandParameter="{Binding}"
-                                      Content="Browse..." />
-                                </Grid>
-                                <TextBlock Classes="secondary" Text="{Binding AvailabilityMessage}" />
-                                <Grid ColumnDefinitions="*,16,*">
-                                  <StackPanel>
-                                    <TextBlock Classes="settingsLabel" Text="Arguments (one per line)" />
-                                    <TextBox MinHeight="72" AcceptsReturn="True" Text="{Binding ArgumentsText, Mode=TwoWay}" TextWrapping="NoWrap" />
-                                  </StackPanel>
-                                  <StackPanel Grid.Column="2">
-                                    <TextBlock Classes="settingsLabel" Text="Starting directory (optional)" />
-                                    <TextBox Text="{Binding StartingDirectory, Mode=TwoWay}" />
-                                  </StackPanel>
-                                </Grid>
-                              </StackPanel>
-                            </Border>
-                          </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                      </ItemsControl>
-                    </StackPanel>
-                  </Border>
+            <Grid
+                x:Name="ProfilesGroup"
+                Margin="{DynamicResource SettingsContentMargin}"
+                RowDefinitions="Auto,12,*">
+              <Grid ColumnDefinitions="*,Auto">
+                <StackPanel>
+                  <TextBlock Margin="0,0,0,2" Classes="settingsGroupTitle" Text="Profiles" />
+                  <TextBlock Classes="secondary" Text="Choose the default terminal or configure another shell. PowerShell is recommended." />
                 </StackPanel>
-              </StackPanel>
-            </ScrollViewer>
+                <Button
+                    Grid.Column="1"
+                    VerticalAlignment="Top"
+                    Classes="accent"
+                    Command="{Binding Settings.AddTerminalProfileCommand}"
+                    Content="Add profile" />
+              </Grid>
+
+              <Grid x:Name="TerminalProfileLayout" Grid.Row="2" ColumnDefinitions="220,16,*">
+                <Border x:Name="TerminalProfileListPanel" Classes="profileListPanel">
+                  <ListBox
+                      x:Name="TerminalProfileList"
+                      Classes="profileList"
+                      ItemsSource="{Binding Settings.TerminalProfiles}"
+                      SelectedItem="{Binding Settings.SelectedTerminalProfile, Mode=TwoWay}">
+                    <ListBox.ItemTemplate>
+                      <DataTemplate x:DataType="viewModels:TerminalProfileItemViewModel">
+                        <StackPanel Spacing="5">
+                          <TextBlock Classes="profileListName" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                          <StackPanel Orientation="Horizontal" Spacing="5">
+                            <Border Classes="profileBadge default" IsVisible="{Binding IsDefault}">
+                              <TextBlock Text="Default" />
+                            </Border>
+                          </StackPanel>
+                          <TextBlock Classes="secondary profileAvailability" Text="{Binding AvailabilityMessage}" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+                </Border>
+
+                <Border x:Name="TerminalProfileEditorPanel" Grid.Column="2" Classes="profileEditor">
+                  <Grid RowDefinitions="Auto,*">
+                    <StackPanel Margin="16,14,16,12">
+                      <TextBlock Classes="settingsSectionTitle" Text="Profile details" />
+                      <TextBlock Classes="settingsSectionDescription" Margin="0,3,0,0" Text="Configure how this terminal starts." />
+                    </StackPanel>
+
+                    <ContentControl
+                        Grid.Row="1"
+                        HorizontalContentAlignment="Stretch"
+                        VerticalContentAlignment="Stretch"
+                        Content="{Binding Settings.SelectedTerminalProfile}">
+                      <ContentControl.ContentTemplate>
+                        <DataTemplate x:DataType="viewModels:TerminalProfileItemViewModel">
+                          <Grid RowDefinitions="*,Auto">
+                            <ScrollViewer Classes="settingsContent">
+                              <StackPanel Margin="16,0,16,16" Spacing="12">
+                                <Grid ColumnDefinitions="*,Auto">
+                                  <TextBlock Classes="settingsLabel" Text="Name" />
+                                  <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="5">
+                                    <Border Classes="profileBadge default" IsVisible="{Binding IsDefault}">
+                                      <TextBlock Text="Default" />
+                                    </Border>
+                                  </StackPanel>
+                                </Grid>
+                                <TextBox Text="{Binding Name, Mode=TwoWay}" />
+
+                                <StackPanel>
+                                  <TextBlock Classes="settingsLabel" Text="Executable" />
+                                  <Grid ColumnDefinitions="*,Auto">
+                                    <TextBox
+                                        VerticalAlignment="Center"
+                                        VerticalContentAlignment="Center"
+                                        Text="{Binding ExecutablePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    <Button
+                                        Grid.Column="1"
+                                        Margin="{DynamicResource SettingsBrowseButtonMargin}"
+                                        Command="{Binding DataContext.Settings.BrowseTerminalProfileCommand, ElementName=SettingsRoot}"
+                                        CommandParameter="{Binding}"
+                                        Content="Browse..." />
+                                  </Grid>
+                                </StackPanel>
+
+                                <StackPanel>
+                                  <TextBlock Classes="settingsLabel" Text="Starting directory (optional)" />
+                                  <TextBox Text="{Binding StartingDirectory, Mode=TwoWay}" />
+                                </StackPanel>
+
+                                <StackPanel>
+                                  <TextBlock Classes="settingsLabel" Text="Arguments (one per line)" />
+                                  <TextBox MinHeight="96" AcceptsReturn="True" Text="{Binding ArgumentsText, Mode=TwoWay}" TextWrapping="NoWrap" />
+                                </StackPanel>
+                              </StackPanel>
+                            </ScrollViewer>
+
+                            <Border Grid.Row="1" Classes="profileEditorFooter">
+                              <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource SuccessBrush}" IsVisible="{Binding IsAvailable}" Text="{Binding AvailabilityMessage}" />
+                                <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource DangerBrush}" IsVisible="{Binding IsUnavailable}" Text="{Binding AvailabilityMessage}" />
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                  <Button
+                                      IsVisible="{Binding CanSetDefault}"
+                                      Command="{Binding DataContext.Settings.SetDefaultTerminalProfileCommand, ElementName=SettingsRoot}"
+                                      CommandParameter="{Binding}"
+                                      Content="Set default" />
+                                  <Button
+                                      Classes="danger"
+                                      IsVisible="{Binding CanDelete}"
+                                      Command="{Binding DataContext.Settings.DeleteTerminalProfileCommand, ElementName=SettingsRoot}"
+                                      CommandParameter="{Binding}"
+                                      Content="Delete" />
+                                </StackPanel>
+                              </Grid>
+                            </Border>
+                          </Grid>
+                        </DataTemplate>
+                      </ContentControl.ContentTemplate>
+                    </ContentControl>
+
+                    <TextBlock
+                        Grid.Row="1"
+                        Margin="24"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Classes="secondary"
+                        IsVisible="{Binding Settings.HasNoSelectedTerminalProfile}"
+                        Text="Select a profile to edit it."
+                        TextAlignment="Center" />
+                  </Grid>
+                </Border>
+              </Grid>
+            </Grid>
           </TabItem>
 
           <TabItem Classes="settingsTab" Header="Terminal">

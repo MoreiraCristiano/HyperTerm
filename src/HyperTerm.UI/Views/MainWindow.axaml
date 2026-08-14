@@ -211,7 +211,7 @@
               Grid.Row="0"
               MinHeight="{DynamicResource SidebarSectionHeaderHeight}"
               Margin="4,0,0,7"
-              ColumnDefinitions="*,Auto,Auto,Auto,Auto">
+              ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto">
             <TextBlock
                 FontSize="{DynamicResource FontSizeCaption}"
                 FontWeight="SemiBold"
@@ -253,6 +253,17 @@
                 FontFamily="{DynamicResource IconFontFamily}"
                 Content="{Binding Explorer.RootFolderSortGlyph}"
                 ToolTip.Tip="{Binding Explorer.RootFolderSortTooltip}" />
+            <Button
+                Grid.Column="5"
+                AutomationProperties.AutomationId="OpenSessionManagerButton"
+                Margin="{DynamicResource SidebarActionLeadingMargin}"
+                Classes="iconButton"
+                Width="24"
+                Height="24"
+                Command="{Binding SessionManager.OpenSessionManagerCommand}"
+                FontFamily="{DynamicResource IconFontFamily}"
+                Content="&#xE8FD;"
+                ToolTip.Tip="Manage sessions" />
           </Grid>
           <TextBox
               Grid.Row="1"
@@ -407,6 +418,8 @@
     <dialogs:SessionEditorDialog x:Name="SessionEditorDialogHost" Grid.Row="1" Grid.RowSpan="2" Grid.ColumnSpan="3" />
 
     <dialogs:SessionDeleteDialog Grid.Row="1" Grid.RowSpan="2" Grid.ColumnSpan="3" />
+
+    <dialogs:SessionManagerDialog Grid.Row="1" Grid.RowSpan="2" Grid.ColumnSpan="3" />
 
     <dialogs:SettingsDialog Grid.Row="1" Grid.RowSpan="2" Grid.ColumnSpan="3" />
 

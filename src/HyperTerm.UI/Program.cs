@@ -114,6 +114,7 @@ internal static class Program
                 services.AddSingleton<TerminalWorkspaceViewModel>();
                 services.AddSingleton<SettingsViewModel>();
                 services.AddSingleton<SessionEditorViewModel>();
+                services.AddSingleton<SessionManagerViewModel>();
                 services.AddSingleton<FolderEditorViewModel>();
                 services.AddSingleton<MainWindowViewModel>();
                 services.AddSingleton<MainWindow>();

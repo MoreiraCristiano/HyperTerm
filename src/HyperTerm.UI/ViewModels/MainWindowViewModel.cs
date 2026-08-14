@@ -17,6 +17,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         PsmuxKillConfirmation,
         SessionEditor,
         SessionDeleteConfirmation,
+        SessionManager,
         Settings,
         FolderEditor,
         FolderDeleteConfirmation,
@@ -29,6 +30,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         TerminalWorkspaceViewModel workspace,
         SettingsViewModel settings,
         SessionEditorViewModel sessionEditor,
+        SessionManagerViewModel sessionManager,
         FolderEditorViewModel folderEditor,
         ILogger<MainWindowViewModel>? logger = null)
     {
@@ -36,6 +38,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         Workspace = workspace;
         Settings = settings;
         SessionEditor = sessionEditor;
+        SessionManager = sessionManager;
         FolderEditor = folderEditor;
         diagnostics = logger ?? NullLogger<MainWindowViewModel>.Instance;
         WireEvents();
@@ -52,6 +55,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     public TerminalWorkspaceViewModel Workspace { get; }
     public SettingsViewModel Settings { get; }
     public SessionEditorViewModel SessionEditor { get; }
+    public SessionManagerViewModel SessionManager { get; }
     public FolderEditorViewModel FolderEditor { get; }
 
     public string Title => Workspace.Title;
@@ -63,6 +67,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         Workspace.IsPsmuxKillConfirmationOpen ||
         SessionEditor.IsEditorOpen ||
         SessionEditor.IsDeleteConfirmationOpen ||
+        SessionManager.IsOpen ||
         Settings.IsSettingsOpen ||
         FolderEditor.IsFolderEditorOpen ||
         FolderEditor.IsFolderDeleteConfirmationOpen ||
@@ -77,6 +82,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         !Workspace.IsPsmuxSessionsOpen &&
         !SessionEditor.IsEditorOpen &&
         !SessionEditor.IsDeleteConfirmationOpen &&
+        !SessionManager.IsOpen &&
         !Settings.IsSettingsOpen &&
         !FolderEditor.IsFolderEditorOpen &&
         !FolderEditor.IsFolderDeleteConfirmationOpen &&
@@ -237,6 +243,10 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         {
             SessionEditor.CancelDeleteSession();
         }
+        else if (SessionManager.IsDeleteConfirmationOpen)
+        {
+            SessionManager.CancelDeleteSession();
+        }
         else if (FolderEditor.IsFolderEditorOpen)
         {
             FolderEditor.CancelFolderEditor();
@@ -244,6 +254,10 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         else if (SessionEditor.IsEditorOpen)
         {
             SessionEditor.CancelEditor();
+        }
+        else if (SessionManager.IsOpen)
+        {
+            SessionManager.CloseSessionManager();
         }
         else if (Settings.IsSettingsOpen)
         {
@@ -297,6 +311,11 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             if (openedOverlay != OverlayKind.SessionEditor && SessionEditor.IsEditorOpen)
             {
                 SessionEditor.CancelEditor();
+            }
+
+            if (openedOverlay != OverlayKind.SessionManager && SessionManager.IsOpen)
+            {
+                SessionManager.CloseSessionManager();
             }
 
             if (openedOverlay != OverlayKind.Settings && Settings.IsSettingsOpen)
@@ -377,6 +396,13 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             };
         }
 
+        if (ReferenceEquals(sender, SessionManager) &&
+            eventArgs.PropertyName == nameof(SessionManagerViewModel.IsOpen) &&
+            SessionManager.IsOpen)
+        {
+            return OverlayKind.SessionManager;
+        }
+
         if (ReferenceEquals(sender, FolderEditor))
         {
             return eventArgs.PropertyName switch
@@ -407,6 +433,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
         SessionEditor.SessionsChanged += OnSessionsChanged;
         SessionEditor.StatusRequested += Workspace.SetStatus;
+        SessionManager.SessionsChanged += OnSessionsChanged;
+        SessionManager.StatusRequested += Workspace.SetStatus;
         FolderEditor.FoldersChanged += OnFoldersChanged;
         FolderEditor.StatusRequested += Workspace.SetStatus;
 
@@ -421,6 +449,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         Workspace.PropertyChanged += OnChildPropertyChanged;
         Settings.PropertyChanged += OnChildPropertyChanged;
         SessionEditor.PropertyChanged += OnChildPropertyChanged;
+        SessionManager.PropertyChanged += OnChildPropertyChanged;
         FolderEditor.PropertyChanged += OnChildPropertyChanged;
     }
 
@@ -541,6 +570,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             ReferenceEquals(sender, SessionEditor) &&
             eventArgs.PropertyName is nameof(SessionEditorViewModel.IsEditorOpen) or
                 nameof(SessionEditorViewModel.IsDeleteConfirmationOpen) ||
+            ReferenceEquals(sender, SessionManager) &&
+            eventArgs.PropertyName == nameof(SessionManagerViewModel.IsOpen) ||
             ReferenceEquals(sender, FolderEditor) &&
             eventArgs.PropertyName is nameof(FolderEditorViewModel.IsFolderEditorOpen) or
                 nameof(FolderEditorViewModel.IsFolderDeleteConfirmationOpen);

@@ -1,0 +1,233 @@
+<UserControl
+    x:Name="SessionManagerRoot"
+    x:Class="HyperTerm.UI.Views.Dialogs.SessionManagerDialog"
+    x:DataType="viewModels:MainWindowViewModel"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:viewModels="using:HyperTerm.UI.ViewModels"
+    IsVisible="{Binding SessionManager.IsOpen}">
+  <Panel>
+    <Border Background="{DynamicResource OverlayBrush}" />
+    <Border
+        MaxWidth="{DynamicResource SettingsDialogMaxWidth}"
+        Margin="{DynamicResource SettingsDialogMargin}"
+        Padding="{DynamicResource DialogPadding}"
+        HorizontalAlignment="Stretch"
+        VerticalAlignment="Stretch"
+        Background="{DynamicResource PanelBackgroundBrush}"
+        BorderBrush="{DynamicResource BorderBrush}"
+        BorderThickness="1"
+        CornerRadius="{DynamicResource RadiusL}">
+      <Grid RowDefinitions="Auto,16,*">
+        <Grid ColumnDefinitions="*,Auto,8,Auto">
+          <StackPanel>
+            <TextBlock FontSize="{DynamicResource FontSizeTitle}" FontWeight="SemiBold" Text="SSH sessions" />
+            <TextBlock Classes="secondary" Text="Search, sort, create, and edit saved SSH connections." />
+          </StackPanel>
+          <Button
+              Grid.Column="1"
+              VerticalAlignment="Top"
+              Classes="accent"
+              Command="{Binding SessionManager.AddSessionCommand}"
+              Content="Add session" />
+          <Button
+              Grid.Column="3"
+              VerticalAlignment="Top"
+              Command="{Binding SessionManager.CloseSessionManagerCommand}"
+              Content="Close" />
+        </Grid>
+
+        <Grid
+            x:Name="SessionManagerLayout"
+            Grid.Row="2"
+            ColumnDefinitions="280,16,*">
+          <Border x:Name="SessionManagerListPanel" Classes="sessionManagerPanel">
+            <Grid RowDefinitions="Auto,10,Auto,10,*">
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBlock FontWeight="SemiBold" Text="Sessions" />
+                <TextBlock Grid.Column="1" Classes="secondary" Text="{Binding SessionManager.VisibleSessionCountText}" />
+              </Grid>
+              <TextBox
+                  x:Name="SessionManagerSearch"
+                  Grid.Row="2"
+                  PlaceholderText="Search sessions..."
+                  Text="{Binding SessionManager.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+              <Grid Grid.Row="4" RowDefinitions="Auto,8,*">
+                <Grid ColumnDefinitions="*,8,32">
+                  <ComboBox
+                      ItemsSource="{Binding SessionManager.SortOptions}"
+                      SelectedItem="{Binding SessionManager.SelectedSortOption, Mode=TwoWay}">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate x:DataType="viewModels:SessionManagerSortOption">
+                        <TextBlock Text="{Binding Name}" />
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
+                  <Button
+                      Grid.Column="2"
+                      Padding="0"
+                      Command="{Binding SessionManager.ToggleSortDirectionCommand}"
+                      FontFamily="{DynamicResource IconFontFamily}"
+                      ToolTip.Tip="{Binding SessionManager.SortDirectionTooltip}"
+                      Content="{Binding SessionManager.SortDirectionGlyph}" />
+                </Grid>
+                <Grid Grid.Row="2">
+                  <ListBox
+                      x:Name="SessionManagerList"
+                      Classes="sessionManagerList"
+                      IsVisible="{Binding SessionManager.HasVisibleSessions}"
+                      ItemsSource="{Binding SessionManager.Sessions}"
+                      SelectedItem="{Binding SessionManager.SelectedSession, Mode=TwoWay}">
+                    <ListBox.ItemTemplate>
+                      <DataTemplate x:DataType="viewModels:SessionManagerItemViewModel">
+                        <StackPanel Spacing="4">
+                          <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock FontWeight="SemiBold" Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" />
+                            <TextBlock
+                                Grid.Column="1"
+                                Margin="8,0,0,0"
+                                Foreground="{DynamicResource WarningBrush}"
+                                FontSize="{DynamicResource FontSizeCaption}"
+                                IsVisible="{Binding IsDraft}"
+                                Text="Draft" />
+                          </Grid>
+                          <TextBlock Classes="secondary" FontSize="{DynamicResource FontSizeCaption}" Text="{Binding Endpoint}" TextTrimming="CharacterEllipsis" />
+                          <TextBlock Classes="secondary" FontSize="{DynamicResource FontSizeCaption}" Text="{Binding FolderDisplay}" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+                  <TextBlock
+                      Margin="12"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center"
+                      Classes="secondary"
+                      IsVisible="{Binding SessionManager.HasNoVisibleSessions}"
+                      Text="{Binding SessionManager.EmptyListMessage}"
+                      TextAlignment="Center"
+                      TextWrapping="Wrap" />
+                </Grid>
+              </Grid>
+            </Grid>
+          </Border>
+
+          <Border x:Name="SessionManagerEditorPanel" Grid.Column="2" Classes="sessionManagerEditor">
+            <Grid>
+              <Grid IsVisible="{Binding SessionManager.HasEditor}" RowDefinitions="Auto,*,Auto">
+                <StackPanel Margin="16,14,16,12">
+                  <TextBlock Classes="settingsSectionTitle" Text="{Binding SessionManager.EditorTitle}" />
+                  <TextBlock Classes="settingsSectionDescription" Margin="0,3,0,0" Text="Configure connection and organization details." />
+                </StackPanel>
+
+                <ScrollViewer Grid.Row="1" Classes="settingsContent">
+                  <StackPanel Margin="16,0,16,16" Spacing="12">
+                    <Grid ColumnDefinitions="*,16,140">
+                      <StackPanel>
+                        <TextBlock Classes="settingsLabel" Text="Name" />
+                        <TextBox Text="{Binding SessionManager.EditorName, Mode=TwoWay}" />
+                      </StackPanel>
+                      <StackPanel Grid.Column="2">
+                        <TextBlock Classes="settingsLabel" Text="Port" />
+                        <NumericUpDown
+                            Minimum="1"
+                            Maximum="65535"
+                            ShowButtonSpinner="False"
+                            Value="{Binding SessionManager.EditorPort, Mode=TwoWay}" />
+                      </StackPanel>
+                    </Grid>
+
+                    <StackPanel>
+                      <TextBlock Classes="settingsLabel" Text="Host" />
+                      <TextBox Text="{Binding SessionManager.EditorHost, Mode=TwoWay}" />
+                    </StackPanel>
+
+                    <Grid ColumnDefinitions="*,16,*">
+                      <StackPanel>
+                        <TextBlock Classes="settingsLabel" Text="Username" />
+                        <TextBox Text="{Binding SessionManager.EditorUsername, Mode=TwoWay}" />
+                      </StackPanel>
+                      <StackPanel Grid.Column="2">
+                        <TextBlock Classes="settingsLabel" Text="Folder" />
+                        <ComboBox
+                            ItemsSource="{Binding SessionManager.FolderOptions}"
+                            SelectedItem="{Binding SessionManager.EditorFolder, Mode=TwoWay}">
+                          <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="viewModels:SessionManagerFolderOption">
+                              <TextBlock Text="{Binding Name}" />
+                            </DataTemplate>
+                          </ComboBox.ItemTemplate>
+                        </ComboBox>
+                      </StackPanel>
+                    </Grid>
+
+                    <StackPanel>
+                      <TextBlock Classes="settingsLabel" Text="Notes" />
+                      <TextBox
+                          MinHeight="100"
+                          AcceptsReturn="True"
+                          Text="{Binding SessionManager.EditorNotes, Mode=TwoWay}"
+                          TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <TextBlock
+                        Foreground="{DynamicResource DangerBrush}"
+                        Text="{Binding SessionManager.EditorError}"
+                        TextWrapping="Wrap" />
+                  </StackPanel>
+                </ScrollViewer>
+
+                <Border Grid.Row="2" Classes="sessionManagerEditorFooter">
+                  <Grid ColumnDefinitions="*,Auto,8,Auto">
+                    <Button
+                        Grid.Column="1"
+                        Classes="danger"
+                        IsVisible="{Binding SessionManager.IsExistingSession}"
+                        Command="{Binding SessionManager.RequestDeleteSessionCommand}"
+                        Content="Delete" />
+                    <Button
+                        Grid.Column="3"
+                        Classes="accent"
+                        Command="{Binding SessionManager.SaveSessionCommand}"
+                        Content="Save" />
+                  </Grid>
+                </Border>
+              </Grid>
+
+              <TextBlock
+                  Margin="24"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Center"
+                  Classes="secondary"
+                  IsVisible="{Binding SessionManager.HasNoEditor}"
+                  Text="Select a session to edit it, or create a new one."
+                  TextAlignment="Center"
+                  TextWrapping="Wrap" />
+            </Grid>
+          </Border>
+        </Grid>
+      </Grid>
+    </Border>
+
+    <Panel IsVisible="{Binding SessionManager.IsDeleteConfirmationOpen}">
+      <Border Background="{DynamicResource OverlayBrush}" />
+      <Border
+          Width="420"
+          Padding="{DynamicResource DialogPadding}"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Center"
+          Background="{DynamicResource PanelBackgroundBrush}"
+          BorderBrush="{DynamicResource BorderBrush}"
+          BorderThickness="1"
+          CornerRadius="{DynamicResource RadiusL}">
+        <StackPanel Spacing="14">
+          <TextBlock FontSize="{DynamicResource FontSizeTitle}" FontWeight="SemiBold" Text="{Binding SessionManager.DeleteConfirmationTitle}" />
+          <TextBlock Text="This saved SSH session will be permanently removed." TextWrapping="Wrap" />
+          <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+            <Button Command="{Binding SessionManager.CancelDeleteSessionCommand}" Content="Cancel" />
+            <Button Classes="danger" Command="{Binding SessionManager.ConfirmDeleteSessionCommand}" Content="Delete" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Panel>
+  </Panel>
+</UserControl>

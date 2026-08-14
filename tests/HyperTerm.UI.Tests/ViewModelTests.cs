@@ -1,3 +1,4 @@
+using HyperTerm.Core.Entities;
 using HyperTerm.Core.Models;
 using HyperTerm.UI.Services;
 using HyperTerm.UI.ViewModels;
@@ -622,6 +623,7 @@ public sealed class ViewModelTests
             workspace,
             settings,
             new SessionEditorViewModel(sessions),
+            new SessionManagerViewModel(sessions, folders),
             new FolderEditorViewModel(folders));
         bool initializationCompleted = false;
         viewModel.InitializationCompleted += (_, _) => initializationCompleted = true;
@@ -665,6 +667,7 @@ public sealed class ViewModelTests
             workspace,
             CreateSettingsViewModel(new FakeSettingsService(exists: true)),
             new SessionEditorViewModel(sessions),
+            new SessionManagerViewModel(sessions, folders),
             new FolderEditorViewModel(folders));
 
         viewModel.OpenCommandPaletteCommand.Execute(null);
@@ -738,6 +741,7 @@ public sealed class ViewModelTests
             workspace,
             CreateSettingsViewModel(new FakeSettingsService(exists: true)),
             new SessionEditorViewModel(sessions),
+            new SessionManagerViewModel(sessions, folders),
             new FolderEditorViewModel(folders));
         int overlayNotifications = 0;
         viewModel.PropertyChanged += (_, eventArgs) =>
@@ -776,6 +780,7 @@ public sealed class ViewModelTests
             workspace,
             CreateSettingsViewModel(new FakeSettingsService(exists: true)),
             new SessionEditorViewModel(sessions),
+            new SessionManagerViewModel(sessions, folders),
             new FolderEditorViewModel(folders));
         using var lifecycle = new ApplicationLifecycleCoordinator(
             database,
@@ -813,6 +818,7 @@ public sealed class ViewModelTests
             workspace,
             CreateSettingsViewModel(new FakeSettingsService(exists: true)),
             new SessionEditorViewModel(sessions),
+            new SessionManagerViewModel(sessions, folders),
             new FolderEditorViewModel(folders));
         int focusRequests = 0;
         workspace.Tabs.CollectionChanged += (_, eventArgs) =>
@@ -847,6 +853,7 @@ public sealed class ViewModelTests
             workspace,
             CreateSettingsViewModel(new FakeSettingsService(exists: true)),
             new SessionEditorViewModel(sessions),
+            new SessionManagerViewModel(sessions, folders),
             new FolderEditorViewModel(folders));
         await workspace.OpenLocalTerminalCommand.ExecuteAsync(null);
         await workspace.OpenLocalTerminalCommand.ExecuteAsync(null);
@@ -883,19 +890,26 @@ public sealed class ViewModelTests
         var settings = CreateSettingsViewModel(new FakeSettingsService(exists: true));
         await settings.InitializeAsync(TestContext.Current.CancellationToken);
         var sessionEditor = new SessionEditorViewModel(sessions);
+        var sessionManager = new SessionManagerViewModel(sessions, folders);
         var folderEditor = new FolderEditorViewModel(folders);
         var viewModel = new MainWindowViewModel(
             new SessionExplorerViewModel(sessions, folders),
             workspace,
             settings,
             sessionEditor,
+            sessionManager,
             folderEditor);
 
         settings.OpenSettingsCommand.Execute(null);
         settings.SettingsTerminalFontSize = 42;
-        viewModel.OpenShortcutsCommand.Execute(null);
+        await sessionManager.OpenSessionManagerCommand.ExecuteAsync(null);
 
         Assert.False(settings.IsSettingsOpen);
+        Assert.True(sessionManager.IsOpen);
+
+        viewModel.OpenShortcutsCommand.Execute(null);
+
+        Assert.False(sessionManager.IsOpen);
         Assert.True(viewModel.IsShortcutsOpen);
 
         settings.OpenSettingsCommand.Execute(null);
@@ -940,6 +954,7 @@ public sealed class ViewModelTests
             workspace,
             CreateSettingsViewModel(new FakeSettingsService(exists: true)),
             new SessionEditorViewModel(sessions),
+            new SessionManagerViewModel(sessions, folders),
             new FolderEditorViewModel(folders));
 
         await workspace.OpenPsmuxSessionsCommand.ExecuteAsync(null);
@@ -971,6 +986,7 @@ public sealed class ViewModelTests
                 new FakePtySessionFactory()),
             settings,
             sessionEditor,
+            new SessionManagerViewModel(sessions, folders),
             folderEditor);
         var session = new SessionListItemViewModel(FakeSessionService.CreateSession(
             Guid.NewGuid(),
@@ -988,6 +1004,175 @@ public sealed class ViewModelTests
         Assert.False(sessionEditor.IsDeleteConfirmationOpen);
         Assert.True(folderEditor.IsFolderDeleteConfirmationOpen);
         Assert.True(viewModel.IsOverlayOpen);
+    }
+
+    [Fact]
+    public async Task Add_session_shows_selected_draft_in_session_list()
+    {
+        var sessions = new FakeSessionService();
+        var manager = new SessionManagerViewModel(sessions, new FakeFolderService());
+        await manager.OpenSessionManagerCommand.ExecuteAsync(null);
+
+        manager.AddSessionCommand.Execute(null);
+
+        SessionManagerItemViewModel draft = Assert.Single(manager.Sessions);
+        Assert.True(draft.IsDraft);
+        Assert.Same(draft, manager.SelectedSession);
+        Assert.Equal("New session", draft.DisplayName);
+        Assert.Equal("Connection not configured", draft.Endpoint);
+        Assert.Empty(sessions.Sessions);
+
+        manager.EditorName = "Production server";
+        manager.EditorHost = "prod.test";
+        manager.EditorUsername = "admin";
+        Assert.Equal("Production server", draft.DisplayName);
+        Assert.Equal("admin@prod.test:22", draft.Endpoint);
+
+        manager.CloseSessionManagerCommand.Execute(null);
+        Assert.Empty(manager.Sessions);
+    }
+
+    [Fact]
+    public async Task Selecting_saved_session_discards_new_session_draft()
+    {
+        var sessions = new FakeSessionService();
+        sessions.Sessions.Add(FakeSessionService.CreateSession(
+            Guid.NewGuid(),
+            new SessionDetails(
+                "Saved server", "saved.test", 22, "admin", null,
+                string.Empty, string.Empty)));
+        var manager = new SessionManagerViewModel(sessions, new FakeFolderService());
+        await manager.OpenSessionManagerCommand.ExecuteAsync(null);
+        SessionManagerItemViewModel savedSession = Assert.Single(manager.Sessions);
+        manager.AddSessionCommand.Execute(null);
+        Assert.Equal(2, manager.Sessions.Count);
+
+        manager.SelectedSession = savedSession;
+
+        Assert.Single(manager.Sessions);
+        Assert.Same(savedSession, manager.SelectedSession);
+        Assert.False(manager.IsCreating);
+    }
+
+    [Fact]
+    public async Task Session_manager_searches_and_sorts_saved_sessions()
+    {
+        var sessions = new FakeSessionService();
+        var folders = new FakeFolderService();
+        sessions.Sessions.Add(FakeSessionService.CreateSession(
+            Guid.NewGuid(),
+            new SessionDetails(
+                "Zulu", "bravo.test", 22, "carol", null,
+                "Production", "Primary database")));
+        sessions.Sessions.Add(FakeSessionService.CreateSession(
+            Guid.NewGuid(),
+            new SessionDetails(
+                "Alpha", "zulu.test", 2222, "alice", null,
+                string.Empty, string.Empty)));
+        sessions.Sessions.Add(FakeSessionService.CreateSession(
+            Guid.NewGuid(),
+            new SessionDetails(
+                "Middle", "alpha.test", 22, "bob", null,
+                "Development", string.Empty)));
+        var manager = new SessionManagerViewModel(sessions, folders);
+
+        await manager.OpenSessionManagerCommand.ExecuteAsync(null);
+
+        Assert.Equal(["Alpha", "Middle", "Zulu"], manager.Sessions.Select(item => item.Name));
+        manager.SelectedSortOption = manager.SortOptions.Single(option =>
+            option.Field == SessionManagerSortField.Host);
+        Assert.Equal(["Middle", "Zulu", "Alpha"], manager.Sessions.Select(item => item.Name));
+
+        manager.ToggleSortDirectionCommand.Execute(null);
+        Assert.Equal(["Alpha", "Zulu", "Middle"], manager.Sessions.Select(item => item.Name));
+
+        manager.SearchText = "primary data";
+        SessionManagerItemViewModel result = Assert.Single(manager.Sessions);
+        Assert.Equal("Zulu", result.Name);
+        Assert.Equal("1 session", manager.VisibleSessionCountText);
+    }
+
+    [Fact]
+    public async Task Session_manager_creates_updates_and_deletes_sessions()
+    {
+        var sessions = new FakeSessionService();
+        var folders = new FakeFolderService();
+        folders.Folders.Add(new SessionFolder(Guid.NewGuid(), "Production", DateTime.UtcNow));
+        var manager = new SessionManagerViewModel(sessions, folders);
+        var changedSessionIds = new List<Guid?>();
+        manager.SessionsChanged += changedSessionIds.Add;
+        await manager.OpenSessionManagerCommand.ExecuteAsync(null);
+
+        manager.AddSessionCommand.Execute(null);
+        manager.EditorName = "Application server";
+        manager.EditorHost = "app.example.test";
+        manager.EditorPort = 2222;
+        manager.EditorUsername = "operator";
+        manager.EditorFolder = manager.FolderOptions.Single(option =>
+            option.Value == "Production");
+        manager.EditorNotes = "Managed connection";
+        await manager.SaveSessionCommand.ExecuteAsync(null);
+
+        Session created = Assert.Single(sessions.Sessions);
+        Assert.Equal("Production", created.Folder);
+        Assert.Equal(2222, created.Port);
+        Assert.Equal(created.Id, manager.SelectedSession?.Id);
+
+        manager.EditorName = "Renamed server";
+        manager.EditorFolder = manager.FolderOptions.Single(option => option.Value.Length == 0);
+        await manager.SaveSessionCommand.ExecuteAsync(null);
+        Assert.Equal("Renamed server", Assert.Single(sessions.Sessions).Name);
+        Assert.Equal(string.Empty, Assert.Single(sessions.Sessions).Folder);
+
+        manager.RequestDeleteSessionCommand.Execute(null);
+        Assert.True(manager.IsDeleteConfirmationOpen);
+        await manager.ConfirmDeleteSessionCommand.ExecuteAsync(null);
+
+        Assert.Empty(sessions.Sessions);
+        Assert.Empty(manager.Sessions);
+        Assert.False(manager.IsDeleteConfirmationOpen);
+        Assert.Equal([created.Id, created.Id, null], changedSessionIds);
+    }
+
+    [Fact]
+    public async Task Session_manager_preserves_hidden_private_key_when_updating()
+    {
+        var sessions = new FakeSessionService();
+        sessions.Sessions.Add(FakeSessionService.CreateSession(
+            Guid.NewGuid(),
+            new SessionDetails(
+                "Server", "server.test", 22, "admin", "legacy-key-path",
+                string.Empty, string.Empty)));
+        var manager = new SessionManagerViewModel(sessions, new FakeFolderService());
+        await manager.OpenSessionManagerCommand.ExecuteAsync(null);
+
+        manager.EditorNotes = "Updated notes";
+        await manager.SaveSessionCommand.ExecuteAsync(null);
+
+        Session updated = Assert.Single(sessions.Sessions);
+        Assert.Equal("legacy-key-path", updated.PrivateKey);
+        Assert.Equal("Updated notes", updated.Notes);
+    }
+
+    [Fact]
+    public async Task Session_manager_discards_draft_when_selection_changes()
+    {
+        var sessions = new FakeSessionService();
+        var folders = new FakeFolderService();
+        sessions.Sessions.Add(FakeSessionService.CreateSession(
+            Guid.NewGuid(),
+            new SessionDetails("Alpha", "alpha.test", 22, "alice", null, "", "")));
+        sessions.Sessions.Add(FakeSessionService.CreateSession(
+            Guid.NewGuid(),
+            new SessionDetails("Beta", "beta.test", 22, "bob", null, "", "")));
+        var manager = new SessionManagerViewModel(sessions, folders);
+        await manager.OpenSessionManagerCommand.ExecuteAsync(null);
+        manager.EditorName = "Unsaved change";
+
+        manager.SelectedSession = manager.Sessions.Single(item => item.Name == "Beta");
+
+        Assert.Equal("Beta", manager.EditorName);
+        Assert.Equal("beta.test", manager.EditorHost);
     }
 
     [Fact]
@@ -1118,15 +1303,67 @@ public sealed class ViewModelTests
         viewModel.OpenSettingsCommand.Execute(null);
         viewModel.AddTerminalProfileCommand.Execute(null);
         TerminalProfileItemViewModel commandPrompt = viewModel.TerminalProfiles.Last();
+        Assert.Same(commandPrompt, viewModel.SelectedTerminalProfile);
         commandPrompt.Name = "Command Prompt";
         commandPrompt.ExecutablePath = "cmd.exe";
 
         viewModel.SetDefaultTerminalProfileCommand.Execute(commandPrompt);
+        Assert.Same(commandPrompt, viewModel.SelectedTerminalProfile);
         await viewModel.SaveSettingsCommand.ExecuteAsync(null);
 
         Assert.Equal(
             commandPrompt.Id,
             settingsService.Value.DefaultTerminalProfileId);
+    }
+
+    [Fact]
+    public async Task Settings_selects_default_terminal_profile_on_load()
+    {
+        var settingsService = new FakeSettingsService(exists: true);
+        await settingsService.SaveAsync(new ApplicationSettings
+        {
+            DefaultTerminalProfileId = "cmd",
+            TerminalProfiles =
+            [
+                new TerminalProfile
+                {
+                    Id = TerminalProfileIds.PowerShell,
+                    Name = "PowerShell",
+                    ExecutablePath = "pwsh.exe",
+                },
+                new TerminalProfile
+                {
+                    Id = "cmd",
+                    Name = "Command Prompt",
+                    ExecutablePath = "cmd.exe",
+                },
+            ],
+        });
+        var viewModel = CreateSettingsViewModel(settingsService);
+
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal("cmd", viewModel.SelectedTerminalProfile?.Id);
+        Assert.True(viewModel.HasSelectedTerminalProfile);
+        Assert.False(viewModel.HasNoSelectedTerminalProfile);
+    }
+
+    [Fact]
+    public async Task Settings_selects_neighbor_after_removing_selected_profile()
+    {
+        var settingsService = new FakeSettingsService(exists: true);
+        var viewModel = CreateSettingsViewModel(settingsService);
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+        viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.AddTerminalProfileCommand.Execute(null);
+        TerminalProfileItemViewModel firstCustomProfile = viewModel.TerminalProfiles.Last();
+        viewModel.AddTerminalProfileCommand.Execute(null);
+        TerminalProfileItemViewModel secondCustomProfile = viewModel.TerminalProfiles.Last();
+        Assert.Same(secondCustomProfile, viewModel.SelectedTerminalProfile);
+
+        viewModel.DeleteTerminalProfileCommand.Execute(secondCustomProfile);
+
+        Assert.Same(firstCustomProfile, viewModel.SelectedTerminalProfile);
     }
 
     [Fact]

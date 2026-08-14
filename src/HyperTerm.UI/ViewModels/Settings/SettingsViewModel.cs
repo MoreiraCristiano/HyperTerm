@@ -74,6 +74,8 @@ public sealed partial class SettingsViewModel(
     ];
     public ObservableCollection<string> SystemFontFamilies { get; } = [];
     public ObservableCollection<TerminalProfileItemViewModel> TerminalProfiles { get; } = [];
+    public bool HasSelectedTerminalProfile => SelectedTerminalProfile is not null;
+    public bool HasNoSelectedTerminalProfile => SelectedTerminalProfile is null;
     public bool HasSettingsDataStatus => !string.IsNullOrWhiteSpace(SettingsDataStatus);
     public bool HasLogContent => !string.IsNullOrEmpty(LogContent);
     public bool HasPreviousRunCrash => applicationLogService?.PreviousRunCrashed == true;
@@ -84,6 +86,11 @@ public sealed partial class SettingsViewModel(
 
     [ObservableProperty]
     private string defaultTerminalProfileId = TerminalProfileIds.PowerShell;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasSelectedTerminalProfile))]
+    [NotifyPropertyChangedFor(nameof(HasNoSelectedTerminalProfile))]
+    private TerminalProfileItemViewModel? selectedTerminalProfile;
 
     [ObservableProperty]
     private ThemeOption settingsTheme = DefaultTheme;

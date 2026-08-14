@@ -132,20 +132,57 @@ public sealed class AvaloniaHeadlessTests
         Assert.Equal(
             ["General", "Themes", "Profiles", "Terminal", "Data", "Logs"],
             items.Select(item => item.Header).ToArray());
-        Assert.All(items, item => Assert.IsType<ScrollViewer>(item.Content));
+        Assert.All(items.Where((_, index) => index != 2), item =>
+            Assert.IsType<ScrollViewer>(item.Content));
+        Assert.IsType<Grid>(items[2].Content);
         Assert.All(items, item => Assert.Contains("settingsTab", item.Classes));
         ComboBox fontFamilyPicker = dialog.FindControl<ComboBox>("FontFamilyPicker")!;
         Assert.Equal(360, fontFamilyPicker.Width);
         Assert.False(fontFamilyPicker.IsEditable);
         Assert.Contains("themePicker", dialog.FindControl<ListBox>("ThemePicker")!.Classes);
+        Assert.Contains(
+            "profileList",
+            dialog.FindControl<ListBox>("TerminalProfileList")!.Classes);
 
         tabs.SelectedIndex = 2;
+        Dispatcher.UIThread.RunJobs();
+        Grid profileLayout = dialog.FindControl<Grid>("TerminalProfileLayout")!;
+        Border profileListPanel = dialog.FindControl<Border>("TerminalProfileListPanel")!;
+        Border profileEditorPanel = dialog.FindControl<Border>("TerminalProfileEditorPanel")!;
+        Assert.Equal(new GridLength(220), profileLayout.ColumnDefinitions[0].Width);
+        Assert.Equal(0, Grid.GetColumn(profileListPanel));
+        Assert.Equal(2, Grid.GetColumn(profileEditorPanel));
         dialog.IsVisible = false;
         dialog.IsVisible = true;
         Dispatcher.UIThread.RunJobs();
 
         Assert.Equal(2, tabs.SelectedIndex);
         Assert.Same(items[2], tabs.SelectedItem);
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    [Trait("Category", "Headless")]
+    public void Session_manager_uses_master_detail_layout()
+    {
+        var dialog = new SessionManagerDialog { IsVisible = true };
+        var window = new Window
+        {
+            Width = 1100,
+            Height = 760,
+            Content = dialog,
+        };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        Grid layout = dialog.FindControl<Grid>("SessionManagerLayout")!;
+        Border listPanel = dialog.FindControl<Border>("SessionManagerListPanel")!;
+        Border editorPanel = dialog.FindControl<Border>("SessionManagerEditorPanel")!;
+        ListBox sessionList = dialog.FindControl<ListBox>("SessionManagerList")!;
+        Assert.Equal(new GridLength(280), layout.ColumnDefinitions[0].Width);
+        Assert.Equal(0, Grid.GetColumn(listPanel));
+        Assert.Equal(2, Grid.GetColumn(editorPanel));
+        Assert.Contains("sessionManagerList", sessionList.Classes);
         window.Close();
     }
 

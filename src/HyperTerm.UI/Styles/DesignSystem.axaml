@@ -441,6 +441,90 @@
     <Setter Property="Background" Value="{DynamicResource SecondaryBackgroundBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource BorderHoverBrush}" />
   </Style>
+  <Style Selector="Border.profileListPanel, Border.profileEditor">
+    <Setter Property="Background" Value="{DynamicResource SecondaryBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusM}" />
+  </Style>
+  <Style Selector="Border.profileListPanel">
+    <Setter Property="Padding" Value="4" />
+  </Style>
+  <Style Selector="ListBox.profileList">
+    <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+  </Style>
+  <Style Selector="ListBox.profileList > ListBoxItem">
+    <Setter Property="Margin" Value="0,0,0,4" />
+    <Setter Property="Padding" Value="10,8" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusS}" />
+  </Style>
+  <Style Selector="ListBox.profileList > ListBoxItem:pointerover /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource HoverBrush}" />
+  </Style>
+  <Style Selector="ListBox.profileList > ListBoxItem:selected /template/ Border#PART_LayoutRoot,
+                   ListBox.profileList > ListBoxItem:selected:pointerover /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
+  </Style>
+  <Style Selector="TextBlock.profileListName">
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="TextBlock.profileAvailability">
+    <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
+  </Style>
+  <Style Selector="Border.profileBadge">
+    <Setter Property="Padding" Value="6,1" />
+    <Setter Property="Background" Value="{DynamicResource HoverBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+  <Style Selector="Border.profileBadge.default">
+    <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+  </Style>
+  <Style Selector="Border.profileBadge TextBlock">
+    <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
+  </Style>
+  <Style Selector="Border.profileEditorFooter">
+    <Setter Property="Padding" Value="16,12" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="0,1,0,0" />
+  </Style>
+  <Style Selector="Border.sessionManagerPanel, Border.sessionManagerEditor">
+    <Setter Property="Background" Value="{DynamicResource SecondaryBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusM}" />
+  </Style>
+  <Style Selector="Border.sessionManagerPanel">
+    <Setter Property="Padding" Value="12" />
+  </Style>
+  <Style Selector="ListBox.sessionManagerList">
+    <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+  </Style>
+  <Style Selector="ListBox.sessionManagerList > ListBoxItem">
+    <Setter Property="Margin" Value="0,0,0,4" />
+    <Setter Property="Padding" Value="10,8" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusS}" />
+  </Style>
+  <Style Selector="ListBox.sessionManagerList > ListBoxItem:pointerover /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource HoverBrush}" />
+  </Style>
+  <Style Selector="ListBox.sessionManagerList > ListBoxItem:selected /template/ Border#PART_LayoutRoot,
+                   ListBox.sessionManagerList > ListBoxItem:selected:pointerover /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
+  </Style>
+  <Style Selector="Border.sessionManagerEditorFooter">
+    <Setter Property="Padding" Value="16,12" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="0,1,0,0" />
+  </Style>
   <Style Selector="TextBlock.settingsGroupTitle">
     <Setter Property="Margin" Value="0,0,0,10" />
     <Setter Property="FontSize" Value="{DynamicResource SettingsGroupTitleFontSize}" />

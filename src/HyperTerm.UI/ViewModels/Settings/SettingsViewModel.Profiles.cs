@@ -18,6 +18,7 @@ public sealed partial class SettingsViewModel
         SubscribeToProfile(profile);
         TerminalProfiles.Add(profile);
         RefreshProfileAvailability(profile);
+        SelectedTerminalProfile = profile;
     }
 
     [RelayCommand]
@@ -30,8 +31,21 @@ public sealed partial class SettingsViewModel
             return;
         }
 
+        int removedIndex = TerminalProfiles.IndexOf(profile);
+        if (removedIndex < 0)
+        {
+            return;
+        }
+
+        bool wasSelected = ReferenceEquals(SelectedTerminalProfile, profile);
         profile.PropertyChanged -= OnTerminalProfilePropertyChanged;
         TerminalProfiles.Remove(profile);
+        if (wasSelected)
+        {
+            SelectedTerminalProfile = TerminalProfiles.Count == 0
+                ? null
+                : TerminalProfiles[Math.Min(removedIndex, TerminalProfiles.Count - 1)];
+        }
     }
 
     [RelayCommand]
@@ -78,6 +92,7 @@ public sealed partial class SettingsViewModel
             profile.PropertyChanged -= OnTerminalProfilePropertyChanged;
         }
 
+        SelectedTerminalProfile = null;
         TerminalProfiles.Clear();
         foreach (TerminalProfile model in settings.TerminalProfiles)
         {
@@ -91,6 +106,8 @@ public sealed partial class SettingsViewModel
         }
 
         DefaultTerminalProfileId = settings.DefaultTerminalProfileId;
+        SelectedTerminalProfile = TerminalProfiles.FirstOrDefault(profile => profile.IsDefault)
+            ?? TerminalProfiles.FirstOrDefault();
     }
 
     private void SubscribeToProfile(TerminalProfileItemViewModel profile) =>

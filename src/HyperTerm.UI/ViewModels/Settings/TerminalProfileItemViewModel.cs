@@ -16,13 +16,11 @@ public sealed partial class TerminalProfileItemViewModel : ViewModelBase
 
     public string Id { get; }
 
-    public bool IsRecommended => Id.Equals(
-        TerminalProfileIds.PowerShell,
-        StringComparison.OrdinalIgnoreCase);
-
     public bool CanDelete => !IsDefault;
 
     public bool CanSetDefault => !IsDefault && IsAvailable;
+
+    public bool IsUnavailable => !IsAvailable;
 
     [ObservableProperty]
     private string name;
@@ -43,6 +41,7 @@ public sealed partial class TerminalProfileItemViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanSetDefault))]
+    [NotifyPropertyChangedFor(nameof(IsUnavailable))]
     private bool isAvailable;
 
     [ObservableProperty]
