@@ -93,6 +93,10 @@ async function loadHost({ width = 800, height = 600, bridge = true } = {}) {
       <button id="terminal-search-previous"></button>
       <button id="terminal-search-next"></button>
       <button id="terminal-search-close"></button>
+    </div>
+    <div id="pane-context-menu" aria-hidden="true">
+      <button data-command="splitRight"></button>
+      <button data-command="closePane"></button>
     </div>`;
   const host = document.getElementById('terminal-host');
   host.getBoundingClientRect = () => ({ width, height });
@@ -259,6 +263,102 @@ describe('terminal host bridge', () => {
     expect(terminalInstances[0].disposed).toBeUndefined();
     expect(originalRenderer.disposed).toBeUndefined();
     expect(webglInstances).toHaveLength(1);
+  });
+
+  it('activates panes and forwards context menu commands', async () => {
+    const { host, sent } = await loadHost();
+    host.create({ paneId: 'a', tabId: 'tab', options: createOptions() });
+    host.create({ paneId: 'b', tabId: 'tab', options: createOptions() });
+    host.activate('a');
+
+    terminalInstances[1].element.dispatchEvent(
+      new MouseEvent('pointerdown', { bubbles: true }));
+    expect(sent).toContainEqual({ type: 'paneActivated', tabId: 'tab', paneId: 'b' });
+
+    terminalInstances[1].element.dispatchEvent(new MouseEvent('contextmenu', {
+      bubbles: true, cancelable: true, clientX: 12, clientY: 34
+    }));
+    const menu = document.getElementById('pane-context-menu');
+    expect(menu.classList.contains('open')).toBe(true);
+    expect(menu.style.left).toBe('12px');
+    expect(menu.style.top).toBe('34px');
+
+    menu.querySelector('[data-command="splitRight"]').click();
+    expect(sent).toContainEqual({
+      type: 'applicationCommand', tabId: 'tab', paneId: 'b', command: 'splitRight'
+    });
+    expect(menu.getAttribute('aria-hidden')).toBe('true');
+
+    terminalInstances[1].element.dispatchEvent(
+      new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+    menu.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+    expect(menu.classList.contains('open')).toBe(true);
+    document.body.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+    expect(menu.classList.contains('open')).toBe(false);
+  });
+
+  it('reconfigures every pane belonging to one tab', async () => {
+    const { host } = await loadHost();
+    host.create({ paneId: 'a', tabId: 'tab', options: createOptions() });
+    host.create({ paneId: 'b', tabId: 'tab', options: createOptions() });
+    host.create({ paneId: 'other', tabId: 'other-tab', options: createOptions() });
+
+    host.configureTab({
+      tabId: 'tab',
+      options: { ...createOptions(), fontSize: 18 }
+    });
+
+    expect(terminalInstances[0].options.fontSize).toBe(18);
+    expect(terminalInstances[1].options.fontSize).toBe(18);
+    expect(terminalInstances[2].options.fontSize).toBe(13);
+  });
+
+  it('resizes a pane divider and reports the persisted ratio', async () => {
+    const { host, sent } = await loadHost();
+    host.create({ paneId: 'a', tabId: 'tab', options: createOptions() });
+    host.create({ paneId: 'b', tabId: 'tab', options: createOptions() });
+    host.layout({
+      tabId: 'tab',
+      activePaneId: 'a',
+      root: {
+        type: 'split', orientation: 'vertical', ratio: .5,
+        first: { type: 'terminal', paneId: 'a' },
+        second: { type: 'terminal', paneId: 'b' }
+      }
+    });
+
+    const split = document.querySelector('.pane-split');
+    const children = split.querySelectorAll('.pane-child');
+    const divider = split.querySelector('.pane-divider');
+    split.getBoundingClientRect = () => ({ left: 10, top: 20, width: 200, height: 100 });
+    children[0].getBoundingClientRect = () => ({ width: 120, height: 100 });
+    divider.setPointerCapture = vi.fn();
+    divider.releasePointerCapture = vi.fn();
+    let firstFlex;
+    let secondFlex;
+    Object.defineProperty(children[0].style, 'flex', {
+      configurable: true, get: () => firstFlex, set: value => { firstFlex = value; }
+    });
+    Object.defineProperty(children[1].style, 'flex', {
+      configurable: true, get: () => secondFlex, set: value => { secondFlex = value; }
+    });
+    const pointerEvent = (type, pointerId, clientX, clientY) => {
+      const event = new MouseEvent(type, { bubbles: true, clientX, clientY });
+      Object.defineProperty(event, 'pointerId', { value: pointerId });
+      return event;
+    };
+
+    divider.dispatchEvent(pointerEvent('pointerdown', 7, 0, 0));
+    divider.dispatchEvent(pointerEvent('pointermove', 7, 170, 0));
+    expect(Number.parseFloat(firstFlex)).toBeCloseTo(.8);
+    expect(Number.parseFloat(secondFlex)).toBeCloseTo(.2);
+    divider.dispatchEvent(pointerEvent('pointerup', 7, 0, 0));
+
+    expect(divider.setPointerCapture).toHaveBeenCalledWith(7);
+    expect(divider.releasePointerCapture).toHaveBeenCalledWith(7);
+    expect(sent).toContainEqual({
+      type: 'paneRatio', tabId: 'tab', paneId: 'a', ratio: .6
+    });
   });
 
   it('copies selected text without forwarding the key', async () => {
