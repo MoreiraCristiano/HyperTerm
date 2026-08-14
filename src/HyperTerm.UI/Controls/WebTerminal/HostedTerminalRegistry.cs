@@ -316,8 +316,9 @@ internal sealed class HostedTerminalRegistry
     private void OnAppearanceChanged(object? sender, EventArgs eventArgs)
     {
         if (sender is TerminalTabViewModel tab &&
-            terminals.TryGetValue(tab.Id, out HostedTerminal? hosted) &&
-            isHostReady() && hosted.Created)
+            isHostReady() &&
+            terminals.Values.Any(hosted =>
+                ReferenceEquals(hosted.Tab, tab) && hosted.Created))
         {
             _ = InvokeScriptAsync(() => scriptBridge.ConfigureAsync(tab), tab);
         }

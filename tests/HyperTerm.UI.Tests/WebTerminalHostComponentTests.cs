@@ -191,6 +191,39 @@ public sealed class TerminalOutputCoordinatorTests
 public sealed class HostedTerminalRegistryTests
 {
     [Fact]
+    public async Task AppearanceChangeConfiguresAlreadyCreatedPanes()
+    {
+        var scripts = new List<string>();
+        var bridge = new WebTerminalScriptBridge(script =>
+        {
+            scripts.Add(script);
+            return Task.CompletedTask;
+        });
+        TerminalTabViewModel tab = WebTerminalScriptBridgeTests.CreateTab();
+        var registry = new HostedTerminalRegistry(
+            bridge,
+            () => tab,
+            () => true,
+            _ => { },
+            () => { });
+        registry.Observe(new ObservableCollection<TerminalTabViewModel> { tab });
+        await registry.CreateExistingAsync();
+        scripts.Clear();
+
+        tab.UpdateAppearance(
+            "Cascadia Mono",
+            14,
+            "Theme",
+            "Bar",
+            true,
+            "Default Light");
+
+        string configure = Assert.Single(scripts);
+        Assert.StartsWith("window.terminalHost.configureTab(", configure, StringComparison.Ordinal);
+        Assert.Contains("\"theme\":\"Default Light\"", configure, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task RegistryCreatesActivatesAndRemovesObservedTabs()
     {
         var scripts = new List<string>();
