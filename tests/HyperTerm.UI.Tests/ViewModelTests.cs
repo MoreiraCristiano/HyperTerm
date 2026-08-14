@@ -1374,6 +1374,49 @@ public sealed class ViewModelTests
     }
 
     [Fact]
+    public async Task Settings_saves_and_applies_darcula_theme()
+    {
+        var settingsService = new FakeSettingsService(exists: true);
+        var themeService = new FakeThemeService();
+        var viewModel = new SettingsViewModel(
+            settingsService,
+            themeService,
+            new FakeExecutablePicker(),
+            new FakeArchiveService(),
+            new FakeArchiveFilePicker(),
+            new FakeSystemFontService());
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+        viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.SettingsTheme = viewModel.ThemeOptions.Single(option =>
+            option.Value == "Darcula");
+
+        await viewModel.SaveSettingsCommand.ExecuteAsync(null);
+
+        Assert.Equal("Darcula", settingsService.Value.Theme);
+        Assert.Equal("Darcula", themeService.AppliedThemes.Last());
+    }
+
+    [Fact]
+    public async Task Settings_persists_follow_current_theme_selection_color()
+    {
+        var settingsService = new FakeSettingsService(exists: true);
+        var viewModel = CreateSettingsViewModel(settingsService);
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+        viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.SettingsTerminalSelectionColor = viewModel.TerminalSelectionColors.Single(option =>
+            option.Value == "Theme");
+
+        await viewModel.SaveSettingsCommand.ExecuteAsync(null);
+
+        Assert.Equal("Theme", settingsService.Value.TerminalSelectionColor);
+
+        var restoredViewModel = CreateSettingsViewModel(settingsService);
+        await restoredViewModel.InitializeAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal("Theme", restoredViewModel.SettingsTerminalSelectionColor.Value);
+    }
+
+    [Fact]
     public async Task Settings_cancel_restores_saved_theme_without_applying_editor_value()
     {
         var settingsService = new FakeSettingsService(exists: true);

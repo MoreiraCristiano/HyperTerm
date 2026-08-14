@@ -39,6 +39,13 @@ public sealed partial class SettingsViewModel(
         "#F3F3F3",
         "#E9E9E9",
         "#FFFFFF");
+    private static readonly ThemeOption DarculaTheme = new(
+        "Darcula",
+        "Darcula",
+        "A dark appearance inspired by JetBrains Darcula.",
+        "#2B2B2B",
+        "#313335",
+        "#323232");
     private ApplicationSettings applicationSettings = new();
     private bool windowStateChanged;
     private CancellationTokenSource? logPollingCancellation;
@@ -52,7 +59,7 @@ public sealed partial class SettingsViewModel(
     public ApplicationSettings Current => applicationSettings;
     public WindowSettings WindowSettings => applicationSettings.Window;
     public IReadOnlyList<ThemeOption> ThemeOptions { get; } =
-        [DefaultTheme, DefaultLightTheme];
+        [DefaultTheme, DarculaTheme, DefaultLightTheme];
     public IReadOnlyList<string> TerminalCursorStyles { get; } =
         ["Bar", "Block", "Underline"];
     public IReadOnlyList<TerminalSelectionColorOption> TerminalSelectionColors { get; } =
@@ -63,6 +70,7 @@ public sealed partial class SettingsViewModel(
         new("Orange", "#754C24"),
         new("Red", "#6E3940"),
         new("Silver", "#5B6068"),
+        new("Follow current theme", "Theme", "Transparent"),
     ];
     public ObservableCollection<string> SystemFontFamilies { get; } = [];
     public ObservableCollection<TerminalProfileItemViewModel> TerminalProfiles { get; } = [];

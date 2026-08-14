@@ -385,6 +385,64 @@ describe('terminal host bridge', () => {
     expect(document.documentElement.dataset.theme).toBe('dark');
   });
 
+  it('applies Darcula palette and follows its selection color', async () => {
+    const { host } = await loadHost();
+    host.create({
+      tabId: 'a',
+      options: {
+        ...createOptions(),
+        theme: 'Darcula',
+        selectionBackground: 'Theme'
+      }
+    });
+
+    expect(terminalInstances[0].options.theme.background).toBe('#2b2b2b');
+    expect(terminalInstances[0].options.theme.foreground).toBe('#a9b7c6');
+    expect(terminalInstances[0].options.theme.red).toBe('#cc7832');
+    expect(terminalInstances[0].options.theme.magenta).toBe('#9876aa');
+    expect(terminalInstances[0].options.theme.selectionBackground).toBe('#214283');
+    expect(terminalInstances[0].options.theme.selectionInactiveBackground).toBe('#214283');
+    expect(terminalInstances[0].options.theme.selection).toBeUndefined();
+    expect(document.documentElement.dataset.theme).toBe('darcula');
+
+    host.configure({
+      tabId: 'a',
+      options: {
+        ...createOptions(),
+        theme: 'Darcula',
+        selectionBackground: '#275D4E'
+      }
+    });
+
+    expect(terminalInstances[0].options.theme.selectionBackground).toBe('#275D4E');
+    expect(terminalInstances[0].options.theme.selectionInactiveBackground).toBe('#275D4E');
+  });
+
+  it('follows each theme selection color when reconfigured', async () => {
+    const { host } = await loadHost();
+    host.create({
+      tabId: 'a',
+      options: {
+        ...createOptions(),
+        selectionBackground: 'Theme'
+      }
+    });
+
+    expect(terminalInstances[0].options.theme.selectionBackground).toBe('#264f78');
+
+    host.configure({
+      tabId: 'a',
+      options: {
+        ...createOptions(),
+        theme: 'Default Light',
+        selectionBackground: 'Theme'
+      }
+    });
+
+    expect(terminalInstances[0].options.theme.selectionBackground).toBe('#cce8ff');
+    expect(terminalInstances[0].options.theme.selectionInactiveBackground).toBe('#cce8ff');
+  });
+
   it('skips fit for hidden or invalid terminals', async () => {
     const hidden = await loadHost({ width: 0 });
     hidden.module.fitActiveTerminal();

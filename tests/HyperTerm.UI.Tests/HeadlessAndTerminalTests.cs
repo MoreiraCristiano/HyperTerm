@@ -23,7 +23,7 @@ public sealed class AvaloniaHeadlessTests
 
     [AvaloniaFact]
     [Trait("Category", "Headless")]
-    public void Theme_service_applies_light_and_dark_variants()
+    public void Theme_service_applies_available_variants()
     {
         var service = new AvaloniaThemeService();
         var window = new Window();
@@ -42,6 +42,25 @@ public sealed class AvaloniaHeadlessTests
         Assert.Equal(
             Color.Parse("#F3F3F3"),
             Assert.IsType<SolidColorBrush>(lightBackground).Color);
+
+        service.Apply("Darcula");
+        Assert.Equal(
+            ApplicationThemeVariants.Darcula,
+            Avalonia.Application.Current.RequestedThemeVariant);
+        Assert.True(window.TryGetResource(
+            "AppBackgroundBrush",
+            ApplicationThemeVariants.Darcula,
+            out object? darculaBackground));
+        Assert.Equal(
+            Color.Parse("#2B2B2B"),
+            Assert.IsType<SolidColorBrush>(darculaBackground).Color);
+        Assert.True(window.TryGetResource(
+            "BorderBrush",
+            ApplicationThemeVariants.Darcula,
+            out object? darculaBorder));
+        SolidColorBrush darculaBorderBrush = Assert.IsType<SolidColorBrush>(darculaBorder);
+        Assert.Equal(Color.Parse("#808080"), darculaBorderBrush.Color);
+        Assert.Equal(0.55, darculaBorderBrush.Opacity);
 
         service.Apply("Default Dark");
         Assert.Equal(Avalonia.Styling.ThemeVariant.Dark, Avalonia.Application.Current.RequestedThemeVariant);

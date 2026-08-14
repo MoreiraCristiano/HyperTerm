@@ -216,7 +216,7 @@
                           <ComboBox.ItemTemplate>
                             <DataTemplate x:DataType="viewModels:TerminalSelectionColorOption">
                               <StackPanel Orientation="Horizontal">
-                                <Border Width="{DynamicResource ColorSwatchSize}" Height="{DynamicResource ColorSwatchSize}" Margin="{DynamicResource ColorSwatchMargin}" VerticalAlignment="Center" Background="{Binding PreviewBrush}" CornerRadius="{DynamicResource RadiusS}" />
+                                <Border Width="{DynamicResource ColorSwatchSize}" Height="{DynamicResource ColorSwatchSize}" Margin="{DynamicResource ColorSwatchMargin}" VerticalAlignment="Center" Background="{Binding PreviewBrush}" BorderBrush="{DynamicResource BorderHoverBrush}" BorderThickness="1" CornerRadius="{DynamicResource RadiusS}" />
                                 <TextBlock VerticalAlignment="Center" Text="{Binding Name}" />
                               </StackPanel>
                             </DataTemplate>

@@ -37,11 +37,40 @@ const terminalThemes = {
     brightMagenta: '#d670d6',
     brightCyan: '#29b8db',
     brightWhite: '#ffffff',
+    selection: '#264f78',
     search: {
       matchBackground: '#515c6a',
       matchOverviewRuler: '#748496',
       activeMatchBackground: '#d18616',
       activeMatchColorOverviewRuler: '#d18616'
+    }
+  },
+  darcula: {
+    background: '#2b2b2b',
+    foreground: '#a9b7c6',
+    cursor: '#a9b7c6',
+    black: '#2b2b2b',
+    red: '#cc7832',
+    green: '#6a8759',
+    yellow: '#ffc66d',
+    blue: '#6897bb',
+    magenta: '#9876aa',
+    cyan: '#6897bb',
+    white: '#a9b7c6',
+    brightBlack: '#808080',
+    brightRed: '#cc7832',
+    brightGreen: '#6a8759',
+    brightYellow: '#ffc66d',
+    brightBlue: '#6897bb',
+    brightMagenta: '#9876aa',
+    brightCyan: '#6897bb',
+    brightWhite: '#a9b7c6',
+    selection: '#214283',
+    search: {
+      matchBackground: '#323232',
+      matchOverviewRuler: '#808080',
+      activeMatchBackground: '#cc7832',
+      activeMatchColorOverviewRuler: '#cc7832'
     }
   },
   light: {
@@ -64,6 +93,7 @@ const terminalThemes = {
     brightMagenta: '#bc05bc',
     brightCyan: '#0598bc',
     brightWhite: '#a5a5a5',
+    selection: '#cce8ff',
     search: {
       matchBackground: '#c8def5',
       matchOverviewRuler: '#6b9ac4',
@@ -74,9 +104,21 @@ const terminalThemes = {
 };
 
 function resolveTheme(theme) {
-  return typeof theme === 'string' && theme.toLowerCase() === 'default light'
-    ? 'light'
-    : 'dark';
+  if (typeof theme !== 'string') return 'dark';
+
+  switch (theme.toLowerCase()) {
+    case 'default light': return 'light';
+    case 'darcula': return 'darcula';
+    default: return 'dark';
+  }
+}
+
+function resolveSelectionBackground(theme, selectionBackground) {
+  const palette = terminalThemes[resolveTheme(theme)];
+  return typeof selectionBackground === 'string'
+    && selectionBackground.toLowerCase() === 'theme'
+    ? palette.selection
+    : selectionBackground;
 }
 
 function applyHostTheme(theme) {
@@ -86,7 +128,7 @@ function applyHostTheme(theme) {
 }
 
 function xtermTheme(palette) {
-  const { search: _, ...theme } = palette;
+  const { search: _, selection: __, ...theme } = palette;
   return theme;
 }
 
@@ -108,6 +150,9 @@ function createTerminal({ tabId, options }) {
   terminalHostElement.appendChild(element);
 
   const palette = applyHostTheme(options.theme);
+  const selectionBackground = resolveSelectionBackground(
+    options.theme,
+    options.selectionBackground);
   const fitAddon = new FitAddon();
   const searchAddon = new SearchAddon();
   const terminal = new Terminal({
@@ -120,8 +165,8 @@ function createTerminal({ tabId, options }) {
     allowTransparency: false,
     theme: {
       ...xtermTheme(palette),
-      selectionBackground: options.selectionBackground,
-      selectionInactiveBackground: options.selectionBackground
+      selectionBackground,
+      selectionInactiveBackground: selectionBackground
     }
   });
 
@@ -270,12 +315,15 @@ function configureTerminal({ tabId, options }) {
   }
 
   const palette = applyHostTheme(options.theme);
+  const selectionBackground = resolveSelectionBackground(
+    options.theme,
+    options.selectionBackground);
   state.terminal.options.fontFamily = options.fontFamily;
   state.terminal.options.fontSize = options.fontSize;
   state.terminal.options.theme = {
     ...xtermTheme(palette),
-    selectionBackground: options.selectionBackground,
-    selectionInactiveBackground: options.selectionBackground
+    selectionBackground,
+    selectionInactiveBackground: selectionBackground
   };
   state.terminal.options.cursorStyle = options.cursorStyle;
   state.terminal.options.cursorBlink = options.cursorBlink;

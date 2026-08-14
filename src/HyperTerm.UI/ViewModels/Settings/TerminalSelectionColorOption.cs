@@ -4,11 +4,11 @@ namespace HyperTerm.UI.ViewModels;
 
 public sealed record TerminalSelectionColorOption
 {
-    public TerminalSelectionColorOption(string name, string value)
+    public TerminalSelectionColorOption(string name, string value, string? previewColor = null)
     {
         Name = name;
         Value = value;
-        PreviewBrush = new SolidColorBrush(Color.Parse(value));
+        PreviewBrush = new SolidColorBrush(Color.Parse(previewColor ?? value));
     }
 
     public string Name { get; }

@@ -1,6 +1,7 @@
 <Styles
     xmlns="https://github.com/avaloniaui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:services="using:HyperTerm.UI.Services">
   <Styles.Resources>
     <ResourceDictionary>
       <ResourceDictionary.ThemeDictionaries>
@@ -22,6 +23,25 @@
           <SolidColorBrush x:Key="SuccessBrush" Color="#4EC9B0" />
           <SolidColorBrush x:Key="OverlayBrush" Color="#B3000000" />
           <SolidColorBrush x:Key="SidebarScrollBarHoverBrush" Color="#484848" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="{x:Static services:ApplicationThemeVariants.Darcula}">
+          <SolidColorBrush x:Key="AppBackgroundBrush" Color="#2B2B2B" />
+          <SolidColorBrush x:Key="SecondaryBackgroundBrush" Color="#313335" />
+          <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#313335" />
+          <SolidColorBrush x:Key="HeaderBackgroundBrush" Color="#313335" />
+          <SolidColorBrush x:Key="BorderBrush" Color="#808080" Opacity="0.55" />
+          <SolidColorBrush x:Key="BorderHoverBrush" Color="#808080" Opacity="0.90" />
+          <SolidColorBrush x:Key="AccentBrush" Color="#6897BB" />
+          <SolidColorBrush x:Key="HoverBrush" Color="#323232" />
+          <SolidColorBrush x:Key="InputBackgroundBrush" Color="#313335" />
+          <SolidColorBrush x:Key="SelectionBrush" Color="#214283" />
+          <SolidColorBrush x:Key="PrimaryTextBrush" Color="#A9B7C6" />
+          <SolidColorBrush x:Key="MutedTextBrush" Color="#808080" />
+          <SolidColorBrush x:Key="DangerBrush" Color="#CC7832" />
+          <SolidColorBrush x:Key="WarningBrush" Color="#FFC66D" />
+          <SolidColorBrush x:Key="SuccessBrush" Color="#6A8759" />
+          <SolidColorBrush x:Key="OverlayBrush" Color="#B3000000" />
+          <SolidColorBrush x:Key="SidebarScrollBarHoverBrush" Color="#808080" />
         </ResourceDictionary>
         <ResourceDictionary x:Key="Light">
           <SolidColorBrush x:Key="AppBackgroundBrush" Color="#F3F3F3" />
