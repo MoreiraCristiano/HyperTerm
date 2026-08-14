@@ -14,9 +14,32 @@ recommended default, while custom profiles can launch other shells and tools.
 
 ## Preview
 
+### Terminal workspace
+
+The main workspace keeps saved sessions in the sidebar and local or remote
+terminals in editable tabs.
+
 ![HyperTerm terminal workspace](docs/prints/01.png)
 
+### Split panes
+
+Run independent terminals side by side inside one tab. Panes can be split
+horizontally or vertically, resized with the divider, and navigated with
+`Alt+Arrow`.
+
+![HyperTerm tab with nested split panes](docs/prints/04.png)
+
+### Terminal profiles
+
+Configure the default local shell, executable, arguments, and starting
+directory. Additional profiles can be created for other shells and tools.
+
 ![HyperTerm profile settings](docs/prints/02.png)
+
+### SSH session manager
+
+Save connection metadata for quick access and organize SSH sessions in nested
+folders. Credentials are never stored by HyperTerm.
 
 ![HyperTerm new SSH session](docs/prints/03.png)
 
@@ -25,6 +48,7 @@ recommended default, while custom profiles can launch other shells and tools.
 - Configurable local terminal profiles with a selectable default
 - Saved SSH sessions organized in nested folders
 - Multiple isolated tabs with editable titles
+- Recursive horizontal and vertical split panes with independent terminals
 - Persistent psmux sessions with attach, detach, and shutdown controls
 - Terminal output search and command palette
 - Configurable font, cursor, and selection appearance
@@ -98,7 +122,8 @@ and diagnostics remain local without capturing terminal input or credentials.
 ## Architecture
 
 ```text
-Avalonia UI -> WebView2 -> xterm.js -> C# bridge -> ConPTY -> shell / ssh.exe
+Avalonia UI -> one WebView2 per tab -> xterm.js pane instances
+            -> C# bridge -> independent ConPTY sessions -> shell / ssh.exe
 ```
 
 The solution follows a simplified Clean Architecture split across
