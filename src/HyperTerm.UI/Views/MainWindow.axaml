@@ -277,7 +277,7 @@
               Classes="sessionsTree"
               FlowDirection="RightToLeft"
               Margin="{DynamicResource SessionTreeMargin}"
-              Background="Transparent"
+              Background="{DynamicResource TransparentBrush}"
               DoubleTapped="OnSessionTreeDoubleTapped"
               ItemsSource="{Binding Explorer.SessionTree}"
               ScrollViewer.AllowAutoHide="False"

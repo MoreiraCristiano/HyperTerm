@@ -40,7 +40,7 @@
               Grid.Row="2"
               MinHeight="180"
               MaxHeight="360"
-              Background="Transparent"
+              Background="{DynamicResource TransparentBrush}"
               BorderThickness="0"
               DoubleTapped="OnActivePsmuxSessionDoubleTapped"
               IsVisible="{Binding Workspace.HasPsmuxSessions}"

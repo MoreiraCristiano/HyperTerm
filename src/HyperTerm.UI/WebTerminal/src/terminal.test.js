@@ -372,8 +372,13 @@ describe('terminal host bridge', () => {
       options: { ...createOptions(), theme: 'Default Light' }
     });
 
-    expect(terminalInstances[0].options.theme.background).toBe('#ffffff');
-    expect(terminalInstances[0].options.theme.foreground).toBe('#1f1f1f');
+    expect(terminalInstances[0].options.theme.background).toBe('#fafaf9');
+    expect(terminalInstances[0].options.theme.foreground).toBe('#202428');
+    expect(terminalInstances[0].options.theme.cursor).toBe('#246fa8');
+    expect(terminalInstances[0].options.theme.cursorAccent).toBe('#ffffff');
+    expect(terminalInstances[0].options.theme.selectionForeground).toBe('#15202b');
+    expect(terminalInstances[0].options.theme.brightBlue)
+      .not.toBe(terminalInstances[0].options.theme.blue);
     expect(document.documentElement.dataset.theme).toBe('light');
 
     host.configure({
@@ -398,8 +403,15 @@ describe('terminal host bridge', () => {
 
     expect(terminalInstances[0].options.theme.background).toBe('#2b2b2b');
     expect(terminalInstances[0].options.theme.foreground).toBe('#a9b7c6');
-    expect(terminalInstances[0].options.theme.red).toBe('#cc7832');
-    expect(terminalInstances[0].options.theme.magenta).toBe('#9876aa');
+    expect(terminalInstances[0].options.theme.red).toBe('#d0803d');
+    expect(terminalInstances[0].options.theme.magenta).toBe('#a985b9');
+    expect(terminalInstances[0].options.theme.cyan).toBe('#6fa3a1');
+    expect(terminalInstances[0].options.theme.cyan)
+      .not.toBe(terminalInstances[0].options.theme.blue);
+    expect(terminalInstances[0].options.theme.brightCyan)
+      .not.toBe(terminalInstances[0].options.theme.cyan);
+    expect(terminalInstances[0].options.theme.cursorAccent).toBe('#2b2b2b');
+    expect(terminalInstances[0].options.theme.selectionForeground).toBe('#d5e5f3');
     expect(terminalInstances[0].options.theme.selectionBackground).toBe('#214283');
     expect(terminalInstances[0].options.theme.selectionInactiveBackground).toBe('#214283');
     expect(terminalInstances[0].options.theme.selection).toBeUndefined();
@@ -439,8 +451,8 @@ describe('terminal host bridge', () => {
       }
     });
 
-    expect(terminalInstances[0].options.theme.selectionBackground).toBe('#cce8ff');
-    expect(terminalInstances[0].options.theme.selectionInactiveBackground).toBe('#cce8ff');
+    expect(terminalInstances[0].options.theme.selectionBackground).toBe('#c7ddf2');
+    expect(terminalInstances[0].options.theme.selectionInactiveBackground).toBe('#c7ddf2');
   });
 
   it('skips fit for hidden or invalid terminals', async () => {

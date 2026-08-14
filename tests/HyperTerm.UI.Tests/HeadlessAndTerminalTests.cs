@@ -1,11 +1,22 @@
+using System.Reflection;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Presenters;
+using Avalonia.Controls.Primitives;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
 using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Media;
+using Avalonia.Styling;
 using Avalonia.Themes.Fluent;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
+using HyperTerm.Core.Models;
 using HyperTerm.UI.Controls;
 using HyperTerm.UI.Services;
+using HyperTerm.UI.ViewModels;
+using HyperTerm.UI.Views;
 using HyperTerm.UI.Views.Dialogs;
 
 namespace HyperTerm.UI.Tests;
@@ -40,8 +51,22 @@ public sealed class AvaloniaHeadlessTests
             Avalonia.Styling.ThemeVariant.Light,
             out object? lightBackground));
         Assert.Equal(
-            Color.Parse("#F3F3F3"),
+            Color.Parse("#F4F5F7"),
             Assert.IsType<SolidColorBrush>(lightBackground).Color);
+        Assert.True(window.TryGetResource(
+            "CardBackgroundBrush",
+            Avalonia.Styling.ThemeVariant.Light,
+            out object? lightCard));
+        Assert.Equal(
+            Color.Parse("#FFFFFF"),
+            Assert.IsType<SolidColorBrush>(lightCard).Color);
+        Assert.True(window.TryGetResource(
+            "FocusRingBrush",
+            Avalonia.Styling.ThemeVariant.Light,
+            out object? lightFocusRing));
+        Assert.Equal(
+            Color.Parse("#3D7FAF"),
+            Assert.IsType<SolidColorBrush>(lightFocusRing).Color);
 
         service.Apply("Darcula");
         Assert.Equal(
@@ -59,11 +84,549 @@ public sealed class AvaloniaHeadlessTests
             ApplicationThemeVariants.Darcula,
             out object? darculaBorder));
         SolidColorBrush darculaBorderBrush = Assert.IsType<SolidColorBrush>(darculaBorder);
-        Assert.Equal(Color.Parse("#808080"), darculaBorderBrush.Color);
-        Assert.Equal(0.55, darculaBorderBrush.Opacity);
+        Assert.Equal(Color.Parse("#4B4D50"), darculaBorderBrush.Color);
+        Assert.Equal(1, darculaBorderBrush.Opacity);
+        Assert.True(window.TryGetResource(
+            "CardBackgroundBrush",
+            ApplicationThemeVariants.Darcula,
+            out object? darculaCard));
+        Assert.Equal(
+            Color.Parse("#383A3C"),
+            Assert.IsType<SolidColorBrush>(darculaCard).Color);
+        Assert.True(window.TryGetResource(
+            "DisabledForegroundBrush",
+            ApplicationThemeVariants.Darcula,
+            out object? darculaDisabled));
+        Assert.Equal(
+            Color.Parse("#737B82"),
+            Assert.IsType<SolidColorBrush>(darculaDisabled).Color);
 
         service.Apply("Default Dark");
         Assert.Equal(Avalonia.Styling.ThemeVariant.Dark, Avalonia.Application.Current.RequestedThemeVariant);
+        Assert.True(window.TryGetResource(
+            "NavigationHoverBackgroundBrush",
+            Avalonia.Styling.ThemeVariant.Dark,
+            out object? darkNavigationHover));
+        Assert.Equal(
+            Color.Parse("#3A3A3D"),
+            Assert.IsType<SolidColorBrush>(darkNavigationHover).Color);
+        Assert.True(window.TryGetResource(
+            "MenuFlyoutPresenterBackground",
+            Avalonia.Styling.ThemeVariant.Dark,
+            out object? darkMenuBackground));
+        Assert.Equal(
+            Color.Parse("#2D2D30"),
+            Assert.IsType<SolidColorBrush>(darkMenuBackground).Color);
+        Assert.True(window.TryGetResource(
+            "MenuFlyoutPresenterBorderBrush",
+            Avalonia.Styling.ThemeVariant.Dark,
+            out object? darkMenuBorder));
+        Assert.Equal(
+            Color.Parse("#3C3C3C"),
+            Assert.IsType<SolidColorBrush>(darkMenuBorder).Color);
+        Assert.True(window.TryGetResource(
+            "MenuFlyoutItemBackgroundPointerOver",
+            Avalonia.Styling.ThemeVariant.Dark,
+            out object? darkMenuHover));
+        Assert.Equal(
+            Color.Parse("#3A3A3D"),
+            Assert.IsType<SolidColorBrush>(darkMenuHover).Color);
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    [Trait("Category", "Headless")]
+    public void Pointer_over_applies_hover_background_and_restores_normal_background()
+    {
+        Avalonia.Application.Current!.RequestedThemeVariant =
+            ApplicationThemeVariants.Darcula;
+        AddDesignSystemStyles();
+        var button = new Button
+        {
+            Width = 120,
+            Height = 30,
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+            Content = "Hover",
+        };
+        var window = new Window
+        {
+            Width = 400,
+            Height = 240,
+            Content = button,
+        };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        ContentPresenter presenter = FindTemplatePart<ContentPresenter>(
+            button,
+            "PART_ContentPresenter");
+        AssertBrushColor(button.Background, "#343537");
+        AssertBrushColor(presenter.Background, "#343537");
+
+        Point buttonPointerPosition = button.TranslatePoint(
+            new Point(button.Bounds.Width / 2, button.Bounds.Height / 2),
+            window)!.Value;
+        window.MouseMove(buttonPointerPosition);
+        Dispatcher.UIThread.RunJobs();
+        Assert.True(button.IsPointerOver);
+        AssertBrushColor(button.Background, "#404244");
+        AssertBrushColor(presenter.Background, "#404244");
+
+        window.MouseDown(buttonPointerPosition, MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+        AssertBrushColor(button.Background, "#47494C");
+        AssertBrushColor(presenter.Background, "#47494C");
+
+        window.MouseUp(buttonPointerPosition, MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+        AssertBrushColor(button.Background, "#404244");
+        AssertBrushColor(presenter.Background, "#404244");
+
+        window.MouseMove(new Avalonia.Point(1, 1));
+        Dispatcher.UIThread.RunJobs();
+        AssertBrushColor(button.Background, "#343537");
+        AssertBrushColor(presenter.Background, "#343537");
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    [Trait("Category", "Headless")]
+    public void Settings_tab_hover_is_visible_only_while_hover_state_is_active()
+    {
+        Avalonia.Application.Current!.RequestedThemeVariant =
+            ApplicationThemeVariants.Darcula;
+        AddDesignSystemStyles();
+        var first = new TabItem { Header = "General", Content = new Border() };
+        var selected = new TabItem
+        {
+            Header = "Terminal",
+            Content = new Border(),
+            IsSelected = true,
+        };
+        first.Classes.Add("settingsTab");
+        selected.Classes.Add("settingsTab");
+        first.IsSelected = false;
+        var tabHeaders = new StackPanel
+        {
+            Width = 400,
+            Height = 240,
+            Children = { first, selected },
+        };
+        var window = new Window
+        {
+            Width = 400,
+            Height = 240,
+            Content = tabHeaders,
+        };
+        window.Show();
+        first.ApplyTemplate();
+        selected.ApplyTemplate();
+        Dispatcher.UIThread.RunJobs();
+        Border firstLayoutRoot = FindTemplatePart<Border>(first, "PART_LayoutRoot");
+        Border selectedLayoutRoot = FindTemplatePart<Border>(selected, "PART_LayoutRoot");
+        AssertTransparent(first.Background);
+        AssertTransparent(firstLayoutRoot.Background);
+        AssertBrushColor(selectedLayoutRoot.Background, "#47494C");
+
+        SetPseudoClass(first, ":pointerover", true);
+        Dispatcher.UIThread.RunJobs();
+        AssertBrushColor(first.Background, "#404244");
+        AssertBrushColor(firstLayoutRoot.Background, "#404244");
+
+        SetPseudoClass(selected, ":pointerover", true);
+        Dispatcher.UIThread.RunJobs();
+        AssertBrushColor(selectedLayoutRoot.Background, "#47494C");
+
+        SetPseudoClass(first, ":pointerover", false);
+        SetPseudoClass(selected, ":pointerover", false);
+        Dispatcher.UIThread.RunJobs();
+        AssertTransparent(first.Background);
+        AssertTransparent(firstLayoutRoot.Background);
+        AssertBrushColor(selectedLayoutRoot.Background, "#47494C");
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    [Trait("Category", "Headless")]
+    public void Selected_and_disabled_list_items_override_hover_and_pressed_states()
+    {
+        Avalonia.Application.Current!.RequestedThemeVariant =
+            ApplicationThemeVariants.Darcula;
+        AddDesignSystemStyles();
+        var list = new ListBox
+        {
+            Width = 240,
+            Height = 180,
+            ItemsSource = new[] { "Normal", "Selected", "Disabled" },
+            SelectedIndex = 1,
+        };
+        var window = new Window
+        {
+            Width = 400,
+            Height = 240,
+            Content = list,
+        };
+        window.Show();
+        list.ApplyTemplate();
+        Dispatcher.UIThread.RunJobs();
+        ListBoxItem[] items = list.GetVisualDescendants().OfType<ListBoxItem>().ToArray();
+        Assert.Equal(3, items.Length);
+        ListBoxItem normal = items[0];
+        ListBoxItem selected = items[1];
+        ListBoxItem disabled = items[2];
+        disabled.IsEnabled = false;
+        Dispatcher.UIThread.RunJobs();
+
+        ContentPresenter normalPresenter = FindTemplatePart<ContentPresenter>(
+            normal,
+            "PART_ContentPresenter");
+        ContentPresenter selectedPresenter = FindTemplatePart<ContentPresenter>(
+            selected,
+            "PART_ContentPresenter");
+        ContentPresenter disabledPresenter = FindTemplatePart<ContentPresenter>(
+            disabled,
+            "PART_ContentPresenter");
+        AssertTransparent(normalPresenter.Background);
+        AssertBrushColor(selectedPresenter.Background, "#214283");
+        AssertBrushColor(disabledPresenter.Background, "#303133");
+
+        SetPseudoClass(normal, ":pointerover", true);
+        SetPseudoClass(selected, ":pointerover", true);
+        SetPseudoClass(disabled, ":pointerover", true);
+        Dispatcher.UIThread.RunJobs();
+        AssertBrushColor(normalPresenter.Background, "#404244");
+        AssertBrushColor(selectedPresenter.Background, "#214283");
+        AssertBrushColor(disabledPresenter.Background, "#303133");
+
+        SetPseudoClass(normal, ":pressed", true);
+        SetPseudoClass(selected, ":pressed", true);
+        Dispatcher.UIThread.RunJobs();
+        AssertBrushColor(normalPresenter.Background, "#47494C");
+        AssertBrushColor(selectedPresenter.Background, "#214283");
+
+        SetPseudoClass(normal, ":pressed", false);
+        SetPseudoClass(selected, ":pressed", false);
+        SetPseudoClass(normal, ":pointerover", false);
+        SetPseudoClass(selected, ":pointerover", false);
+        SetPseudoClass(disabled, ":pointerover", false);
+        Dispatcher.UIThread.RunJobs();
+        AssertTransparent(normalPresenter.Background);
+        AssertBrushColor(selectedPresenter.Background, "#214283");
+        AssertBrushColor(disabledPresenter.Background, "#303133");
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    [Trait("Category", "Headless")]
+    public void Dark_navigation_lists_and_menus_use_visible_hover()
+    {
+        Avalonia.Application.Current!.RequestedThemeVariant = ThemeVariant.Dark;
+        AddDesignSystemStyles();
+        var profileList = new ListBox
+        {
+            Width = 220,
+            Height = 80,
+            ItemsSource = new[] { "PowerShell" },
+        };
+        profileList.Classes.Add("profileList");
+        var sessionsTree = new TreeView
+        {
+            Width = 220,
+            Height = 80,
+            ItemsSource = new[] { "SSH server" },
+        };
+        sessionsTree.Classes.Add("sessionsTree");
+        var profileMenuItem = new MenuItem { Header = "PowerShell" };
+        var window = new Window
+        {
+            Width = 300,
+            Height = 300,
+            Content = new StackPanel
+            {
+                Children = { profileList, sessionsTree, profileMenuItem },
+            },
+        };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        ListBoxItem profileItem = Assert.Single(
+            profileList.GetVisualDescendants().OfType<ListBoxItem>());
+        ContentPresenter profilePresenter = FindTemplatePart<ContentPresenter>(
+            profileItem,
+            "PART_ContentPresenter");
+        TreeViewItem sessionItem = Assert.Single(
+            sessionsTree.GetVisualDescendants().OfType<TreeViewItem>());
+        Border sessionRoot = FindTemplatePart<Border>(sessionItem, "PART_LayoutRoot");
+        Border menuRoot = FindTemplatePart<Border>(profileMenuItem, "PART_LayoutRoot");
+
+        SetPseudoClass(profileItem, ":pointerover", true);
+        SetPseudoClass(sessionItem, ":pointerover", true);
+        SetPseudoClass(sessionRoot, ":pointerover", true);
+        profileMenuItem.IsSelected = true;
+        Dispatcher.UIThread.RunJobs();
+
+        AssertBrushColor(profilePresenter.Background, "#3A3A3D");
+        AssertBrushColor(sessionRoot.Background, "#3A3A3D");
+        AssertBrushColor(menuRoot.Background, "#3A3A3D");
+
+        SetPseudoClass(profileItem, ":pointerover", false);
+        SetPseudoClass(sessionItem, ":pointerover", false);
+        SetPseudoClass(sessionRoot, ":pointerover", false);
+        profileMenuItem.IsSelected = false;
+        Dispatcher.UIThread.RunJobs();
+
+        AssertTransparent(profilePresenter.Background);
+        AssertTransparent(sessionRoot.Background);
+        AssertTransparent(menuRoot.Background);
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    [Trait("Category", "Headless")]
+    public void Input_hover_changes_only_border_and_focus_remains_dominant()
+    {
+        Avalonia.Application.Current!.RequestedThemeVariant =
+            ApplicationThemeVariants.Darcula;
+        AddDesignSystemStyles();
+        var textBox = new TextBox
+        {
+            Width = 220,
+            Height = 32,
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+        };
+        var window = new Window
+        {
+            Width = 400,
+            Height = 240,
+            Content = textBox,
+        };
+        window.Show();
+        textBox.ApplyTemplate();
+        Dispatcher.UIThread.RunJobs();
+        Assert.NotNull(textBox.Template);
+        Border border = FindTemplatePart<Border>(textBox, "PART_BorderElement");
+        AssertBrushColor(border.Background, "#292A2C");
+        AssertBrushColor(border.BorderBrush, "#4B4D50");
+
+        Point pointerPosition = textBox.TranslatePoint(
+            new Point(textBox.Bounds.Width / 2, textBox.Bounds.Height / 2),
+            window)!.Value;
+        window.MouseMove(pointerPosition);
+        Dispatcher.UIThread.RunJobs();
+        AssertBrushColor(border.Background, "#292A2C");
+        AssertBrushColor(border.BorderBrush, "#686B70");
+
+        textBox.Focus();
+        Dispatcher.UIThread.RunJobs();
+        Assert.True(textBox.IsFocused);
+        AssertBrushColor(border.Background, "#292A2C");
+        AssertBrushColor(border.BorderBrush, "#6897BB");
+
+        window.MouseMove(new Point(1, 1));
+        Dispatcher.UIThread.RunJobs();
+        AssertBrushColor(border.Background, "#292A2C");
+        AssertBrushColor(border.BorderBrush, "#6897BB");
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    [Trait("Category", "Headless")]
+    public void Scrollbar_hover_changes_only_the_thumb_visual()
+    {
+        Avalonia.Application.Current!.RequestedThemeVariant =
+            ApplicationThemeVariants.Darcula;
+        AddDesignSystemStyles();
+        var scrollBar = new ScrollBar
+        {
+            Width = 16,
+            Height = 180,
+            Minimum = 0,
+            Maximum = 100,
+            Orientation = Avalonia.Layout.Orientation.Vertical,
+            Value = 20,
+            ViewportSize = 10,
+        };
+        var window = new Window
+        {
+            Width = 200,
+            Height = 240,
+            Content = scrollBar,
+        };
+        window.Show();
+        scrollBar.ApplyTemplate();
+        scrollBar.Measure(new Size(16, 180));
+        scrollBar.Arrange(new Rect(0, 0, 16, 180));
+        Dispatcher.UIThread.RunJobs();
+        Thumb thumb = Assert.Single(scrollBar.GetVisualDescendants().OfType<Thumb>());
+        Border thumbBorder = Assert.Single(thumb.GetVisualDescendants().OfType<Border>());
+        AssertBrushColor(thumbBorder.Background, "#515356");
+
+        SetPseudoClass(thumb, ":pointerover", true);
+        Dispatcher.UIThread.RunJobs();
+        AssertBrushColor(thumbBorder.Background, "#707377");
+
+        SetPseudoClass(thumb, ":pointerover", false);
+        Dispatcher.UIThread.RunJobs();
+        AssertBrushColor(thumbBorder.Background, "#515356");
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    [Trait("Category", "Headless")]
+    public void Button_variants_keep_their_own_hover_pressed_and_disabled_visuals()
+    {
+        Avalonia.Application.Current!.RequestedThemeVariant =
+            ApplicationThemeVariants.Darcula;
+        AddDesignSystemStyles();
+        var accent = new Button { Content = "Accent" };
+        var danger = new Button { Content = "Danger" };
+        var titleBar = new Button { Content = "Title" };
+        var tabClose = new Button { Content = "Close tab" };
+        var disabled = new Button { Content = "Disabled", IsEnabled = false };
+        accent.Classes.Add("accent");
+        danger.Classes.Add("danger");
+        titleBar.Classes.Add("titleBarButton");
+        tabClose.Classes.Add("tabCloseButton");
+        var window = new Window
+        {
+            Width = 500,
+            Height = 300,
+            Content = new StackPanel
+            {
+                Children = { accent, danger, titleBar, tabClose, disabled },
+            },
+        };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        ContentPresenter accentPresenter = FindTemplatePart<ContentPresenter>(
+            accent,
+            "PART_ContentPresenter");
+        ContentPresenter dangerPresenter = FindTemplatePart<ContentPresenter>(
+            danger,
+            "PART_ContentPresenter");
+        ContentPresenter titlePresenter = FindTemplatePart<ContentPresenter>(
+            titleBar,
+            "PART_ContentPresenter");
+        ContentPresenter tabClosePresenter = FindTemplatePart<ContentPresenter>(
+            tabClose,
+            "PART_ContentPresenter");
+        ContentPresenter disabledPresenter = FindTemplatePart<ContentPresenter>(
+            disabled,
+            "PART_ContentPresenter");
+        AssertBrushColor(accentPresenter.Background, "#6897BB");
+        AssertBrushColor(dangerPresenter.Background, "#462C2C");
+        AssertTransparent(titlePresenter.Background);
+        AssertTransparent(tabClosePresenter.Background);
+        AssertBrushColor(disabledPresenter.Background, "#303133");
+
+        foreach (Button button in new[] { accent, danger, titleBar, tabClose, disabled })
+        {
+            SetPseudoClass(button, ":pointerover", true);
+        }
+
+        Dispatcher.UIThread.RunJobs();
+        AssertBrushColor(accentPresenter.Background, "#78A6C8");
+        AssertBrushColor(dangerPresenter.Background, "#543535");
+        AssertBrushColor(titlePresenter.Background, "#404244");
+        AssertTransparent(tabClosePresenter.Background);
+        AssertBrushColor(disabledPresenter.Background, "#303133");
+
+        foreach (Button button in new[] { accent, danger, titleBar, tabClose, disabled })
+        {
+            SetPseudoClass(button, ":pressed", true);
+        }
+
+        Dispatcher.UIThread.RunJobs();
+        AssertBrushColor(accentPresenter.Background, "#5B87A8");
+        AssertBrushColor(dangerPresenter.Background, "#D66666");
+        AssertBrushColor(titlePresenter.Background, "#47494C");
+        AssertTransparent(tabClosePresenter.Background);
+        AssertBrushColor(disabledPresenter.Background, "#303133");
+
+        foreach (Button button in new[] { accent, danger, titleBar, tabClose, disabled })
+        {
+            SetPseudoClass(button, ":pressed", false);
+            SetPseudoClass(button, ":pointerover", false);
+        }
+
+        Dispatcher.UIThread.RunJobs();
+        AssertBrushColor(accentPresenter.Background, "#6897BB");
+        AssertBrushColor(dangerPresenter.Background, "#462C2C");
+        AssertTransparent(titlePresenter.Background);
+        AssertTransparent(tabClosePresenter.Background);
+        AssertBrushColor(disabledPresenter.Background, "#303133");
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    [Trait("Category", "Headless")]
+    public void Combo_numeric_checkbox_and_menu_hover_target_their_fluent_parts()
+    {
+        Avalonia.Application.Current!.RequestedThemeVariant =
+            ApplicationThemeVariants.Darcula;
+        AddDesignSystemStyles();
+        var comboBox = new ComboBox
+        {
+            Width = 220,
+            ItemsSource = new[] { "One", "Two" },
+            SelectedIndex = 0,
+        };
+        var numeric = new NumericUpDown { Width = 220, Value = 12 };
+        var checkBox = new CheckBox { Content = "Enabled", IsChecked = true };
+        var menuItem = new MenuItem { Header = "Open" };
+        var disabledMenuItem = new MenuItem { Header = "Disabled", IsEnabled = false };
+        var window = new Window
+        {
+            Width = 500,
+            Height = 300,
+            Content = new StackPanel
+            {
+                Children = { comboBox, numeric, checkBox, menuItem, disabledMenuItem },
+            },
+        };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        Border comboBackground = FindTemplatePart<Border>(comboBox, "Background");
+        ButtonSpinner spinner = FindTemplatePart<ButtonSpinner>(numeric, "PART_Spinner");
+        Border checkRectangle = FindTemplatePart<Border>(checkBox, "NormalRectangle");
+        Border menuRoot = FindTemplatePart<Border>(menuItem, "PART_LayoutRoot");
+        Border disabledMenuRoot = FindTemplatePart<Border>(
+            disabledMenuItem,
+            "PART_LayoutRoot");
+        AssertBrushColor(comboBackground.Background, "#292A2C");
+        AssertBrushColor(comboBackground.BorderBrush, "#4B4D50");
+        AssertBrushColor(spinner.Background, "#292A2C");
+        AssertBrushColor(spinner.BorderBrush, "#4B4D50");
+        AssertBrushColor(checkRectangle.Background, "#6897BB");
+        AssertTransparent(menuRoot.Background);
+        AssertTransparent(disabledMenuRoot.Background);
+
+        SetPseudoClass(comboBox, ":pointerover", true);
+        SetPseudoClass(numeric, ":pointerover", true);
+        SetPseudoClass(checkBox, ":pointerover", true);
+        menuItem.IsSelected = true;
+        disabledMenuItem.IsSelected = true;
+        Dispatcher.UIThread.RunJobs();
+        AssertBrushColor(comboBackground.Background, "#292A2C");
+        AssertBrushColor(comboBackground.BorderBrush, "#686B70");
+        AssertBrushColor(spinner.Background, "#292A2C");
+        AssertBrushColor(spinner.BorderBrush, "#686B70");
+        AssertBrushColor(checkRectangle.Background, "#78A6C8");
+        AssertBrushColor(menuRoot.Background, "#404244");
+        AssertTransparent(disabledMenuRoot.Background);
+
+        SetPseudoClass(comboBox, ":pointerover", false);
+        SetPseudoClass(numeric, ":pointerover", false);
+        SetPseudoClass(checkBox, ":pointerover", false);
+        menuItem.IsSelected = false;
+        disabledMenuItem.IsSelected = false;
+        Dispatcher.UIThread.RunJobs();
+        AssertBrushColor(comboBackground.BorderBrush, "#4B4D50");
+        AssertBrushColor(spinner.BorderBrush, "#4B4D50");
+        AssertBrushColor(checkRectangle.Background, "#6897BB");
+        AssertTransparent(menuRoot.Background);
+        AssertTransparent(disabledMenuRoot.Background);
         window.Close();
     }
 
@@ -231,6 +794,81 @@ public sealed class AvaloniaHeadlessTests
         Assert.Equal(initialGeometry[0], (first.Bounds.Y, first.Bounds.Height));
         Assert.Equal(initialGeometry[1], (second.Bounds.Y, second.Bounds.Height));
         window.Close();
+    }
+
+    private static void AddDesignSystemStyles()
+    {
+        Avalonia.Application application = Avalonia.Application.Current!;
+        if (!application.Styles.OfType<FluentTheme>().Any())
+        {
+            application.Styles.Add(new FluentTheme { DensityStyle = DensityStyle.Compact });
+        }
+
+        if (application.Styles.OfType<StyleInclude>().Any(
+                include => include.Source?.ToString() ==
+                    "avares://HyperTerm/Styles/DesignSystem.axaml"))
+        {
+            return;
+        }
+
+        application.Styles.Add(new StyleInclude((Uri?)null)
+        {
+            Source = new Uri("avares://HyperTerm/Styles/DesignSystem.axaml"),
+        });
+    }
+
+    [Theory]
+    [InlineData(TerminalProfileIds.PowerShell, true)]
+    [InlineData("custom-shell", false)]
+    public void Terminal_profile_menu_header_contains_only_the_profile_name(
+        string profileId,
+        bool isDefault)
+    {
+        var profile = new TerminalProfile
+        {
+            Id = profileId,
+            Name = "Profile name",
+            ExecutablePath = "shell.exe",
+        };
+        var item = new TerminalLaunchProfileViewModel(profile, true, isDefault);
+
+        Assert.Equal("Profile name", MainWindow.GetTerminalProfileMenuHeader(item));
+    }
+
+    private static T FindTemplatePart<T>(Control control, string name)
+        where T : Control =>
+        Assert.Single(
+            control.GetVisualDescendants().OfType<T>(),
+            candidate => candidate.Name == name);
+
+    private static void AssertBrushColor(IBrush? brush, string expectedColor)
+    {
+        var solidBrush = Assert.IsAssignableFrom<ISolidColorBrush>(brush);
+        Assert.Equal(Color.Parse(expectedColor), solidBrush.Color);
+    }
+
+    private static void AssertTransparent(IBrush? brush)
+    {
+        if (brush is null)
+        {
+            return;
+        }
+
+        Assert.Equal(
+            Colors.Transparent,
+            Assert.IsAssignableFrom<ISolidColorBrush>(brush).Color);
+    }
+
+    private static void SetPseudoClass(
+        StyledElement control,
+        string pseudoClass,
+        bool value)
+    {
+        PropertyInfo property = typeof(StyledElement).GetProperty(
+            "PseudoClasses",
+            BindingFlags.Instance | BindingFlags.NonPublic)!;
+        var pseudoClasses = Assert.IsAssignableFrom<IPseudoClasses>(property.GetValue(control));
+        pseudoClasses.Set(pseudoClass, value);
     }
 }
 

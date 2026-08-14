@@ -36,16 +36,16 @@ public sealed partial class SettingsViewModel(
         "Default Light",
         "Default Light",
         "A neutral light appearance inspired by Windows.",
-        "#F3F3F3",
-        "#E9E9E9",
-        "#FFFFFF");
+        "#F4F5F7",
+        "#E7EAEE",
+        "#FAFAFB");
     private static readonly ThemeOption DarculaTheme = new(
         "Darcula",
         "Darcula",
         "A dark appearance inspired by JetBrains Darcula.",
         "#2B2B2B",
-        "#313335",
-        "#323232");
+        "#292A2C",
+        "#343537");
     private ApplicationSettings applicationSettings = new();
     private bool windowStateChanged;
     private CancellationTokenSource? logPollingCancellation;

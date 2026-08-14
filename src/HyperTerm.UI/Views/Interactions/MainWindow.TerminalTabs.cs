@@ -34,12 +34,9 @@ public sealed partial class MainWindow : Window
         int index = 0;
         foreach (TerminalLaunchProfileViewModel profile in viewModel.Workspace.TerminalProfiles)
         {
-            string suffix = profile.IsDefault
-                ? " (Default)"
-                : profile.IsRecommended ? " (Recommended)" : string.Empty;
             var item = new MenuItem
             {
-                Header = profile.Name + suffix,
+                Header = GetTerminalProfileMenuHeader(profile),
                 Command = viewModel.Workspace.OpenTerminalProfileCommand,
                 CommandParameter = profile,
                 IsEnabled = profile.IsAvailable,
@@ -47,6 +44,9 @@ public sealed partial class MainWindow : Window
             menu.Items.Insert(index++, item);
         }
     }
+
+    internal static string GetTerminalProfileMenuHeader(
+        TerminalLaunchProfileViewModel profile) => profile.Name;
 
     private void OnTerminalTabsLayoutUpdated(object? sender, EventArgs eventArgs)
     {

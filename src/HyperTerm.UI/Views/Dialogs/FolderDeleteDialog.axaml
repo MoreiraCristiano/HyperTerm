@@ -23,7 +23,7 @@
               Content="Force delete contained sessions"
               IsChecked="{Binding FolderEditor.ForceDeleteFolders}" />
           <TextBlock
-              Foreground="{DynamicResource SecondaryTextBrush}"
+              Foreground="{DynamicResource MutedTextBrush}"
               Text="Force delete permanently removes every session inside the selected folders."
               TextWrapping="Wrap" />
           <TextBlock Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap" Text="{Binding FolderEditor.FolderDeleteError}" />

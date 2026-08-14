@@ -9,58 +9,154 @@
           <SolidColorBrush x:Key="AppBackgroundBrush" Color="#1E1E1E" />
           <SolidColorBrush x:Key="SecondaryBackgroundBrush" Color="#252526" />
           <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#2D2D30" />
+          <SolidColorBrush x:Key="CardBackgroundBrush" Color="#2D2D30" />
           <SolidColorBrush x:Key="HeaderBackgroundBrush" Color="#252526" />
+          <SolidColorBrush x:Key="InputBackgroundBrush" Color="#252526" />
           <SolidColorBrush x:Key="BorderBrush" Color="#3C3C3C" />
           <SolidColorBrush x:Key="BorderHoverBrush" Color="#5A5A5E" />
+          <SolidColorBrush x:Key="BorderFocusBrush" Color="#007ACC" />
+          <SolidColorBrush x:Key="HoverBackgroundBrush" Color="#2A2D2E" />
+          <SolidColorBrush x:Key="NavigationHoverBackgroundBrush" Color="#3A3A3D" />
+          <SolidColorBrush x:Key="PressedBackgroundBrush" Color="#34373A" />
+          <SolidColorBrush x:Key="SelectionBackgroundBrush" Color="#094771" />
+          <SolidColorBrush x:Key="SelectionForegroundBrush" Color="#FFFFFF" />
           <SolidColorBrush x:Key="AccentBrush" Color="#007ACC" />
-          <SolidColorBrush x:Key="HoverBrush" Color="#2A2D2E" />
-          <SolidColorBrush x:Key="InputBackgroundBrush" Color="#252526" />
-          <SolidColorBrush x:Key="SelectionBrush" Color="#094771" />
+          <SolidColorBrush x:Key="AccentForegroundBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="AccentHoverBrush" Color="#1684D1" />
+          <SolidColorBrush x:Key="AccentPressedBrush" Color="#006BB3" />
           <SolidColorBrush x:Key="PrimaryTextBrush" Color="#D4D4D4" />
           <SolidColorBrush x:Key="MutedTextBrush" Color="#9D9D9D" />
+          <SolidColorBrush x:Key="DisabledForegroundBrush" Color="#767676" />
+          <SolidColorBrush x:Key="DisabledBackgroundBrush" Color="#242424" />
           <SolidColorBrush x:Key="DangerBrush" Color="#F14C4C" />
+          <SolidColorBrush x:Key="DangerBackgroundBrush" Color="#3B2020" />
+          <SolidColorBrush x:Key="DangerHoverBackgroundBrush" Color="#512626" />
+          <SolidColorBrush x:Key="DangerPressedBackgroundBrush" Color="#F14C4C" />
+          <SolidColorBrush x:Key="DangerForegroundBrush" Color="#FFFFFF" />
           <SolidColorBrush x:Key="WarningBrush" Color="#CCA700" />
           <SolidColorBrush x:Key="SuccessBrush" Color="#4EC9B0" />
           <SolidColorBrush x:Key="OverlayBrush" Color="#B3000000" />
-          <SolidColorBrush x:Key="SidebarScrollBarHoverBrush" Color="#484848" />
+          <SolidColorBrush x:Key="ScrollbarBrush" Color="#3C3C3C" />
+          <SolidColorBrush x:Key="ScrollbarHoverBrush" Color="#55585C" />
+          <SolidColorBrush x:Key="FocusRingBrush" Color="#69A7E8" />
+          <StaticResource x:Key="MenuFlyoutPresenterBackground" ResourceKey="CardBackgroundBrush" />
+          <StaticResource x:Key="MenuFlyoutPresenterBorderBrush" ResourceKey="BorderBrush" />
+          <StaticResource x:Key="MenuFlyoutItemBackgroundPointerOver" ResourceKey="NavigationHoverBackgroundBrush" />
+          <StaticResource x:Key="MenuFlyoutItemBackgroundPressed" ResourceKey="PressedBackgroundBrush" />
+          <StaticResource x:Key="MenuFlyoutItemForegroundPointerOver" ResourceKey="PrimaryTextBrush" />
+          <StaticResource x:Key="MenuFlyoutItemForegroundPressed" ResourceKey="PrimaryTextBrush" />
+          <StaticResource x:Key="MenuFlyoutItemForegroundDisabled" ResourceKey="DisabledForegroundBrush" />
+          <StaticResource x:Key="MenuFlyoutItemKeyboardAcceleratorTextForeground" ResourceKey="MutedTextBrush" />
+          <StaticResource x:Key="MenuFlyoutItemKeyboardAcceleratorTextForegroundPointerOver" ResourceKey="PrimaryTextBrush" />
+          <StaticResource x:Key="MenuFlyoutItemKeyboardAcceleratorTextForegroundPressed" ResourceKey="PrimaryTextBrush" />
+          <StaticResource x:Key="MenuFlyoutItemKeyboardAcceleratorTextForegroundDisabled" ResourceKey="DisabledForegroundBrush" />
+          <StaticResource x:Key="MenuFlyoutSubItemChevron" ResourceKey="MutedTextBrush" />
+          <StaticResource x:Key="MenuFlyoutSubItemChevronPointerOver" ResourceKey="PrimaryTextBrush" />
+          <StaticResource x:Key="MenuFlyoutSubItemChevronPressed" ResourceKey="PrimaryTextBrush" />
+          <StaticResource x:Key="MenuFlyoutSubItemChevronDisabled" ResourceKey="DisabledForegroundBrush" />
+          <StaticResource x:Key="MenuFlyoutSubItemChevronSubMenuOpened" ResourceKey="PrimaryTextBrush" />
         </ResourceDictionary>
         <ResourceDictionary x:Key="{x:Static services:ApplicationThemeVariants.Darcula}">
           <SolidColorBrush x:Key="AppBackgroundBrush" Color="#2B2B2B" />
-          <SolidColorBrush x:Key="SecondaryBackgroundBrush" Color="#313335" />
-          <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#313335" />
-          <SolidColorBrush x:Key="HeaderBackgroundBrush" Color="#313335" />
-          <SolidColorBrush x:Key="BorderBrush" Color="#808080" Opacity="0.55" />
-          <SolidColorBrush x:Key="BorderHoverBrush" Color="#808080" Opacity="0.90" />
+          <SolidColorBrush x:Key="SecondaryBackgroundBrush" Color="#303133" />
+          <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#343537" />
+          <SolidColorBrush x:Key="CardBackgroundBrush" Color="#383A3C" />
+          <SolidColorBrush x:Key="HeaderBackgroundBrush" Color="#292A2C" />
+          <SolidColorBrush x:Key="InputBackgroundBrush" Color="#292A2C" />
+          <SolidColorBrush x:Key="BorderBrush" Color="#4B4D50" />
+          <SolidColorBrush x:Key="BorderHoverBrush" Color="#686B70" />
+          <SolidColorBrush x:Key="BorderFocusBrush" Color="#6897BB" />
+          <SolidColorBrush x:Key="HoverBackgroundBrush" Color="#404244" />
+          <SolidColorBrush x:Key="NavigationHoverBackgroundBrush" Color="#404244" />
+          <SolidColorBrush x:Key="PressedBackgroundBrush" Color="#47494C" />
+          <SolidColorBrush x:Key="SelectionBackgroundBrush" Color="#214283" />
+          <SolidColorBrush x:Key="SelectionForegroundBrush" Color="#D5E5F3" />
           <SolidColorBrush x:Key="AccentBrush" Color="#6897BB" />
-          <SolidColorBrush x:Key="HoverBrush" Color="#323232" />
-          <SolidColorBrush x:Key="InputBackgroundBrush" Color="#313335" />
-          <SolidColorBrush x:Key="SelectionBrush" Color="#214283" />
+          <SolidColorBrush x:Key="AccentForegroundBrush" Color="#16222B" />
+          <SolidColorBrush x:Key="AccentHoverBrush" Color="#78A6C8" />
+          <SolidColorBrush x:Key="AccentPressedBrush" Color="#5B87A8" />
           <SolidColorBrush x:Key="PrimaryTextBrush" Color="#A9B7C6" />
-          <SolidColorBrush x:Key="MutedTextBrush" Color="#808080" />
-          <SolidColorBrush x:Key="DangerBrush" Color="#CC7832" />
+          <SolidColorBrush x:Key="MutedTextBrush" Color="#969FA7" />
+          <SolidColorBrush x:Key="DisabledForegroundBrush" Color="#737B82" />
+          <SolidColorBrush x:Key="DisabledBackgroundBrush" Color="#303133" />
+          <SolidColorBrush x:Key="DangerBrush" Color="#D66666" />
+          <SolidColorBrush x:Key="DangerBackgroundBrush" Color="#462C2C" />
+          <SolidColorBrush x:Key="DangerHoverBackgroundBrush" Color="#543535" />
+          <SolidColorBrush x:Key="DangerPressedBackgroundBrush" Color="#D66666" />
+          <SolidColorBrush x:Key="DangerForegroundBrush" Color="#241717" />
           <SolidColorBrush x:Key="WarningBrush" Color="#FFC66D" />
-          <SolidColorBrush x:Key="SuccessBrush" Color="#6A8759" />
+          <SolidColorBrush x:Key="SuccessBrush" Color="#79A365" />
           <SolidColorBrush x:Key="OverlayBrush" Color="#B3000000" />
-          <SolidColorBrush x:Key="SidebarScrollBarHoverBrush" Color="#808080" />
+          <SolidColorBrush x:Key="ScrollbarBrush" Color="#515356" />
+          <SolidColorBrush x:Key="ScrollbarHoverBrush" Color="#707377" />
+          <SolidColorBrush x:Key="FocusRingBrush" Color="#7AA9CC" />
+          <StaticResource x:Key="MenuFlyoutPresenterBackground" ResourceKey="CardBackgroundBrush" />
+          <StaticResource x:Key="MenuFlyoutPresenterBorderBrush" ResourceKey="BorderBrush" />
+          <StaticResource x:Key="MenuFlyoutItemBackgroundPointerOver" ResourceKey="NavigationHoverBackgroundBrush" />
+          <StaticResource x:Key="MenuFlyoutItemBackgroundPressed" ResourceKey="PressedBackgroundBrush" />
+          <StaticResource x:Key="MenuFlyoutItemForegroundPointerOver" ResourceKey="PrimaryTextBrush" />
+          <StaticResource x:Key="MenuFlyoutItemForegroundPressed" ResourceKey="PrimaryTextBrush" />
+          <StaticResource x:Key="MenuFlyoutItemForegroundDisabled" ResourceKey="DisabledForegroundBrush" />
+          <StaticResource x:Key="MenuFlyoutItemKeyboardAcceleratorTextForeground" ResourceKey="MutedTextBrush" />
+          <StaticResource x:Key="MenuFlyoutItemKeyboardAcceleratorTextForegroundPointerOver" ResourceKey="PrimaryTextBrush" />
+          <StaticResource x:Key="MenuFlyoutItemKeyboardAcceleratorTextForegroundPressed" ResourceKey="PrimaryTextBrush" />
+          <StaticResource x:Key="MenuFlyoutItemKeyboardAcceleratorTextForegroundDisabled" ResourceKey="DisabledForegroundBrush" />
+          <StaticResource x:Key="MenuFlyoutSubItemChevron" ResourceKey="MutedTextBrush" />
+          <StaticResource x:Key="MenuFlyoutSubItemChevronPointerOver" ResourceKey="PrimaryTextBrush" />
+          <StaticResource x:Key="MenuFlyoutSubItemChevronPressed" ResourceKey="PrimaryTextBrush" />
+          <StaticResource x:Key="MenuFlyoutSubItemChevronDisabled" ResourceKey="DisabledForegroundBrush" />
+          <StaticResource x:Key="MenuFlyoutSubItemChevronSubMenuOpened" ResourceKey="PrimaryTextBrush" />
         </ResourceDictionary>
         <ResourceDictionary x:Key="Light">
-          <SolidColorBrush x:Key="AppBackgroundBrush" Color="#F3F3F3" />
-          <SolidColorBrush x:Key="SecondaryBackgroundBrush" Color="#E9E9E9" />
-          <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#FFFFFF" />
-          <SolidColorBrush x:Key="HeaderBackgroundBrush" Color="#E9E9E9" />
-          <SolidColorBrush x:Key="BorderBrush" Color="#D1D1D1" />
-          <SolidColorBrush x:Key="BorderHoverBrush" Color="#A6A6A6" />
-          <SolidColorBrush x:Key="AccentBrush" Color="#007ACC" />
-          <SolidColorBrush x:Key="HoverBrush" Color="#E1E1E1" />
+          <SolidColorBrush x:Key="AppBackgroundBrush" Color="#F4F5F7" />
+          <SolidColorBrush x:Key="SecondaryBackgroundBrush" Color="#ECEEF1" />
+          <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#FAFAFB" />
+          <SolidColorBrush x:Key="CardBackgroundBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="HeaderBackgroundBrush" Color="#E7EAEE" />
           <SolidColorBrush x:Key="InputBackgroundBrush" Color="#FFFFFF" />
-          <SolidColorBrush x:Key="SelectionBrush" Color="#CCE8FF" />
-          <SolidColorBrush x:Key="PrimaryTextBrush" Color="#1F1F1F" />
-          <SolidColorBrush x:Key="MutedTextBrush" Color="#5F5F5F" />
-          <SolidColorBrush x:Key="DangerBrush" Color="#C42B1C" />
-          <SolidColorBrush x:Key="WarningBrush" Color="#9D5D00" />
-          <SolidColorBrush x:Key="SuccessBrush" Color="#107C10" />
-          <SolidColorBrush x:Key="OverlayBrush" Color="#66000000" />
-          <SolidColorBrush x:Key="SidebarScrollBarHoverBrush" Color="#A0A0A0" />
+          <SolidColorBrush x:Key="BorderBrush" Color="#C9CED4" />
+          <SolidColorBrush x:Key="BorderHoverBrush" Color="#9BA4AE" />
+          <SolidColorBrush x:Key="BorderFocusBrush" Color="#2F77AA" />
+          <SolidColorBrush x:Key="HoverBackgroundBrush" Color="#E3E7EB" />
+          <SolidColorBrush x:Key="NavigationHoverBackgroundBrush" Color="#E3E7EB" />
+          <SolidColorBrush x:Key="PressedBackgroundBrush" Color="#D7DDE3" />
+          <SolidColorBrush x:Key="SelectionBackgroundBrush" Color="#C7DDF2" />
+          <SolidColorBrush x:Key="SelectionForegroundBrush" Color="#15202B" />
+          <SolidColorBrush x:Key="AccentBrush" Color="#246FA8" />
+          <SolidColorBrush x:Key="AccentForegroundBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="AccentHoverBrush" Color="#1E628F" />
+          <SolidColorBrush x:Key="AccentPressedBrush" Color="#194F74" />
+          <SolidColorBrush x:Key="PrimaryTextBrush" Color="#20252B" />
+          <SolidColorBrush x:Key="MutedTextBrush" Color="#5B6570" />
+          <SolidColorBrush x:Key="DisabledForegroundBrush" Color="#7A838D" />
+          <SolidColorBrush x:Key="DisabledBackgroundBrush" Color="#E6E9ED" />
+          <SolidColorBrush x:Key="DangerBrush" Color="#B42318" />
+          <SolidColorBrush x:Key="DangerBackgroundBrush" Color="#FBE9E7" />
+          <SolidColorBrush x:Key="DangerHoverBackgroundBrush" Color="#F6D3CF" />
+          <SolidColorBrush x:Key="DangerPressedBackgroundBrush" Color="#B42318" />
+          <SolidColorBrush x:Key="DangerForegroundBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="WarningBrush" Color="#8A5700" />
+          <SolidColorBrush x:Key="SuccessBrush" Color="#18743B" />
+          <SolidColorBrush x:Key="OverlayBrush" Color="#660B1220" />
+          <SolidColorBrush x:Key="ScrollbarBrush" Color="#AEB5BD" />
+          <SolidColorBrush x:Key="ScrollbarHoverBrush" Color="#858E98" />
+          <SolidColorBrush x:Key="FocusRingBrush" Color="#3D7FAF" />
+          <StaticResource x:Key="MenuFlyoutPresenterBackground" ResourceKey="CardBackgroundBrush" />
+          <StaticResource x:Key="MenuFlyoutPresenterBorderBrush" ResourceKey="BorderBrush" />
+          <StaticResource x:Key="MenuFlyoutItemBackgroundPointerOver" ResourceKey="NavigationHoverBackgroundBrush" />
+          <StaticResource x:Key="MenuFlyoutItemBackgroundPressed" ResourceKey="PressedBackgroundBrush" />
+          <StaticResource x:Key="MenuFlyoutItemForegroundPointerOver" ResourceKey="PrimaryTextBrush" />
+          <StaticResource x:Key="MenuFlyoutItemForegroundPressed" ResourceKey="PrimaryTextBrush" />
+          <StaticResource x:Key="MenuFlyoutItemForegroundDisabled" ResourceKey="DisabledForegroundBrush" />
+          <StaticResource x:Key="MenuFlyoutItemKeyboardAcceleratorTextForeground" ResourceKey="MutedTextBrush" />
+          <StaticResource x:Key="MenuFlyoutItemKeyboardAcceleratorTextForegroundPointerOver" ResourceKey="PrimaryTextBrush" />
+          <StaticResource x:Key="MenuFlyoutItemKeyboardAcceleratorTextForegroundPressed" ResourceKey="PrimaryTextBrush" />
+          <StaticResource x:Key="MenuFlyoutItemKeyboardAcceleratorTextForegroundDisabled" ResourceKey="DisabledForegroundBrush" />
+          <StaticResource x:Key="MenuFlyoutSubItemChevron" ResourceKey="MutedTextBrush" />
+          <StaticResource x:Key="MenuFlyoutSubItemChevronPointerOver" ResourceKey="PrimaryTextBrush" />
+          <StaticResource x:Key="MenuFlyoutSubItemChevronPressed" ResourceKey="PrimaryTextBrush" />
+          <StaticResource x:Key="MenuFlyoutSubItemChevronDisabled" ResourceKey="DisabledForegroundBrush" />
+          <StaticResource x:Key="MenuFlyoutSubItemChevronSubMenuOpened" ResourceKey="PrimaryTextBrush" />
         </ResourceDictionary>
       </ResourceDictionary.ThemeDictionaries>
 
@@ -164,15 +260,82 @@
     <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
   </Style>
-  <Style Selector="Button:pointerover /template/ ContentPresenter">
-    <Setter Property="Background" Value="{DynamicResource HoverBrush}" />
+  <Style Selector="Button:pointerover:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource HoverBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderHoverBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+  </Style>
+  <Style Selector="Button:pointerover:not(:disabled)">
+    <Setter Property="Background" Value="{DynamicResource HoverBackgroundBrush}" />
+  </Style>
+  <Style Selector="Button:pressed:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource PressedBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderHoverBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+  </Style>
+  <Style Selector="Button:pressed:not(:disabled)">
+    <Setter Property="Background" Value="{DynamicResource PressedBackgroundBrush}" />
+  </Style>
+  <Style Selector="Button:focus">
+    <Setter Property="BorderBrush" Value="{DynamicResource FocusRingBrush}" />
   </Style>
   <Style Selector="Button.accent">
     <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentForegroundBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+  </Style>
+  <Style Selector="Button.accent /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentForegroundBrush}" />
+  </Style>
+  <Style Selector="Button.accent:pointerover:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentHoverBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentHoverBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentForegroundBrush}" />
+  </Style>
+  <Style Selector="Button.accent:pointerover:not(:disabled)">
+    <Setter Property="Background" Value="{DynamicResource AccentHoverBrush}" />
+  </Style>
+  <Style Selector="Button.accent:pressed:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentPressedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentPressedBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentForegroundBrush}" />
+  </Style>
+  <Style Selector="Button.accent:pressed:not(:disabled)">
+    <Setter Property="Background" Value="{DynamicResource AccentPressedBrush}" />
   </Style>
   <Style Selector="Button.danger">
     <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+    <Setter Property="Background" Value="{DynamicResource DangerBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}" />
+  </Style>
+  <Style Selector="Button.danger:pointerover:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource DangerHoverBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+  </Style>
+  <Style Selector="Button.danger:pointerover:not(:disabled)">
+    <Setter Property="Background" Value="{DynamicResource DangerHoverBackgroundBrush}" />
+  </Style>
+  <Style Selector="Button.danger:pressed:not(:disabled)">
+    <Setter Property="Foreground" Value="{DynamicResource DangerForegroundBrush}" />
+    <Setter Property="Background" Value="{DynamicResource DangerPressedBackgroundBrush}" />
+  </Style>
+  <Style Selector="Button.danger:pressed:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource DangerPressedBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource DangerPressedBackgroundBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource DangerForegroundBrush}" />
+  </Style>
+  <Style Selector="Button:disabled">
+    <Setter Property="Foreground" Value="{DynamicResource DisabledForegroundBrush}" />
+    <Setter Property="Background" Value="{DynamicResource DisabledBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+  </Style>
+  <Style Selector="Button:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource DisabledBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource DisabledForegroundBrush}" />
   </Style>
   <Style Selector="Button.iconButton">
     <Setter Property="Width" Value="30" />
@@ -188,11 +351,15 @@
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
   </Style>
-  <Style Selector="Button.tabCloseButton:pointerover">
+  <Style Selector="Button.tabCloseButton:pointerover:not(:disabled)">
     <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
-  </Style>
-  <Style Selector="Button.tabCloseButton:pointerover /template/ ContentPresenter, Button.tabCloseButton:pressed /template/ ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+  </Style>
+  <Style Selector="Button.tabCloseButton:pointerover:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter,
+                   Button.tabCloseButton:pressed:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
   </Style>
   <Style Selector="Button.titleBarButton, Button.captionButton">
     <Setter Property="Height" Value="{DynamicResource TitleBarHeight}" />
@@ -213,13 +380,13 @@
   <Style Selector="Button.newTerminalMenuButton">
     <Setter Property="Width" Value="{DynamicResource NewTerminalActionWidth}" />
   </Style>
-  <Style Selector="Button.newTerminalPrimaryButton /template/ ContentPresenter, Button.newTerminalMenuButton /template/ ContentPresenter">
+  <Style Selector="Button.newTerminalPrimaryButton /template/ ContentPresenter#PART_ContentPresenter, Button.newTerminalMenuButton /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Margin" Value="0,6" />
   </Style>
-  <Style Selector="Button.newTerminalPrimaryButton /template/ ContentPresenter">
+  <Style Selector="Button.newTerminalPrimaryButton /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="CornerRadius" Value="3,0,0,3" />
   </Style>
-  <Style Selector="Button.newTerminalMenuButton /template/ ContentPresenter">
+  <Style Selector="Button.newTerminalMenuButton /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="CornerRadius" Value="0,3,3,0" />
   </Style>
   <Style Selector="Button.captionButton">
@@ -229,18 +396,65 @@
     <Setter Property="FontFamily" Value="{DynamicResource IconFontFamily}" />
     <Setter Property="FontSize" Value="{DynamicResource CaptionButtonIconSize}" />
   </Style>
-  <Style Selector="Button.closeCaptionButton:pointerover /template/ ContentPresenter, Button.closeCaptionButton:pressed /template/ ContentPresenter">
-    <Setter Property="Background" Value="{DynamicResource DangerBrush}" />
+  <Style Selector="Button.closeCaptionButton:pointerover:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter,
+                   Button.closeCaptionButton:pressed:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource DangerPressedBackgroundBrush}" />
+  </Style>
+  <Style Selector="Button.closeCaptionButton:pointerover:not(:disabled), Button.closeCaptionButton:pressed:not(:disabled)">
+    <Setter Property="Foreground" Value="{DynamicResource DangerForegroundBrush}" />
+    <Setter Property="Background" Value="{DynamicResource DangerPressedBackgroundBrush}" />
   </Style>
   <Style Selector="MenuFlyoutPresenter">
     <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}" />
     <Setter Property="FontSize" Value="{DynamicResource FontSizeBody}" />
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
   </Style>
   <Style Selector="MenuItem">
     <Setter Property="MinHeight" Value="{DynamicResource TreeItemMinHeight}" />
     <Setter Property="Padding" Value="{DynamicResource CompactControlPadding}" />
     <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}" />
     <Setter Property="FontSize" Value="{DynamicResource FontSizeBody}" />
+    <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+  </Style>
+  <Style Selector="MenuItem:pointerover:not(:disabled), MenuItem:selected:not(:disabled)">
+    <Setter Property="Background" Value="{DynamicResource NavigationHoverBackgroundBrush}" />
+  </Style>
+  <Style Selector="MenuItem:pointerover:not(:disabled) /template/ Border#PART_LayoutRoot,
+                   MenuItem:selected:not(:disabled) /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource NavigationHoverBackgroundBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+  </Style>
+  <Style Selector="MenuItem:pointerover:not(:disabled) /template/ ContentPresenter#PART_HeaderPresenter,
+                   MenuItem:selected:not(:disabled) /template/ ContentPresenter#PART_HeaderPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+  </Style>
+  <Style Selector="MenuItem:pressed:not(:disabled) /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource PressedBackgroundBrush}" />
+  </Style>
+  <Style Selector="MenuItem:pressed:not(:disabled) /template/ ContentPresenter#PART_HeaderPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+  </Style>
+  <Style Selector="MenuItem:disabled">
+    <Setter Property="Foreground" Value="{DynamicResource DisabledForegroundBrush}" />
+    <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+  </Style>
+  <Style Selector="MenuItem:disabled /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+  </Style>
+  <Style Selector="MenuItem:disabled /template/ ContentPresenter#PART_HeaderPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource DisabledForegroundBrush}" />
+  </Style>
+  <Style Selector="Separator">
+    <Setter Property="Background" Value="{DynamicResource BorderBrush}" />
+  </Style>
+  <Style Selector="ToolTip">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
   </Style>
   <Style Selector="TextBox, NumericUpDown, ComboBox">
     <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}" />
@@ -248,29 +462,152 @@
     <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
     <Setter Property="CornerRadius" Value="{DynamicResource RadiusS}" />
   </Style>
-  <Style Selector="TextBox:pointerover, NumericUpDown:pointerover, ComboBox:pointerover">
+  <Style Selector="TextBox:pointerover:not(:disabled), NumericUpDown:pointerover:not(:disabled), ComboBox:pointerover:not(:disabled)">
     <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource BorderHoverBrush}" />
   </Style>
-  <Style Selector="TextBox:pointerover /template/ Border, NumericUpDown:pointerover /template/ Border, ComboBox:pointerover /template/ Border">
+  <Style Selector="TextBox:pointerover:not(:disabled) /template/ Border#PART_BorderElement">
     <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource BorderHoverBrush}" />
   </Style>
-  <Style Selector="TextBox:focus, NumericUpDown:focus, ComboBox:focus">
+  <Style Selector="ComboBox:pointerover:not(:disabled) /template/ Border#Background">
+    <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderHoverBrush}" />
+  </Style>
+  <Style Selector="NumericUpDown:pointerover:not(:disabled) /template/ ButtonSpinner#PART_Spinner">
+    <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderHoverBrush}" />
+  </Style>
+  <Style Selector="TextBox:focus:not(:disabled),
+                   ComboBox:focus:not(:disabled), ComboBox:focus-visible:not(:disabled),
+                   NumericUpDown:focus:not(:disabled), NumericUpDown:focus-within:not(:disabled)">
     <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderFocusBrush}" />
   </Style>
-  <Style Selector="TextBox /template/ TextBlock#PART_Watermark">
+  <Style Selector="TextBox /template/ TextBlock#PART_Placeholder">
     <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
   </Style>
-  <Style Selector="TextBox:focus /template/ Border, NumericUpDown:focus /template/ Border, ComboBox:focus /template/ Border">
+  <Style Selector="TextBox:focus:not(:disabled) /template/ Border#PART_BorderElement">
+    <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderFocusBrush}" />
+  </Style>
+  <Style Selector="ComboBox:focus:not(:disabled) /template/ Border#Background,
+                   ComboBox:focus-visible:not(:disabled) /template/ Border#Background">
+    <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderFocusBrush}" />
+  </Style>
+  <Style Selector="ComboBox:focus-visible:not(:disabled) /template/ Border#HighlightBackground">
+    <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderFocusBrush}" />
+  </Style>
+  <Style Selector="NumericUpDown:focus:not(:disabled) /template/ ButtonSpinner#PART_Spinner,
+                   NumericUpDown:focus-within:not(:disabled) /template/ ButtonSpinner#PART_Spinner">
+    <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderFocusBrush}" />
+  </Style>
+  <Style Selector="NumericUpDown /template/ TextBox#PART_TextBox:pointerover /template/ Border#PART_BorderElement,
+                   NumericUpDown /template/ TextBox#PART_TextBox:focus /template/ Border#PART_BorderElement">
+    <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
+  </Style>
+  <Style Selector="TextBox:disabled, NumericUpDown:disabled, ComboBox:disabled">
+    <Setter Property="Background" Value="{DynamicResource DisabledBackgroundBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource DisabledForegroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+  </Style>
+  <Style Selector="TextBox:disabled /template/ Border#PART_BorderElement,
+                   ComboBox:disabled /template/ Border#Background">
+    <Setter Property="Background" Value="{DynamicResource DisabledBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+  </Style>
+  <Style Selector="NumericUpDown:disabled /template/ ButtonSpinner#PART_Spinner">
+    <Setter Property="Background" Value="{DynamicResource DisabledBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+  </Style>
+  <Style Selector="ComboBoxItem">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+  </Style>
+  <Style Selector="ComboBoxItem:pointerover:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource HoverBackgroundBrush}" />
+  </Style>
+  <Style Selector="ComboBoxItem:pointerover:not(:disabled)">
+    <Setter Property="Background" Value="{DynamicResource HoverBackgroundBrush}" />
+  </Style>
+  <Style Selector="ComboBoxItem:pressed:not(:selected):not(:disabled) /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource PressedBackgroundBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+  </Style>
+  <Style Selector="ComboBoxItem:pressed:not(:selected):not(:disabled)">
+    <Setter Property="Background" Value="{DynamicResource PressedBackgroundBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+  </Style>
+  <Style Selector="ComboBoxItem:selected:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter,
+                   ComboBoxItem:selected:pointerover:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter,
+                   ComboBoxItem:selected:pressed:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SelectionBackgroundBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource SelectionForegroundBrush}" />
+  </Style>
+  <Style Selector="ComboBoxItem:selected:not(:disabled),
+                   ComboBoxItem:selected:pointerover:not(:disabled),
+                   ComboBoxItem:selected:pressed:not(:disabled)">
+    <Setter Property="Background" Value="{DynamicResource SelectionBackgroundBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource SelectionForegroundBrush}" />
+  </Style>
+  <Style Selector="ComboBoxItem:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource DisabledBackgroundBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource DisabledForegroundBrush}" />
+  </Style>
+  <Style Selector="CheckBox">
+    <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+    <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
+  </Style>
+  <Style Selector="CheckBox /template/ Border#NormalRectangle">
     <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
   </Style>
-  <Style Selector="TreeViewItem:selected /template/ Border#PART_LayoutRoot, ListBoxItem:selected /template/ Border#PART_LayoutRoot">
-    <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
+  <Style Selector="CheckBox:pointerover:not(:disabled) /template/ Border#NormalRectangle">
+    <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderHoverBrush}" />
+  </Style>
+  <Style Selector="CheckBox:pressed:not(:disabled) /template/ Border#NormalRectangle">
+    <Setter Property="Background" Value="{DynamicResource PressedBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderHoverBrush}" />
+  </Style>
+  <Style Selector="CheckBox:focus /template/ Border#PART_Border">
+    <Setter Property="BorderBrush" Value="{DynamicResource FocusRingBrush}" />
+  </Style>
+  <Style Selector="CheckBox:checked">
+    <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
+  </Style>
+  <Style Selector="CheckBox:checked /template/ Border#NormalRectangle">
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+  </Style>
+  <Style Selector="CheckBox:checked /template/ Path#CheckGlyph">
+    <Setter Property="Fill" Value="{DynamicResource AccentForegroundBrush}" />
+  </Style>
+  <Style Selector="CheckBox:checked:pointerover:not(:disabled) /template/ Border#NormalRectangle">
+    <Setter Property="Background" Value="{DynamicResource AccentHoverBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentHoverBrush}" />
+  </Style>
+  <Style Selector="CheckBox:checked:pressed:not(:disabled) /template/ Border#NormalRectangle">
+    <Setter Property="Background" Value="{DynamicResource AccentPressedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentPressedBrush}" />
+  </Style>
+  <Style Selector="CheckBox:disabled">
+    <Setter Property="Foreground" Value="{DynamicResource DisabledForegroundBrush}" />
+    <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
+  </Style>
+  <Style Selector="CheckBox:disabled /template/ Border#NormalRectangle">
+    <Setter Property="Background" Value="{DynamicResource DisabledBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
   </Style>
   <Style Selector="TreeViewItem">
     <Setter Property="MinHeight" Value="{DynamicResource TreeItemMinHeight}" />
@@ -296,7 +633,7 @@
     <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
   </Style>
   <Style Selector="Grid.sessionTreeRow.batchSelected">
-    <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
+    <Setter Property="Background" Value="{DynamicResource SelectionBackgroundBrush}" />
   </Style>
   <Style Selector="TextBlock.sessionTreeEmpty">
     <Setter Property="Margin" Value="{DynamicResource TreeItemEndpointMargin}" />
@@ -312,11 +649,92 @@
     <Setter Property="TextAlignment" Value="Center" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
-  <Style Selector="TreeViewItem:pointerover /template/ Border#PART_LayoutRoot, ListBoxItem:pointerover /template/ Border#PART_LayoutRoot">
-    <Setter Property="Background" Value="{DynamicResource HoverBrush}" />
+  <Style Selector="TreeViewItem:not(:disabled) /template/ Border#PART_LayoutRoot:pointerover">
+    <Setter Property="Background" Value="{DynamicResource HoverBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
   </Style>
-  <Style Selector="TreeViewItem:selected:pointerover /template/ Border#PART_LayoutRoot, ListBoxItem:selected:pointerover /template/ Border#PART_LayoutRoot">
-    <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
+  <Style Selector="ListBoxItem:pointerover:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource HoverBackgroundBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+  </Style>
+  <Style Selector="TreeViewItem:pointerover:not(:disabled), ListBoxItem:pointerover:not(:disabled)">
+    <Setter Property="Background" Value="{DynamicResource HoverBackgroundBrush}" />
+  </Style>
+  <Style Selector="TreeViewItem:pressed:not(:disabled) /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource PressedBackgroundBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
+  </Style>
+  <Style Selector="ListBoxItem:pressed:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource PressedBackgroundBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+  </Style>
+  <Style Selector="TreeViewItem:selected:not(:disabled), ListBoxItem:selected:not(:disabled)">
+    <Setter Property="Background" Value="{DynamicResource SelectionBackgroundBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource SelectionForegroundBrush}" />
+  </Style>
+  <Style Selector="TreeViewItem:selected:not(:disabled) /template/ Border#PART_LayoutRoot,
+                   TreeViewItem:selected:pointerover:not(:disabled) /template/ Border#PART_LayoutRoot,
+                   TreeViewItem:selected:pressed:not(:disabled) /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource SelectionBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource SelectionForegroundBrush}" />
+  </Style>
+  <Style Selector="ListBoxItem:selected:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter,
+                   ListBoxItem:selected:pointerover:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter,
+                   ListBoxItem:selected:pressed:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SelectionBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource SelectionForegroundBrush}" />
+  </Style>
+  <Style Selector="TreeViewItem:selected:pointerover:not(:disabled),
+                   TreeViewItem:selected:pressed:not(:disabled),
+                   ListBoxItem:selected:pointerover:not(:disabled),
+                   ListBoxItem:selected:pressed:not(:disabled)">
+    <Setter Property="Background" Value="{DynamicResource SelectionBackgroundBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource SelectionForegroundBrush}" />
+  </Style>
+  <Style Selector="TreeViewItem:selected TextBlock.secondary, ListBoxItem:selected TextBlock.secondary">
+    <Setter Property="Foreground" Value="{DynamicResource SelectionForegroundBrush}" />
+  </Style>
+  <Style Selector="TreeViewItem:disabled, ListBoxItem:disabled">
+    <Setter Property="Foreground" Value="{DynamicResource DisabledForegroundBrush}" />
+    <Setter Property="Background" Value="{DynamicResource DisabledBackgroundBrush}" />
+  </Style>
+  <Style Selector="TreeViewItem:disabled /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource DisabledBackgroundBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource DisabledForegroundBrush}" />
+  </Style>
+  <Style Selector="ListBoxItem:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource DisabledBackgroundBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource DisabledForegroundBrush}" />
+  </Style>
+  <Style Selector="TreeViewItem:disabled TextBlock.secondary, ListBoxItem:disabled TextBlock.secondary">
+    <Setter Property="Foreground" Value="{DynamicResource DisabledForegroundBrush}" />
+  </Style>
+  <Style Selector="ScrollBar /template/ Thumb">
+    <Setter Property="Background" Value="{DynamicResource ScrollbarBrush}" />
+  </Style>
+  <Style Selector="ScrollBar /template/ Thumb /template/ Border">
+    <Setter Property="Background" Value="{DynamicResource ScrollbarBrush}" />
+  </Style>
+  <Style Selector="ScrollBar /template/ Thumb:pointerover:not(:disabled)">
+    <Setter Property="Background" Value="{DynamicResource ScrollbarHoverBrush}" />
+  </Style>
+  <Style Selector="ScrollBar /template/ Thumb:pointerover:not(:disabled) /template/ Border,
+                   ScrollBar /template/ Thumb:pressed:not(:disabled) /template/ Border">
+    <Setter Property="Background" Value="{DynamicResource ScrollbarHoverBrush}" />
+  </Style>
+  <Style Selector="ScrollBar /template/ Thumb:disabled /template/ Border">
+    <Setter Property="Background" Value="{DynamicResource ScrollbarBrush}" />
+  </Style>
+  <Style Selector="ScrollBar[IsExpanded=true] /template/ Grid#Root">
+    <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+  </Style>
+  <Style Selector="ScrollBar[IsExpanded=true] /template/ Rectangle#TrackRect">
+    <Setter Property="Fill" Value="{DynamicResource TransparentBrush}" />
+    <Setter Property="Stroke" Value="{DynamicResource TransparentBrush}" />
+    <Setter Property="Opacity" Value="0" />
   </Style>
   <Style Selector="TreeView.sessionsTree ScrollBar:vertical">
     <Setter Property="Width" Value="6" />
@@ -329,66 +747,146 @@
   <Style Selector="TreeView.sessionsTree TreeViewItem">
     <Setter Property="FlowDirection" Value="LeftToRight" />
   </Style>
+  <Style Selector="TreeView.sessionsTree TreeViewItem:pointerover:not(:selected):not(:disabled)">
+    <Setter Property="Background" Value="{DynamicResource NavigationHoverBackgroundBrush}" />
+  </Style>
+  <Style Selector="TreeView.sessionsTree TreeViewItem:not(:selected):not(:disabled) /template/ Border#PART_LayoutRoot:pointerover">
+    <Setter Property="Background" Value="{DynamicResource NavigationHoverBackgroundBrush}" />
+  </Style>
   <Style Selector="TreeView.sessionsTree ScrollBar:vertical /template/ Thumb">
     <Setter Property="Width" Value="4" />
     <Setter Property="MinWidth" Value="4" />
     <Setter Property="MaxWidth" Value="4" />
     <Setter Property="Margin" Value="1,0" />
-    <Setter Property="Background" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="Background" Value="{DynamicResource ScrollbarBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="CornerRadius" Value="2" />
     <Setter Property="Effect" Value="{x:Null}" />
   </Style>
-  <Style Selector="TreeView.sessionsTree ScrollBar:vertical /template/ Thumb:pointerover">
-    <Setter Property="Background" Value="{DynamicResource SidebarScrollBarHoverBrush}" />
-  </Style>
-  <Style Selector="TreeView.sessionsTree ScrollBar:vertical:pointerover">
-    <Setter Property="Opacity" Value="0.85" />
+  <Style Selector="TreeView.sessionsTree ScrollBar:vertical /template/ Thumb:pointerover:not(:disabled)">
+    <Setter Property="Background" Value="{DynamicResource ScrollbarHoverBrush}" />
   </Style>
   <Style Selector="TreeViewItem.dropTarget /template/ Border#PART_LayoutRoot">
-    <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
+    <Setter Property="Background" Value="{DynamicResource SelectionBackgroundBrush}" />
   </Style>
-  <Style Selector="ListBoxItem.tabDropBefore /template/ Border#PART_LayoutRoot">
+  <Style Selector="ListBoxItem.tabDropBefore /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
     <Setter Property="BorderThickness" Value="2,0,0,0" />
   </Style>
-  <Style Selector="ListBoxItem.tabDropAfter /template/ Border#PART_LayoutRoot">
+  <Style Selector="ListBoxItem.tabDropAfter /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
     <Setter Property="BorderThickness" Value="0,0,2,0" />
   </Style>
   <Style Selector="GridSplitter.sidebarSplitter">
     <Setter Property="Background" Value="{DynamicResource BorderBrush}" />
   </Style>
-  <Style Selector="GridSplitter.sidebarSplitter:pointerover">
-    <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+  <Style Selector="GridSplitter.sidebarSplitter:pointerover:not(:disabled)">
+    <Setter Property="Background" Value="{DynamicResource FocusRingBrush}" />
+  </Style>
+  <Style Selector="ListBox.terminalTabs > ListBoxItem">
+    <Setter Property="Background" Value="{DynamicResource HeaderBackgroundBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="ListBox.terminalTabs > ListBoxItem /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource HeaderBackgroundBrush}" />
+  </Style>
+  <Style Selector="ListBox.terminalTabs > ListBoxItem:pointerover:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource HoverBackgroundBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+  </Style>
+  <Style Selector="ListBox.terminalTabs > ListBoxItem:pointerover:not(:disabled)">
+    <Setter Property="Background" Value="{DynamicResource HoverBackgroundBrush}" />
+  </Style>
+  <Style Selector="ListBox.terminalTabs > ListBoxItem:pressed:not(:selected):not(:disabled) /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource PressedBackgroundBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+  </Style>
+  <Style Selector="ListBox.terminalTabs > ListBoxItem:selected:not(:disabled)">
+    <Setter Property="Background" Value="{DynamicResource AppBackgroundBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+  </Style>
+  <Style Selector="ListBox.terminalTabs > ListBoxItem:selected:pointerover:not(:disabled),
+                   ListBox.terminalTabs > ListBoxItem:selected:pressed:not(:disabled)">
+    <Setter Property="Background" Value="{DynamicResource AppBackgroundBrush}" />
+  </Style>
+  <Style Selector="ListBox.terminalTabs > ListBoxItem:selected:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter,
+                   ListBox.terminalTabs > ListBoxItem:selected:pointerover:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter,
+                   ListBox.terminalTabs > ListBoxItem:selected:pressed:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AppBackgroundBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+  </Style>
+  <Style Selector="Button.titleBarButton:pointerover:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter,
+                   Button.captionButton:pointerover:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource HoverBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+  </Style>
+  <Style Selector="Button.titleBarButton:pointerover:not(:disabled),
+                   Button.captionButton:pointerover:not(:disabled)">
+    <Setter Property="Background" Value="{DynamicResource HoverBackgroundBrush}" />
+  </Style>
+  <Style Selector="Button.titleBarButton:pressed:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter,
+                   Button.captionButton:pressed:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource PressedBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+  </Style>
+  <Style Selector="Button.titleBarButton:pressed:not(:disabled),
+                   Button.captionButton:pressed:not(:disabled)">
+    <Setter Property="Background" Value="{DynamicResource PressedBackgroundBrush}" />
+  </Style>
+  <Style Selector="Button.closeCaptionButton:pointerover:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter,
+                   Button.closeCaptionButton:pressed:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource DangerPressedBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource DangerPressedBackgroundBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource DangerForegroundBrush}" />
+  </Style>
+  <Style Selector="Button.closeCaptionButton:pointerover:not(:disabled),
+                   Button.closeCaptionButton:pressed:not(:disabled)">
+    <Setter Property="Foreground" Value="{DynamicResource DangerForegroundBrush}" />
+    <Setter Property="Background" Value="{DynamicResource DangerPressedBackgroundBrush}" />
+  </Style>
+  <Style Selector="Button:focus:not(:pressed):not(:disabled),
+                   Button:focus-visible:not(:pressed):not(:disabled)">
+    <Setter Property="BorderBrush" Value="{DynamicResource FocusRingBrush}" />
+  </Style>
+  <Style Selector="Button:focus:not(:pressed):not(:disabled) /template/ ContentPresenter#PART_ContentPresenter,
+                   Button:focus-visible:not(:pressed):not(:disabled) /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BorderBrush" Value="{DynamicResource FocusRingBrush}" />
+  </Style>
+  <Style Selector="Button:disabled:pointerover /template/ ContentPresenter#PART_ContentPresenter,
+                   Button:disabled:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource DisabledBackgroundBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource DisabledForegroundBrush}" />
   </Style>
   <Style Selector="ScrollViewer.tabArea:disabled">
     <Setter Property="Opacity" Value="0.40" />
   </Style>
-  <Style Selector="ScrollViewer.tabArea:disabled ListBox.terminalTabs > ListBoxItem /template/ Border#PART_LayoutRoot,
-                   ScrollViewer.tabArea:disabled ListBox.terminalTabs > ListBoxItem:pointerover /template/ Border#PART_LayoutRoot,
-                   ScrollViewer.tabArea:disabled ListBox.terminalTabs > ListBoxItem:selected /template/ Border#PART_LayoutRoot,
-                   ScrollViewer.tabArea:disabled ListBox.terminalTabs > ListBoxItem:selected:pointerover /template/ Border#PART_LayoutRoot">
+  <Style Selector="ScrollViewer.tabArea:disabled ListBox.terminalTabs > ListBoxItem /template/ ContentPresenter#PART_ContentPresenter,
+                   ScrollViewer.tabArea:disabled ListBox.terminalTabs > ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter,
+                   ScrollViewer.tabArea:disabled ListBox.terminalTabs > ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter,
+                   ScrollViewer.tabArea:disabled ListBox.terminalTabs > ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource HeaderBackgroundBrush}" />
   </Style>
   <Style Selector="ScrollViewer.tabArea:disabled Button.newTerminalPrimaryButton,
                    ScrollViewer.tabArea:disabled Button.newTerminalMenuButton">
     <Setter Property="Background" Value="{DynamicResource HeaderBackgroundBrush}" />
   </Style>
-  <Style Selector="ScrollViewer.tabArea:disabled Button.newTerminalPrimaryButton /template/ ContentPresenter,
-                   ScrollViewer.tabArea:disabled Button.newTerminalMenuButton /template/ ContentPresenter">
+  <Style Selector="ScrollViewer.tabArea:disabled Button.newTerminalPrimaryButton /template/ ContentPresenter#PART_ContentPresenter,
+                   ScrollViewer.tabArea:disabled Button.newTerminalMenuButton /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource HeaderBackgroundBrush}" />
   </Style>
   <Style Selector="ScrollViewer.tabArea:disabled Button.tabCloseButton">
     <Setter Property="Background" Value="{DynamicResource HeaderBackgroundBrush}" />
   </Style>
-  <Style Selector="ScrollViewer.tabArea:disabled Button.tabCloseButton /template/ ContentPresenter">
+  <Style Selector="ScrollViewer.tabArea:disabled Button.tabCloseButton /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource HeaderBackgroundBrush}" />
   </Style>
   <Style Selector="Border.settingsSection">
     <Setter Property="Padding" Value="{DynamicResource SettingsSectionPadding}" />
-    <Setter Property="Background" Value="{DynamicResource SecondaryBackgroundBrush}" />
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="{DynamicResource RadiusM}" />
@@ -414,14 +912,45 @@
   <Style Selector="TabItem.settingsTab /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
-  <Style Selector="TabItem.settingsTab:pointerover">
-    <Setter Property="Background" Value="{DynamicResource HoverBrush}" />
-  </Style>
-  <Style Selector="TabItem.settingsTab:selected">
+  <Style Selector="TabItem.settingsTab /template/ Border#PART_LayoutRoot">
     <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
   </Style>
-  <Style Selector="TabItem.settingsTab:selected:pointerover">
-    <Setter Property="Background" Value="{DynamicResource HoverBrush}" />
+  <Style Selector="TabItem.settingsTab:pointerover:not(:disabled)">
+    <Setter Property="Background" Value="{DynamicResource HoverBackgroundBrush}" />
+  </Style>
+  <Style Selector="TabItem.settingsTab:pointerover:not(:disabled) /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource HoverBackgroundBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+  </Style>
+  <Style Selector="TabItem.settingsTab:pressed:not(:selected):not(:disabled)">
+    <Setter Property="Background" Value="{DynamicResource PressedBackgroundBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+  </Style>
+  <Style Selector="TabItem.settingsTab:pressed:not(:selected):not(:disabled) /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource PressedBackgroundBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+  </Style>
+  <Style Selector="TabItem.settingsTab:selected:not(:disabled)">
+    <Setter Property="Background" Value="{DynamicResource PressedBackgroundBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+  </Style>
+  <Style Selector="TabItem.settingsTab:selected:pointerover:not(:disabled),
+                   TabItem.settingsTab:selected:pressed:not(:disabled)">
+    <Setter Property="Background" Value="{DynamicResource PressedBackgroundBrush}" />
+  </Style>
+  <Style Selector="TabItem.settingsTab:selected:not(:disabled) /template/ Border#PART_LayoutRoot,
+                   TabItem.settingsTab:selected:pointerover:not(:disabled) /template/ Border#PART_LayoutRoot,
+                   TabItem.settingsTab:selected:pressed:not(:disabled) /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource PressedBackgroundBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+  </Style>
+  <Style Selector="TabItem.settingsTab:disabled">
+    <Setter Property="Foreground" Value="{DynamicResource DisabledForegroundBrush}" />
+    <Setter Property="Background" Value="{DynamicResource DisabledBackgroundBrush}" />
+  </Style>
+  <Style Selector="TabItem.settingsTab:disabled /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource DisabledBackgroundBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource DisabledForegroundBrush}" />
   </Style>
   <Style Selector="ListBox.themePicker">
     <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
@@ -430,25 +959,44 @@
     <Setter Property="MinWidth" Value="360" />
     <Setter Property="Margin" Value="0,0,0,8" />
     <Setter Property="Padding" Value="0" />
-    <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="{DynamicResource RadiusM}" />
   </Style>
-  <Style Selector="ListBox.themePicker > ListBoxItem:pointerover /template/ Border#PART_LayoutRoot,
-                   ListBox.themePicker > ListBoxItem:selected /template/ Border#PART_LayoutRoot,
-                   ListBox.themePicker > ListBoxItem:selected:pointerover /template/ Border#PART_LayoutRoot">
-    <Setter Property="Background" Value="{DynamicResource SecondaryBackgroundBrush}" />
+  <Style Selector="ListBox.themePicker > ListBoxItem:pointerover:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource HoverBackgroundBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource BorderHoverBrush}" />
   </Style>
+  <Style Selector="ListBox.themePicker > ListBoxItem:pointerover:not(:disabled)">
+    <Setter Property="Background" Value="{DynamicResource HoverBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderHoverBrush}" />
+  </Style>
+  <Style Selector="ListBox.themePicker > ListBoxItem:selected:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter,
+                   ListBox.themePicker > ListBoxItem:selected:pointerover:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter,
+                   ListBox.themePicker > ListBoxItem:selected:pressed:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SelectionBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderFocusBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource SelectionForegroundBrush}" />
+  </Style>
+  <Style Selector="ListBox.themePicker > ListBoxItem:selected:not(:disabled),
+                   ListBox.themePicker > ListBoxItem:selected:pointerover:not(:disabled),
+                   ListBox.themePicker > ListBoxItem:selected:pressed:not(:disabled)">
+    <Setter Property="Background" Value="{DynamicResource SelectionBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderFocusBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource SelectionForegroundBrush}" />
+  </Style>
   <Style Selector="Border.profileListPanel, Border.profileEditor">
-    <Setter Property="Background" Value="{DynamicResource SecondaryBackgroundBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="{DynamicResource RadiusM}" />
   </Style>
   <Style Selector="Border.profileListPanel">
     <Setter Property="Padding" Value="4" />
+    <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
+  </Style>
+  <Style Selector="Border.profileEditor">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}" />
   </Style>
   <Style Selector="ListBox.profileList">
     <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
@@ -461,12 +1009,23 @@
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="CornerRadius" Value="{DynamicResource RadiusS}" />
   </Style>
-  <Style Selector="ListBox.profileList > ListBoxItem:pointerover /template/ Border#PART_LayoutRoot">
-    <Setter Property="Background" Value="{DynamicResource HoverBrush}" />
+  <Style Selector="ListBox.profileList > ListBoxItem:pointerover:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource NavigationHoverBackgroundBrush}" />
   </Style>
-  <Style Selector="ListBox.profileList > ListBoxItem:selected /template/ Border#PART_LayoutRoot,
-                   ListBox.profileList > ListBoxItem:selected:pointerover /template/ Border#PART_LayoutRoot">
-    <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
+  <Style Selector="ListBox.profileList > ListBoxItem:pointerover:not(:disabled)">
+    <Setter Property="Background" Value="{DynamicResource NavigationHoverBackgroundBrush}" />
+  </Style>
+  <Style Selector="ListBox.profileList > ListBoxItem:selected:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter,
+                   ListBox.profileList > ListBoxItem:selected:pointerover:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter,
+                   ListBox.profileList > ListBoxItem:selected:pressed:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SelectionBackgroundBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource SelectionForegroundBrush}" />
+  </Style>
+  <Style Selector="ListBox.profileList > ListBoxItem:selected:not(:disabled),
+                   ListBox.profileList > ListBoxItem:selected:pointerover:not(:disabled),
+                   ListBox.profileList > ListBoxItem:selected:pressed:not(:disabled)">
+    <Setter Property="Background" Value="{DynamicResource SelectionBackgroundBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource SelectionForegroundBrush}" />
   </Style>
   <Style Selector="TextBlock.profileListName">
     <Setter Property="FontWeight" Value="SemiBold" />
@@ -476,13 +1035,13 @@
   </Style>
   <Style Selector="Border.profileBadge">
     <Setter Property="Padding" Value="6,1" />
-    <Setter Property="Background" Value="{DynamicResource HoverBrush}" />
+    <Setter Property="Background" Value="{DynamicResource SecondaryBackgroundBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="8" />
   </Style>
   <Style Selector="Border.profileBadge.default">
-    <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
+    <Setter Property="Background" Value="{DynamicResource SelectionBackgroundBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
   </Style>
   <Style Selector="Border.profileBadge TextBlock">
@@ -494,13 +1053,16 @@
     <Setter Property="BorderThickness" Value="0,1,0,0" />
   </Style>
   <Style Selector="Border.sessionManagerPanel, Border.sessionManagerEditor">
-    <Setter Property="Background" Value="{DynamicResource SecondaryBackgroundBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="{DynamicResource RadiusM}" />
   </Style>
   <Style Selector="Border.sessionManagerPanel">
     <Setter Property="Padding" Value="12" />
+    <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
+  </Style>
+  <Style Selector="Border.sessionManagerEditor">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}" />
   </Style>
   <Style Selector="ListBox.sessionManagerList">
     <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
@@ -513,12 +1075,23 @@
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="CornerRadius" Value="{DynamicResource RadiusS}" />
   </Style>
-  <Style Selector="ListBox.sessionManagerList > ListBoxItem:pointerover /template/ Border#PART_LayoutRoot">
-    <Setter Property="Background" Value="{DynamicResource HoverBrush}" />
+  <Style Selector="ListBox.sessionManagerList > ListBoxItem:pointerover:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource NavigationHoverBackgroundBrush}" />
   </Style>
-  <Style Selector="ListBox.sessionManagerList > ListBoxItem:selected /template/ Border#PART_LayoutRoot,
-                   ListBox.sessionManagerList > ListBoxItem:selected:pointerover /template/ Border#PART_LayoutRoot">
-    <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
+  <Style Selector="ListBox.sessionManagerList > ListBoxItem:pointerover:not(:disabled)">
+    <Setter Property="Background" Value="{DynamicResource NavigationHoverBackgroundBrush}" />
+  </Style>
+  <Style Selector="ListBox.sessionManagerList > ListBoxItem:selected:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter,
+                   ListBox.sessionManagerList > ListBoxItem:selected:pointerover:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter,
+                   ListBox.sessionManagerList > ListBoxItem:selected:pressed:not(:disabled) /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SelectionBackgroundBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource SelectionForegroundBrush}" />
+  </Style>
+  <Style Selector="ListBox.sessionManagerList > ListBoxItem:selected:not(:disabled),
+                   ListBox.sessionManagerList > ListBoxItem:selected:pointerover:not(:disabled),
+                   ListBox.sessionManagerList > ListBoxItem:selected:pressed:not(:disabled)">
+    <Setter Property="Background" Value="{DynamicResource SelectionBackgroundBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource SelectionForegroundBrush}" />
   </Style>
   <Style Selector="Border.sessionManagerEditorFooter">
     <Setter Property="Padding" Value="16,12" />

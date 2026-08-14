@@ -14,8 +14,4 @@ public sealed class TerminalLaunchProfileViewModel(
     public bool IsAvailable { get; } = isAvailable;
 
     public bool IsDefault { get; } = isDefault;
-
-    public bool IsRecommended => profile.Id.Equals(
-        TerminalProfileIds.PowerShell,
-        StringComparison.OrdinalIgnoreCase);
 }
