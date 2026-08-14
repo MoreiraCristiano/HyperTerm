@@ -7,15 +7,16 @@ namespace HyperTerm.UI.Controls;
 internal sealed class HostedTerminalRegistry
 {
     private readonly ConcurrentDictionary<Guid, HostedTerminal> terminals = new();
-    private readonly WebTerminalScriptBridge scriptBridge;
+    private readonly ITerminalSurface scriptBridge;
     private readonly Func<TerminalTabViewModel?> getActiveTab;
     private readonly Func<bool> isHostReady;
     private readonly Action<TerminalTabViewModel> requestFocus;
     private readonly TerminalOutputCoordinator outputCoordinator;
     private INotifyCollectionChanged? observedCollection;
+    private IEnumerable<TerminalTabViewModel>? observedTabs;
 
     public HostedTerminalRegistry(
-        WebTerminalScriptBridge scriptBridge,
+        ITerminalSurface scriptBridge,
         Func<TerminalTabViewModel?> getActiveTab,
         Func<bool> isHostReady,
         Action<TerminalTabViewModel> requestFocus,
@@ -29,7 +30,7 @@ internal sealed class HostedTerminalRegistry
             () => terminals.Values.ToArray(),
             GetActiveHostedTerminal,
             (hosted, output, token) =>
-                scriptBridge.WriteAsync(hosted.Tab.Id, token, output),
+                scriptBridge.WriteAsync(hosted.Pane.PaneId, token, output),
             scheduleOutputFlush);
     }
 
@@ -42,6 +43,7 @@ internal sealed class HostedTerminalRegistry
         }
 
         StopObserving();
+        observedTabs = tabs;
         observedCollection = tabs as INotifyCollectionChanged;
         if (observedCollection is not null)
         {
@@ -59,14 +61,16 @@ internal sealed class HostedTerminalRegistry
             observedCollection = null;
         }
 
+        observedTabs = null;
+
         foreach (HostedTerminal hosted in terminals.Values.ToArray())
         {
             Remove(hosted.Tab);
         }
     }
 
-    public bool TryGet(Guid tabId, out HostedTerminal hosted) =>
-        terminals.TryGetValue(tabId, out hosted!);
+    public bool TryGet(Guid paneId, out HostedTerminal hosted) =>
+        terminals.TryGetValue(paneId, out hosted!);
 
     public async Task CreateExistingAsync()
     {
@@ -82,7 +86,8 @@ internal sealed class HostedTerminalRegistry
     public async Task ActivateAsync(TerminalTabViewModel? tab)
     {
         if (!isHostReady() || tab is null ||
-            !terminals.TryGetValue(tab.Id, out HostedTerminal? hosted))
+            tab.ActivePaneId is not Guid activePaneId ||
+            !terminals.TryGetValue(activePaneId, out HostedTerminal? hosted))
         {
             return;
         }
@@ -93,7 +98,7 @@ internal sealed class HostedTerminalRegistry
         }
 
         if (hosted.Created && await InvokeScriptAsync(
-                () => scriptBridge.ActivateAsync(tab.Id),
+                () => scriptBridge.ActivateAsync(activePaneId),
                 tab))
         {
             requestFocus(tab);
@@ -108,13 +113,16 @@ internal sealed class HostedTerminalRegistry
     private void Synchronize(IEnumerable<TerminalTabViewModel>? tabs)
     {
         TerminalTabViewModel[] currentTabs = tabs?.ToArray() ?? [];
-        var currentIds = currentTabs.Select(tab => tab.Id).ToHashSet();
+        var currentIds = currentTabs
+            .SelectMany(tab => tab.Panes)
+            .Select(pane => pane.PaneId)
+            .ToHashSet();
 
         foreach (HostedTerminal hosted in terminals.Values)
         {
-            if (!currentIds.Contains(hosted.Tab.Id))
+            if (!currentIds.Contains(hosted.Pane.PaneId))
             {
-                Remove(hosted.Tab);
+                RemoveHosted(hosted);
             }
         }
 
@@ -152,37 +160,61 @@ internal sealed class HostedTerminalRegistry
 
     private void Add(TerminalTabViewModel tab)
     {
-        var hosted = new HostedTerminal(tab);
-        if (!terminals.TryAdd(tab.Id, hosted))
-        {
-            return;
-        }
-
-        tab.TerminalOutputReceived += OnTerminalOutputReceived;
+        tab.PaneOutputReceived -= OnPaneOutputReceived;
+        tab.PaneOutputReceived += OnPaneOutputReceived;
+        tab.PaneLayoutChanged -= OnPaneLayoutChanged;
+        tab.PaneLayoutChanged += OnPaneLayoutChanged;
+        tab.FocusRequested -= OnFocusRequested;
         tab.FocusRequested += OnFocusRequested;
+        tab.AppearanceChanged -= OnAppearanceChanged;
         tab.AppearanceChanged += OnAppearanceChanged;
+        tab.Terminating -= OnTabTerminating;
         tab.Terminating += OnTabTerminating;
-
-        if (isHostReady())
+        foreach (TerminalPaneViewModel pane in tab.Panes)
         {
-            _ = CreateAsync(hosted);
+            var hosted = new HostedTerminal(tab, pane);
+            if (!terminals.TryAdd(pane.PaneId, hosted))
+            {
+                continue;
+            }
+
+            if (isHostReady())
+            {
+                _ = CreateAsync(hosted);
+            }
         }
     }
 
     private void Remove(TerminalTabViewModel tab)
     {
-        if (!terminals.TryRemove(tab.Id, out HostedTerminal? hosted))
+        HostedTerminal[] hostedPanes = terminals.Values
+            .Where(hosted => ReferenceEquals(hosted.Tab, tab))
+            .ToArray();
+        if (hostedPanes.Length == 0)
         {
             return;
         }
 
-        tab.TerminalOutputReceived -= OnTerminalOutputReceived;
+        tab.PaneOutputReceived -= OnPaneOutputReceived;
+        tab.PaneLayoutChanged -= OnPaneLayoutChanged;
         tab.FocusRequested -= OnFocusRequested;
         tab.AppearanceChanged -= OnAppearanceChanged;
         tab.Terminating -= OnTabTerminating;
+        foreach (HostedTerminal hosted in hostedPanes)
+        {
+            RemoveHosted(hosted);
+        }
+    }
+
+    private void RemoveHosted(HostedTerminal hosted)
+    {
+        if (!terminals.TryRemove(hosted.Pane.PaneId, out _))
+        {
+            return;
+        }
+
         hosted.Removed = true;
         outputCoordinator.Complete(hosted);
-
         if (isHostReady())
         {
             _ = DisposeAsync(hosted);
@@ -195,13 +227,14 @@ internal sealed class HostedTerminalRegistry
         try
         {
             if (!isHostReady() || hosted.Created || hosted.Removed ||
-                !terminals.ContainsKey(hosted.Tab.Id))
+                !terminals.ContainsKey(hosted.Pane.PaneId))
             {
                 return;
             }
 
-            await scriptBridge.CreateAsync(hosted.Tab);
+            await scriptBridge.CreateAsync(hosted.Tab, hosted.Pane);
             hosted.Created = true;
+            await scriptBridge.LayoutAsync(hosted.Tab);
         }
         catch (Exception exception)
         {
@@ -226,7 +259,7 @@ internal sealed class HostedTerminalRegistry
 
             try
             {
-                await scriptBridge.DisposeAsync(hosted.Tab.Id);
+                await scriptBridge.DisposeAsync(hosted.Pane.PaneId);
             }
             catch
             {
@@ -241,12 +274,25 @@ internal sealed class HostedTerminalRegistry
         }
     }
 
-    private void OnTerminalOutputReceived(object? sender, string output)
+    private void OnPaneOutputReceived(object? sender, TerminalPaneOutputEventArgs eventArgs)
     {
-        if (sender is TerminalTabViewModel tab &&
-            terminals.TryGetValue(tab.Id, out HostedTerminal? hosted))
+        if (terminals.TryGetValue(eventArgs.PaneId, out HostedTerminal? hosted))
         {
-            outputCoordinator.Enqueue(hosted, output);
+            outputCoordinator.Enqueue(hosted, eventArgs.Output);
+        }
+    }
+
+    private void OnPaneLayoutChanged(object? sender, EventArgs eventArgs)
+    {
+        if (sender is not TerminalTabViewModel tab)
+        {
+            return;
+        }
+
+        Synchronize(observedTabs);
+        if (isHostReady())
+        {
+            _ = scriptBridge.LayoutAsync(tab);
         }
     }
 
@@ -294,8 +340,8 @@ internal sealed class HostedTerminalRegistry
     }
 
     private HostedTerminal? GetActiveHostedTerminal() =>
-        getActiveTab() is { } activeTab &&
-        terminals.TryGetValue(activeTab.Id, out HostedTerminal? hosted)
+        getActiveTab() is { ActivePaneId: Guid activePaneId } &&
+        terminals.TryGetValue(activePaneId, out HostedTerminal? hosted)
             ? hosted
             : null;
 }

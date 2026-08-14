@@ -5,12 +5,14 @@ namespace HyperTerm.UI.Controls;
 internal sealed record WebTerminalMessage(
     string Type,
     Guid? TabId = null,
+    Guid? PaneId = null,
     string? Data = null,
     string? Command = null,
     int Columns = 0,
     int Rows = 0,
     long Token = 0,
-    bool Success = true)
+    bool Success = true,
+    double Ratio = 0)
 {
     private const int MaximumBodyCharacters = 1024 * 1024;
     private const int MaximumInputCharacters = 64 * 1024;
@@ -29,6 +31,15 @@ internal sealed record WebTerminalMessage(
         "settings",
         "searchTerminal",
         "commandPalette",
+        "splitRight",
+        "splitDown",
+        "closePane",
+        "focusNextPane",
+        "focusPreviousPane",
+        "focusLeftPane",
+        "focusRightPane",
+        "focusUpPane",
+        "focusDownPane",
     ];
 
     public static bool TryParse(string? body, out WebTerminalMessage? message)
@@ -61,6 +72,18 @@ internal sealed record WebTerminalMessage(
                 return false;
             }
 
+            Guid? paneId = null;
+            if (root.TryGetProperty("paneId", out JsonElement paneIdElement))
+            {
+                if (paneIdElement.ValueKind != JsonValueKind.String ||
+                    !Guid.TryParseExact(paneIdElement.GetString(), "N", out Guid parsedPaneId))
+                {
+                    return false;
+                }
+
+                paneId = parsedPaneId;
+            }
+
             switch (type)
             {
                 case "ready":
@@ -74,6 +97,7 @@ internal sealed record WebTerminalMessage(
                     message = new WebTerminalMessage(
                         type,
                         tabId,
+                        paneId,
                         Columns: columns,
                         Rows: rows);
                     return true;
@@ -87,10 +111,10 @@ internal sealed record WebTerminalMessage(
                         return false;
                     }
 
-                    message = new WebTerminalMessage(type, tabId, Data: data);
+                    message = new WebTerminalMessage(type, tabId, paneId, Data: data);
                     return true;
                 case "paste":
-                    message = new WebTerminalMessage(type, tabId);
+                    message = new WebTerminalMessage(type, tabId, paneId);
                     return true;
                 case "applicationCommand":
                     if (!TryGetString(root, "command", out string command) ||
@@ -99,7 +123,7 @@ internal sealed record WebTerminalMessage(
                         return false;
                     }
 
-                    message = new WebTerminalMessage(type, tabId, Command: command);
+                    message = new WebTerminalMessage(type, tabId, paneId, Command: command);
                     return true;
                 case "writeComplete":
                     if (!root.TryGetProperty("token", out JsonElement tokenElement) ||
@@ -119,8 +143,28 @@ internal sealed record WebTerminalMessage(
                     message = new WebTerminalMessage(
                         type,
                         tabId,
+                        paneId,
                         Token: token,
                         Success: success);
+                    return true;
+                case "paneActivated":
+                    if (paneId is null)
+                    {
+                        return false;
+                    }
+
+                    message = new WebTerminalMessage(type, tabId, paneId);
+                    return true;
+                case "paneRatio":
+                    if (paneId is null ||
+                        !root.TryGetProperty("ratio", out JsonElement ratioElement) ||
+                        !ratioElement.TryGetDouble(out double ratio) ||
+                        ratio is < 0.1 or > 0.9)
+                    {
+                        return false;
+                    }
+
+                    message = new WebTerminalMessage(type, tabId, paneId, Ratio: ratio);
                     return true;
                 default:
                     return false;

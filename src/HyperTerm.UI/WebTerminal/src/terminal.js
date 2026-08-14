@@ -11,8 +11,9 @@ const searchCaseElement = document.getElementById('terminal-search-case');
 const searchPreviousElement = document.getElementById('terminal-search-previous');
 const searchNextElement = document.getElementById('terminal-search-next');
 const searchCloseElement = document.getElementById('terminal-search-close');
+const paneContextMenuElement = document.getElementById('pane-context-menu');
 const terminals = new Map();
-let activeTabId = null;
+let activePaneId = null;
 let resizeFrame = null;
 let activeTheme = 'dark';
 
@@ -237,15 +238,26 @@ function send(message) {
   }
 }
 
-function createTerminal({ tabId, options }) {
-  if (terminals.has(tabId)) {
+function createTerminal({ paneId, tabId, options }) {
+  paneId ??= tabId;
+  if (terminals.has(paneId)) {
     return;
   }
 
   const element = document.createElement('div');
   element.className = 'terminal-pane';
+  element.dataset.paneId = paneId;
   element.dataset.tabId = tabId;
-  element.addEventListener('contextmenu', event => event.preventDefault());
+  element.addEventListener('contextmenu', event => {
+    event.preventDefault();
+    setActiveTerminal(paneId, true);
+    if (paneContextMenuElement) {
+      paneContextMenuElement.style.left = `${event.clientX}px`;
+      paneContextMenuElement.style.top = `${event.clientY}px`;
+      paneContextMenuElement.classList.add('open');
+      paneContextMenuElement.setAttribute('aria-hidden', 'false');
+    }
+  });
   terminalHostElement.appendChild(element);
 
   const palette = applyHostTheme(options.theme);
@@ -270,6 +282,7 @@ function createTerminal({ tabId, options }) {
   });
 
   const state = {
+    paneId,
     tabId,
     element,
     terminal,
@@ -289,24 +302,35 @@ function createTerminal({ tabId, options }) {
   terminal.loadAddon(searchAddon);
   state.searchResultsDisposable = searchAddon.onDidChangeResults(results => {
     state.lastSearchResults = results;
-    if (activeTabId === tabId && searchBarElement.classList.contains('open')) {
+    if (activePaneId === paneId && searchBarElement.classList.contains('open')) {
       if (results.resultCount > 0 && results.resultIndex >= 0) {
         updateSearchResults(results);
       }
     }
   });
   terminal.open(element);
-  terminal.onData(data => send({ type: 'input', tabId, data }));
+  terminal.onData(data => send({ type: 'input', tabId, paneId, data }));
+  element.addEventListener('pointerdown', () => {
+    if (activePaneId !== paneId) {
+      setActiveTerminal(paneId, true);
+    }
+  });
   terminal.attachCustomKeyEventHandler(event => handleKeyEvent(state, event));
-  terminals.set(tabId, state);
+  terminals.set(paneId, state);
 }
 
 function handleKeyEvent(state, event) {
+  const paneKeyResult = handlePaneKeyEvent(state, event);
+  if (paneKeyResult !== null) {
+    return paneKeyResult;
+  }
+
   if (event.altKey && !event.ctrlKey && !event.metaKey && event.code === 'F4') {
     if (event.type === 'keydown' && !event.repeat) {
       send({
         type: 'applicationCommand',
         tabId: state.tabId,
+        paneId: state.paneId,
         command: 'closeWindow'
       });
     }
@@ -318,6 +342,7 @@ function handleKeyEvent(state, event) {
       send({
         type: 'applicationCommand',
         tabId: state.tabId,
+        paneId: state.paneId,
         command: event.shiftKey ? 'previousTab' : 'nextTab'
       });
     }
@@ -329,7 +354,7 @@ function handleKeyEvent(state, event) {
       KeyT: 'newTerminal',
       KeyN: 'newSession',
       KeyO: 'openSession',
-      KeyW: 'closeTab',
+      KeyW: 'closePane',
       KeyB: 'toggleSidebar',
       KeyF: 'searchTerminal',
       KeyK: 'commandPalette',
@@ -341,6 +366,7 @@ function handleKeyEvent(state, event) {
         send({
           type: 'applicationCommand',
           tabId: state.tabId,
+          paneId: state.paneId,
           command
         });
       }
@@ -351,7 +377,7 @@ function handleKeyEvent(state, event) {
   if (event.type === 'keydown' && event.ctrlKey && event.shiftKey && event.code === 'KeyC') {
     const selected = state.terminal.getSelection();
     if (selected) {
-      send({ type: 'copy', tabId: state.tabId, data: selected });
+      send({ type: 'copy', tabId: state.tabId, paneId: state.paneId, data: selected });
       state.terminal.clearSelection();
     }
     return false;
@@ -360,59 +386,80 @@ function handleKeyEvent(state, event) {
   return true;
 }
 
+function handlePaneKeyEvent(state, event) {
+  if (event.type !== 'keydown' || event.ctrlKey || event.metaKey || !event.altKey) {
+    return null;
+  }
+
+  const command = event.shiftKey
+    ? event.code === 'ArrowRight' ? 'splitRight'
+      : event.code === 'ArrowDown' ? 'splitDown' : null
+    : event.code === 'ArrowRight' ? 'focusRightPane'
+      : event.code === 'ArrowLeft' ? 'focusLeftPane'
+        : event.code === 'ArrowDown' ? 'focusDownPane'
+          : event.code === 'ArrowUp' ? 'focusUpPane' : null;
+  if (command && !event.repeat) {
+    send({ type: 'applicationCommand', tabId: state.tabId, paneId: state.paneId, command });
+  }
+  return command ? false : null;
+}
+
 function handleWheelEvent(event) {
   if (event.ctrlKey) {
     event.preventDefault();
   }
 }
 
-function activateTerminal(tabId) {
-  const next = terminals.get(tabId);
+function setActiveTerminal(paneId, notify = false) {
+  const next = terminals.get(paneId);
   if (!next) {
     return;
   }
 
-  if (activeTabId && activeTabId !== tabId) {
+  if (activePaneId && activePaneId !== paneId) {
     closeSearch(false);
-    const previous = terminals.get(activeTabId);
+    const previous = terminals.get(activePaneId);
     if (previous) {
-      disableWebgl(previous);
       previous.element.classList.remove('active');
     }
   }
 
-  activeTabId = tabId;
+  activePaneId = paneId;
   next.element.classList.add('active');
-  enableWebgl(next);
-  fitActiveTerminal();
+  if (terminals.size === 1) {
+    enableWebgl(next);
+  }
+  fitTerminal(next);
   next.terminal.refresh(0, next.terminal.rows - 1);
   next.terminal.focus();
+  if (notify) {
+    send({ type: 'paneActivated', tabId: next.tabId, paneId });
+  }
 }
 
-function disposeTerminal(tabId) {
-  const state = terminals.get(tabId);
+function activateTerminal(paneId) {
+  setActiveTerminal(paneId, false);
+}
+
+function disposeTerminal(paneId) {
+  const state = terminals.get(paneId);
   if (!state) {
     return;
   }
 
-  if (activeTabId === tabId) {
+  if (activePaneId === paneId) {
     closeSearch(false);
-    activeTabId = null;
+    activePaneId = null;
   }
 
   disableWebgl(state);
   state.searchResultsDisposable?.dispose();
   state.terminal.dispose();
   state.element.remove();
-  terminals.delete(tabId);
+  terminals.delete(paneId);
 }
 
-function configureTerminal({ tabId, options }) {
-  const state = terminals.get(tabId);
-  if (!state) {
-    return;
-  }
-
+function configureTerminal(state, options) {
   const palette = applyHostTheme(options.theme);
   const selectionBackground = resolveSelectionBackground(
     options.theme,
@@ -426,30 +473,39 @@ function configureTerminal({ tabId, options }) {
   };
   state.terminal.options.cursorStyle = options.cursorStyle;
   state.terminal.options.cursorBlink = options.cursorBlink;
-  if (activeTabId === tabId) {
-    scheduleFitActiveTerminal();
-  }
+  scheduleFitAllTerminals();
 }
 
-function writeTerminal(tabId, token, value) {
+function configureTab({ tabId, options }) {
+  terminals.forEach(state => {
+    if (state.tabId === tabId) configureTerminal(state, options);
+  });
+}
+
+function configureLegacy({ tabId, options }) {
   const state = terminals.get(tabId);
+  if (state) configureTerminal(state, options);
+}
+
+function writeTerminal(paneId, token, value) {
+  const state = terminals.get(paneId);
   if (!state) {
-    send({ type: 'writeComplete', tabId, token, success: false });
+    send({ type: 'writeComplete', tabId: paneId, paneId, token, success: false });
     return;
   }
 
   try {
     state.terminal.write(value, () => {
-      send({ type: 'writeComplete', tabId, token, success: true });
+      send({ type: 'writeComplete', tabId: state.tabId, paneId, token, success: true });
     });
   } catch {
-    send({ type: 'writeComplete', tabId, token, success: false });
+    send({ type: 'writeComplete', tabId: state.tabId, paneId, token, success: false });
   }
 }
 
-function focusTerminal(tabId) {
-  if (activeTabId === tabId) {
-    terminals.get(tabId)?.terminal.focus();
+function focusTerminal(paneId) {
+  if (activePaneId === paneId) {
+    terminals.get(paneId)?.terminal.focus();
   }
 }
 
@@ -464,8 +520,8 @@ function searchOptions() {
   };
 }
 
-function openSearch(tabId = activeTabId) {
-  if (!terminals.has(tabId)) {
+function openSearch(paneId = activePaneId) {
+  if (!terminals.has(paneId)) {
     return;
   }
 
@@ -477,7 +533,7 @@ function openSearch(tabId = activeTabId) {
 }
 
 function closeSearch(restoreFocus = true) {
-  const state = terminals.get(activeTabId);
+  const state = terminals.get(activePaneId);
   state?.searchAddon.clearDecorations();
   searchBarElement.classList.remove('open');
   searchBarElement.setAttribute('aria-hidden', 'true');
@@ -489,7 +545,7 @@ function closeSearch(restoreFocus = true) {
 }
 
 function runSearch(forward) {
-  const state = terminals.get(activeTabId);
+  const state = terminals.get(activePaneId);
   const query = searchInputElement.value;
   if (!state || !query) {
     state?.searchAddon.clearDecorations();
@@ -552,6 +608,21 @@ searchCaseElement.addEventListener('click', () => {
 searchPreviousElement.addEventListener('click', () => runSearch(false));
 searchNextElement.addEventListener('click', () => runSearch(true));
 searchCloseElement.addEventListener('click', () => closeSearch());
+paneContextMenuElement?.addEventListener('click', event => {
+  const command = event.target?.dataset?.command;
+  const state = terminals.get(activePaneId);
+  if (command && state) {
+    send({ type: 'applicationCommand', tabId: state.tabId, paneId: state.paneId, command });
+  }
+  paneContextMenuElement.classList.remove('open');
+  paneContextMenuElement.setAttribute('aria-hidden', 'true');
+});
+document.addEventListener('pointerdown', event => {
+  if (paneContextMenuElement && !paneContextMenuElement.contains(event.target)) {
+    paneContextMenuElement.classList.remove('open');
+    paneContextMenuElement.setAttribute('aria-hidden', 'true');
+  }
+});
 
 function enableWebgl(state) {
   if (state.webglAddon || state.webglDisabled) {
@@ -594,24 +665,29 @@ function disableWebgl(state) {
   }
 }
 
-function scheduleFitActiveTerminal() {
+function scheduleFitAllTerminals() {
   if (resizeFrame !== null) {
     return;
   }
 
   resizeFrame = requestAnimationFrame(() => {
     resizeFrame = null;
-    fitActiveTerminal();
+    terminals.forEach(fitTerminal);
   });
 }
 
-function fitActiveTerminal() {
-  const state = terminals.get(activeTabId);
-  if (!state) {
-    return;
-  }
+function applyRendererPolicy() {
+  if (terminals.size !== 1) return;
 
-  const bounds = terminalHostElement.getBoundingClientRect();
+  const state = terminals.get(activePaneId) ?? terminals.values().next().value;
+  if (state) enableWebgl(state);
+}
+
+function fitTerminal(state) {
+  const paneBounds = state.element.getBoundingClientRect();
+  const bounds = paneBounds.width > 0 && paneBounds.height > 0
+    ? paneBounds
+    : terminalHostElement.getBoundingClientRect();
   if (bounds.width <= 0 || bounds.height <= 0) {
     return;
   }
@@ -629,23 +705,97 @@ function fitActiveTerminal() {
 
   if (!state.started) {
     state.started = true;
-    send({ type: 'ready', tabId: state.tabId, columns, rows });
+    send({ type: 'ready', tabId: state.tabId, paneId: state.paneId, columns, rows });
   } else if (changed) {
-    send({ type: 'resize', tabId: state.tabId, columns, rows });
+    send({ type: 'resize', tabId: state.tabId, paneId: state.paneId, columns, rows });
   }
+}
+
+function fitActiveTerminal() {
+  const state = terminals.get(activePaneId);
+  if (state) fitTerminal(state);
+}
+
+function scheduleFitActiveTerminal() {
+  scheduleFitAllTerminals();
+}
+
+function createLayoutNode(node, tabId) {
+  if (node.type === 'terminal') {
+    return terminals.get(node.paneId)?.element ?? document.createElement('div');
+  }
+
+  const split = document.createElement('div');
+  split.className = `pane-split ${node.orientation}`;
+  const first = document.createElement('div');
+  const second = document.createElement('div');
+  const divider = document.createElement('div');
+  first.className = 'pane-child';
+  second.className = 'pane-child';
+  divider.className = 'pane-divider';
+  first.style.flex = `${node.ratio} 1 0`;
+  second.style.flex = `${1 - node.ratio} 1 0`;
+  first.appendChild(createLayoutNode(node.first, tabId));
+  second.appendChild(createLayoutNode(node.second, tabId));
+  split.append(first, divider, second);
+  bindDivider(split, divider, first, second, node.first, tabId);
+  return split;
+}
+
+function firstPaneId(node) {
+  return node.type === 'terminal' ? node.paneId : firstPaneId(node.first);
+}
+
+function bindDivider(split, divider, first, second, firstNode, tabId) {
+  divider.addEventListener('pointerdown', event => {
+    divider.setPointerCapture(event.pointerId);
+    const move = moveEvent => {
+      const bounds = split.getBoundingClientRect();
+      const position = split.classList.contains('vertical')
+        ? (moveEvent.clientX - bounds.left) / bounds.width
+        : (moveEvent.clientY - bounds.top) / bounds.height;
+      const ratio = Math.max(.1, Math.min(.9, position));
+      first.style.flex = `${ratio} 1 0`;
+      second.style.flex = `${1 - ratio} 1 0`;
+      scheduleFitAllTerminals();
+    };
+    const up = upEvent => {
+      divider.releasePointerCapture(upEvent.pointerId);
+      divider.removeEventListener('pointermove', move);
+      divider.removeEventListener('pointerup', up);
+      const firstSize = split.classList.contains('vertical')
+        ? first.getBoundingClientRect().width : first.getBoundingClientRect().height;
+      const total = split.classList.contains('vertical')
+        ? split.getBoundingClientRect().width : split.getBoundingClientRect().height;
+      send({ type: 'paneRatio', tabId, paneId: firstPaneId(firstNode), ratio: firstSize / total });
+    };
+    divider.addEventListener('pointermove', move);
+    divider.addEventListener('pointerup', up);
+  });
+}
+
+function layoutTerminals({ tabId, activePaneId: nextActivePaneId, root }) {
+  terminalHostElement.classList.toggle('has-splits', terminals.size > 1);
+  terminalHostElement.replaceChildren();
+  if (root) terminalHostElement.appendChild(createLayoutNode(root, tabId));
+  applyRendererPolicy();
+  if (nextActivePaneId) setActiveTerminal(nextActivePaneId, false);
+  scheduleFitAllTerminals();
 }
 
 window.terminalHost = {
   create: createTerminal,
   activate: activateTerminal,
   dispose: disposeTerminal,
-  configure: configureTerminal,
+  configureTab,
+  configure: configureLegacy,
+  layout: layoutTerminals,
   write: writeTerminal,
   focus: focusTerminal,
   openSearch
 };
 
-new ResizeObserver(scheduleFitActiveTerminal).observe(terminalHostElement);
+new ResizeObserver(scheduleFitAllTerminals).observe(terminalHostElement);
 window.addEventListener('wheel', handleWheelEvent, { passive: false });
 window.addEventListener('load', () => send({ type: 'hostReady' }));
 
@@ -656,6 +806,7 @@ export {
   disableWebgl,
   disposeTerminal,
   enableWebgl,
+  fitTerminal,
   fitActiveTerminal,
   focusTerminal,
   handleKeyEvent,
@@ -663,6 +814,7 @@ export {
   openSearch,
   closeSearch,
   runSearch,
+  scheduleFitAllTerminals,
   scheduleFitActiveTerminal,
   writeTerminal
 };

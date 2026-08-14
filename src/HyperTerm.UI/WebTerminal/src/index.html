@@ -121,20 +121,33 @@
     .terminal-pane {
       position: absolute;
       inset: 0;
-      visibility: hidden;
+      min-width: 0;
+      min-height: 0;
+      background: var(--terminal-background);
+    }
+    #terminal-host.has-splits .terminal-pane.active::after {
+      content: "";
+      position: absolute;
+      inset: 0;
       pointer-events: none;
+      box-shadow: inset 0 0 0 1px var(--search-focus-border);
     }
-    .terminal-pane.active {
-      visibility: visible;
-      pointer-events: auto;
-    }
+    .pane-split { position: absolute; inset: 0; display: flex; min-width: 0; min-height: 0; }
+    .pane-split.vertical { flex-direction: row; }
+    .pane-split.horizontal { flex-direction: column; }
+    .pane-child { position: relative; min-width: 0; min-height: 0; overflow: hidden; }
+    .pane-divider { z-index: 5; flex: 0 0 5px; background: var(--scrollbar-thumb); opacity: .55; }
+    .pane-divider:hover { background: var(--search-focus-border); opacity: 1; }
+    .pane-split.vertical > .pane-divider { cursor: ew-resize !important; }
+    .pane-split.horizontal > .pane-divider { cursor: ns-resize !important; }
+    .terminal-pane .xterm { width: 100%; height: 100%; }
     .xterm {
       padding:
         var(--terminal-padding-top)
         var(--terminal-padding-horizontal)
         var(--terminal-padding-bottom);
     }
-    #terminal-host, #terminal-host * { cursor: default !important; }
+    #terminal-host, .terminal-pane, .terminal-pane * { cursor: default !important; }
     * {
       scrollbar-color: var(--scrollbar-thumb) var(--terminal-background);
       scrollbar-width: thin;
@@ -200,6 +213,22 @@
       background: var(--search-active);
     }
     #terminal-search-results { min-width: 62px; text-align: center; color: var(--search-muted); }
+    #pane-context-menu {
+      position: fixed;
+      z-index: 20;
+      display: none;
+      min-width: 130px;
+      padding: 4px;
+      color: var(--search-foreground);
+      background: var(--search-background);
+      border: 1px solid var(--search-border);
+      border-radius: 4px;
+      box-shadow: 0 4px 14px var(--search-shadow);
+      font: 12px "Segoe UI", sans-serif;
+    }
+    #pane-context-menu.open { display: grid; }
+    #pane-context-menu button { padding: 6px 9px; color: inherit; background: transparent; border: 0; text-align: left; }
+    #pane-context-menu button:hover { background: var(--search-hover); }
   </style>
 </head>
 <body>
@@ -211,6 +240,11 @@
     <button id="terminal-search-previous" type="button" aria-label="Previous match" title="Previous match">↑</button>
     <button id="terminal-search-next" type="button" aria-label="Next match" title="Next match">↓</button>
     <button id="terminal-search-close" type="button" aria-label="Close search" title="Close">×</button>
+  </div>
+  <div id="pane-context-menu" aria-hidden="true">
+    <button type="button" data-command="splitRight">Split Right</button>
+    <button type="button" data-command="splitDown">Split Down</button>
+    <button type="button" data-command="closePane">Close Pane</button>
   </div>
   <script src="terminal.js"></script>
 </body>

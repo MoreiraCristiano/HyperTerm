@@ -173,6 +173,7 @@ internal sealed class FakePtySessionFactory : IPtySessionFactory
 {
     public int CreateCount { get; private set; }
     public FakePtySession? LastSession { get; private set; }
+    public List<FakePtySession> Sessions { get; } = [];
 
     public Task<IPtySession> CreateAsync(
         TerminalSessionDefinition definition,
@@ -183,6 +184,7 @@ internal sealed class FakePtySessionFactory : IPtySessionFactory
         cancellationToken.ThrowIfCancellationRequested();
         CreateCount++;
         LastSession = new FakePtySession();
+        Sessions.Add(LastSession);
         return Task.FromResult<IPtySession>(LastSession);
     }
 }

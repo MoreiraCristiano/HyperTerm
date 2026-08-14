@@ -22,7 +22,13 @@
     <KeyBinding Gesture="Ctrl+Shift+T" Command="{Binding OpenDefaultTerminalCommand}" />
     <KeyBinding Gesture="Ctrl+Shift+N" Command="{Binding Explorer.NewSessionCommand}" />
     <KeyBinding Gesture="Ctrl+Shift+O" Command="{Binding Explorer.OpenSelectedSessionCommand}" />
-    <KeyBinding Gesture="Ctrl+Shift+W" Command="{Binding CloseActiveTerminalTabCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+W" Command="{Binding Workspace.ClosePaneCommand}" />
+    <KeyBinding Gesture="Alt+Shift+Right" Command="{Binding Workspace.SplitRightCommand}" />
+    <KeyBinding Gesture="Alt+Shift+Down" Command="{Binding Workspace.SplitDownCommand}" />
+    <KeyBinding Gesture="Alt+Right" Command="{Binding Workspace.FocusRightPaneCommand}" />
+    <KeyBinding Gesture="Alt+Left" Command="{Binding Workspace.FocusLeftPaneCommand}" />
+    <KeyBinding Gesture="Alt+Down" Command="{Binding Workspace.FocusDownPaneCommand}" />
+    <KeyBinding Gesture="Alt+Up" Command="{Binding Workspace.FocusUpPaneCommand}" />
     <KeyBinding Gesture="Ctrl+Tab" Command="{Binding NextTerminalTabCommand}" />
     <KeyBinding Gesture="Ctrl+Shift+Tab" Command="{Binding PreviousTerminalTabCommand}" />
     <KeyBinding Gesture="Alt+F4" Command="{Binding RequestCloseWindowCommand}" />
@@ -130,6 +136,9 @@
                 WindowDecorationProperties.ElementRole="None">
               <Button.Flyout>
                 <MenuFlyout Opening="OnTerminalMenuOpening" Placement="BottomEdgeAlignedLeft">
+                  <MenuItem Header="Split Right" Command="{Binding Workspace.SplitRightCommand}" />
+                  <MenuItem Header="Split Down" Command="{Binding Workspace.SplitDownCommand}" />
+                  <MenuItem Header="Close Pane" Command="{Binding Workspace.ClosePaneCommand}" />
                   <Separator IsVisible="{Binding Workspace.IsPsmuxEnabled}" />
                   <MenuItem Header="psmux" IsVisible="{Binding Workspace.IsPsmuxEnabled}">
                     <MenuItem
@@ -378,15 +387,25 @@
           ResizeBehavior="PreviousAndNext"
           ResizeDirection="Columns" />
 
-    <controls:WebTerminalHostControl
-          x:Name="TerminalHost"
-          AutomationProperties.AutomationId="TerminalHost"
+    <ItemsControl
+          x:Name="TerminalHosts"
           Grid.Row="1"
           Grid.Column="2"
-          ActiveTab="{Binding Workspace.SelectedTab}"
-          Background="{DynamicResource AppBackgroundBrush}"
           IsVisible="{Binding AreTerminalHostsVisible}"
-          Tabs="{Binding Workspace.Tabs}" />
+          ItemsSource="{Binding Workspace.Tabs}">
+      <ItemsControl.ItemsPanel>
+        <ItemsPanelTemplate><Grid /></ItemsPanelTemplate>
+      </ItemsControl.ItemsPanel>
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="viewModels:TerminalTabViewModel">
+          <controls:WebTerminalHostControl
+              AutomationProperties.AutomationId="TerminalHost"
+              Background="{DynamicResource AppBackgroundBrush}"
+              IsVisible="{Binding IsSelected}"
+              Tab="{Binding}" />
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
 
     <Border
         Grid.Row="2"

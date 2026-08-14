@@ -290,6 +290,16 @@ public sealed partial class MainWindowViewModel
             () => IsSidebarVisible = !IsSidebarVisible);
         yield return Action("Toggle status bar", "Show or hide terminal status", 25,
             () => IsStatusBarVisible = !IsStatusBarVisible);
+        yield return AsyncAction("Terminal: Split Right", "Split the active pane vertically", 26,
+            () => Workspace.SplitRightCommand.ExecuteAsync(null));
+        yield return AsyncAction("Terminal: Split Down", "Split the active pane horizontally", 27,
+            () => Workspace.SplitDownCommand.ExecuteAsync(null));
+        yield return AsyncAction("Terminal: Close Pane", "Close the active terminal pane", 28,
+            () => Workspace.ClosePaneCommand.ExecuteAsync(null));
+        yield return Action("Terminal: Focus Next Pane", "Focus the next terminal pane", 29,
+            () => Workspace.FocusNextPaneCommand.Execute(null));
+        yield return Action("Terminal: Focus Previous Pane", "Focus the previous terminal pane", 30,
+            () => Workspace.FocusPreviousPaneCommand.Execute(null));
     }
 
     private static CommandPaletteItemViewModel Action(

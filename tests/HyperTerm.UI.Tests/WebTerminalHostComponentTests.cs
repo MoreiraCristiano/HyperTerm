@@ -215,17 +215,51 @@ public sealed class HostedTerminalRegistryTests
         await registry.CreateExistingAsync();
         await registry.ActivateAsync(tab);
 
-        Assert.True(registry.TryGet(tab.Id, out HostedTerminal hosted));
+        Guid paneId = tab.ActivePaneId!.Value;
+        Assert.True(registry.TryGet(paneId, out HostedTerminal hosted));
         Assert.True(hosted.Created);
         Assert.Equal(1, focusRequests);
         Assert.Collection(
             scripts,
             script => Assert.StartsWith("window.terminalHost.create(", script),
+            script => Assert.StartsWith("window.terminalHost.layout(", script),
             script => Assert.StartsWith("window.terminalHost.activate(", script));
 
         tabs.Remove(tab);
 
-        Assert.False(registry.TryGet(tab.Id, out _));
+        Assert.False(registry.TryGet(paneId, out _));
+    }
+
+    [Fact]
+    public async Task ClosingPaneDestroysOnlyItsSurfaceOnce()
+    {
+        var scripts = new List<string>();
+        var bridge = new WebTerminalScriptBridge(script =>
+        {
+            scripts.Add(script);
+            return Task.CompletedTask;
+        });
+        TerminalTabViewModel tab = WebTerminalScriptBridgeTests.CreateTab();
+        var tabs = new ObservableCollection<TerminalTabViewModel> { tab };
+        var registry = new HostedTerminalRegistry(
+            bridge,
+            () => tab,
+            () => true,
+            _ => { },
+            () => { });
+        registry.Observe(tabs);
+        await registry.CreateExistingAsync();
+        TerminalPaneViewModel closedPane = tab.SplitActivePane(
+            SplitOrientation.Vertical,
+            tab.Definition)!;
+
+        await tab.CloseActivePaneAsync();
+
+        string paneId = closedPane.PaneId.ToString("N");
+        Assert.Single(scripts, script =>
+            script.StartsWith("window.terminalHost.dispose(", StringComparison.Ordinal) &&
+            script.Contains(paneId, StringComparison.Ordinal));
+        Assert.True(registry.TryGet(tab.ActivePaneId!.Value, out _));
     }
 }
 

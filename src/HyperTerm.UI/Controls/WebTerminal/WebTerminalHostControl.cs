@@ -18,6 +18,9 @@ public sealed class WebTerminalHostControl : NativeWebView
         AvaloniaProperty.Register<WebTerminalHostControl, TerminalTabViewModel?>(
             nameof(ActiveTab));
 
+    public static readonly StyledProperty<TerminalTabViewModel?> TabProperty =
+        AvaloniaProperty.Register<WebTerminalHostControl, TerminalTabViewModel?>(nameof(Tab));
+
     private readonly WebTerminalScriptBridge scriptBridge;
     private readonly HostedTerminalRegistry terminalRegistry;
     private readonly WebTerminalClipboard clipboard;
@@ -32,7 +35,7 @@ public sealed class WebTerminalHostControl : NativeWebView
             async script => await InvokeScript(script));
         terminalRegistry = new HostedTerminalRegistry(
             scriptBridge,
-            () => ActiveTab,
+            () => CurrentTab,
             () => hostReady,
             RequestTerminalFocus,
             ScheduleOutputFlush);
@@ -53,10 +56,21 @@ public sealed class WebTerminalHostControl : NativeWebView
         set => SetValue(ActiveTabProperty, value);
     }
 
+    public TerminalTabViewModel? Tab
+    {
+        get => GetValue(TabProperty);
+        set => SetValue(TabProperty, value);
+    }
+
+    private TerminalTabViewModel? CurrentTab => Tab ?? ActiveTab;
+
+    private IEnumerable<TerminalTabViewModel>? ObservedTabs =>
+        Tab is null ? Tabs : [Tab];
+
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        terminalRegistry.Observe(Tabs);
+        terminalRegistry.Observe(ObservedTabs);
 
         if (!navigated)
         {
@@ -78,9 +92,17 @@ public sealed class WebTerminalHostControl : NativeWebView
 
         if (change.Property == TabsProperty)
         {
-            terminalRegistry.Observe(change.GetNewValue<IEnumerable<TerminalTabViewModel>?>());
+            terminalRegistry.Observe(ObservedTabs);
         }
-        else if (change.Property == ActiveTabProperty && hostReady)
+        else if (change.Property == TabProperty)
+        {
+            terminalRegistry.Observe(ObservedTabs);
+            if (hostReady)
+            {
+                _ = terminalRegistry.ActivateAsync(CurrentTab);
+            }
+        }
+        else if (change.Property == ActiveTabProperty && hostReady && Tab is null)
         {
             _ = terminalRegistry.ActivateAsync(
                 change.GetNewValue<TerminalTabViewModel?>());
@@ -88,7 +110,7 @@ public sealed class WebTerminalHostControl : NativeWebView
         else if (change.Property == IsVisibleProperty &&
                  change.GetNewValue<bool>() && hostReady)
         {
-            _ = terminalRegistry.ActivateAsync(ActiveTab);
+            _ = terminalRegistry.ActivateAsync(CurrentTab);
         }
     }
 
@@ -113,14 +135,19 @@ public sealed class WebTerminalHostControl : NativeWebView
 
                 hostReady = true;
                 await terminalRegistry.CreateExistingAsync();
-                await terminalRegistry.ActivateAsync(ActiveTab);
+                await terminalRegistry.ActivateAsync(CurrentTab);
                 ScheduleOutputFlush();
                 await FocusAfterWindowActivationIfReadyAsync();
                 return;
             }
 
-            if (message.TabId is not Guid tabId ||
-                !terminalRegistry.TryGet(tabId, out HostedTerminal hosted))
+            if (message.TabId is not Guid tabId)
+            {
+                return;
+            }
+
+            Guid paneId = message.PaneId ?? tabId;
+            if (!terminalRegistry.TryGet(paneId, out HostedTerminal hosted))
             {
                 return;
             }
@@ -128,17 +155,18 @@ public sealed class WebTerminalHostControl : NativeWebView
             switch (message.Type)
             {
                 case "ready":
-                    await hosted.Tab.StartPtyAsync(
+                    await hosted.Tab.StartPaneAsync(
+                        paneId,
                         message.Columns,
                         message.Rows);
                     ScheduleOutputFlush();
-                    if (ReferenceEquals(hosted.Tab, ActiveTab))
+                    if (ReferenceEquals(hosted.Tab, CurrentTab))
                     {
                         await FocusTerminalAsync(hosted.Tab);
                     }
                     break;
                 case "input":
-                    await hosted.Tab.WritePtyAsync(message.Data!);
+                    await hosted.Tab.WritePaneAsync(paneId, message.Data!);
                     break;
                 case "copy":
                     await clipboard.CopyAsync(hosted.Tab, message.Data!);
@@ -147,10 +175,17 @@ public sealed class WebTerminalHostControl : NativeWebView
                     await clipboard.PasteAsync(hosted.Tab);
                     break;
                 case "resize":
-                    hosted.Tab.ResizePty(message.Columns, message.Rows);
+                    hosted.Tab.ResizePane(paneId, message.Columns, message.Rows);
                     break;
                 case "applicationCommand":
+                    hosted.Tab.SetActivePane(paneId);
                     hosted.Tab.RequestApplicationCommand(message.Command!);
+                    break;
+                case "paneActivated":
+                    hosted.Tab.SetActivePane(paneId);
+                    break;
+                case "paneRatio":
+                    hosted.Tab.SetPaneRatio(paneId, message.Ratio);
                     break;
                 case "writeComplete":
                     terminalRegistry.Acknowledge(hosted, message.Token, message.Success);
@@ -160,7 +195,7 @@ public sealed class WebTerminalHostControl : NativeWebView
         catch (Exception exception) when (
             exception is InvalidOperationException or COMException)
         {
-            ActiveTab?.ReportLaunchFailed(exception.Message);
+            CurrentTab?.ReportLaunchFailed(exception.Message);
         }
     }
 
@@ -193,7 +228,7 @@ public sealed class WebTerminalHostControl : NativeWebView
         }
         catch (Exception exception)
         {
-            ActiveTab?.ReportLaunchFailed(exception.Message);
+            CurrentTab?.ReportLaunchFailed(exception.Message);
         }
     }
 
@@ -206,7 +241,7 @@ public sealed class WebTerminalHostControl : NativeWebView
 
     private async Task FocusTerminalAsync(TerminalTabViewModel tab)
     {
-        if (!hostReady || !IsVisible || !ReferenceEquals(tab, ActiveTab))
+        if (!hostReady || !IsVisible || !ReferenceEquals(tab, CurrentTab))
         {
             return;
         }
@@ -214,7 +249,7 @@ public sealed class WebTerminalHostControl : NativeWebView
         Focus();
         WindowsWebViewFocus.TryMoveFocus(this);
         await InvokeTerminalScriptAsync(
-            () => scriptBridge.FocusAsync(tab.Id),
+            () => scriptBridge.FocusAsync(tab.ActivePaneId ?? tab.Id),
             tab);
     }
 
@@ -229,20 +264,20 @@ public sealed class WebTerminalHostControl : NativeWebView
 
     public async Task OpenSearchAsync()
     {
-        TerminalTabViewModel? tab = ActiveTab;
+        TerminalTabViewModel? tab = CurrentTab;
         if (!hostReady || !IsVisible || tab is null)
         {
             return;
         }
 
         await InvokeTerminalScriptAsync(
-            () => scriptBridge.OpenSearchAsync(tab.Id),
+            () => scriptBridge.OpenSearchAsync(tab.ActivePaneId ?? tab.Id),
             tab);
     }
 
     private async Task FocusAfterWindowActivationIfReadyAsync()
     {
-        TerminalTabViewModel? tab = ActiveTab;
+        TerminalTabViewModel? tab = CurrentTab;
         if (!focusAfterActivationPending || !hostReady || !IsVisible || tab is null)
         {
             return;
@@ -254,7 +289,7 @@ public sealed class WebTerminalHostControl : NativeWebView
             Focus();
             WindowsWebViewFocus.TryMoveFocus(this);
             await InvokeTerminalScriptAsync(
-                () => scriptBridge.FocusAsync(tab.Id),
+                () => scriptBridge.FocusAsync(tab.ActivePaneId ?? tab.Id),
                 tab);
         }
         catch (Exception exception) when (

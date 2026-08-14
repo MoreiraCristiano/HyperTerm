@@ -108,6 +108,64 @@ public sealed partial class TerminalWorkspaceViewModel
     private Task CloseSelectedTabAsync() => CloseTabAsync(SelectedTab!);
 
     [RelayCommand(CanExecute = nameof(HasSelectedTab))]
+    private Task SplitRightAsync() => SplitSelectedPaneAsync(SplitOrientation.Vertical);
+
+    [RelayCommand(CanExecute = nameof(HasSelectedTab))]
+    private Task SplitDownAsync() => SplitSelectedPaneAsync(SplitOrientation.Horizontal);
+
+    [RelayCommand(CanExecute = nameof(HasSelectedTab))]
+    private async Task ClosePaneAsync() =>
+        _ = await SelectedTab!.CloseActivePaneAsync();
+
+    [RelayCommand(CanExecute = nameof(HasSelectedTab))]
+    private void FocusNextPane() => SelectedTab!.FocusNextPane();
+
+    [RelayCommand(CanExecute = nameof(HasSelectedTab))]
+    private void FocusPreviousPane() => SelectedTab!.FocusPreviousPane();
+
+    [RelayCommand(CanExecute = nameof(HasSelectedTab))]
+    private void FocusLeftPane() => SelectedTab!.FocusLeftPane();
+
+    [RelayCommand(CanExecute = nameof(HasSelectedTab))]
+    private void FocusRightPane() => SelectedTab!.FocusRightPane();
+
+    [RelayCommand(CanExecute = nameof(HasSelectedTab))]
+    private void FocusUpPane() => SelectedTab!.FocusUpPane();
+
+    [RelayCommand(CanExecute = nameof(HasSelectedTab))]
+    private void FocusDownPane() => SelectedTab!.FocusDownPane();
+
+    private async Task SplitSelectedPaneAsync(SplitOrientation orientation)
+    {
+        TerminalTabViewModel? tab = SelectedTab;
+        if (tab?.ActivePane is not { } activePane)
+        {
+            return;
+        }
+
+        try
+        {
+            TerminalSessionDefinition definition =
+                activePane.Definition.Kind == TerminalSessionKind.Local
+                    ? activePane.Definition
+                    : await terminalSessionFactory.CreateLocalAsync();
+            if (tab.SplitActivePane(orientation, definition) is not null)
+            {
+                tab.RequestFocus();
+                StatusText = orientation == SplitOrientation.Vertical
+                    ? "Terminal split right"
+                    : "Terminal split down";
+            }
+        }
+        catch (Exception exception) when (
+            exception is TerminalLaunchException or KeyNotFoundException)
+        {
+            diagnostics.LogError(exception, "Failed to prepare a split terminal.");
+            StatusText = exception.Message;
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSelectedTab))]
     private void NextTab() => SelectRelativeTab(1);
 
     [RelayCommand(CanExecute = nameof(HasSelectedTab))]
@@ -309,6 +367,33 @@ public sealed partial class TerminalWorkspaceViewModel
         {
             case "closeTab" when sender is TerminalTabViewModel tab:
                 await CloseTabAsync(tab);
+                break;
+            case "closePane":
+                await ClosePaneAsync();
+                break;
+            case "splitRight":
+                await SplitRightAsync();
+                break;
+            case "splitDown":
+                await SplitDownAsync();
+                break;
+            case "focusNextPane":
+                FocusNextPane();
+                break;
+            case "focusPreviousPane":
+                FocusPreviousPane();
+                break;
+            case "focusLeftPane":
+                FocusLeftPane();
+                break;
+            case "focusRightPane":
+                FocusRightPane();
+                break;
+            case "focusUpPane":
+                FocusUpPane();
+                break;
+            case "focusDownPane":
+                FocusDownPane();
                 break;
             case "nextTab":
                 NextTab();

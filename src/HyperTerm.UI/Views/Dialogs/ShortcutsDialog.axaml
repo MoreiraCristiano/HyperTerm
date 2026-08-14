@@ -38,13 +38,17 @@
 
             <StackPanel>
               <TextBlock Classes="shortcutGroupTitle" Text="Terminal and tabs" />
-              <Grid Classes="shortcutList" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
+              <Grid Classes="shortcutList" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
                 <TextBlock Text="New default terminal" /><TextBlock Grid.Column="1" Classes="shortcutGesture" Text="Ctrl+Shift+T" />
-                <TextBlock Grid.Row="1" Text="Close active tab" /><TextBlock Grid.Row="1" Grid.Column="1" Classes="shortcutGesture" Text="Ctrl+Shift+W" />
+                <TextBlock Grid.Row="1" Text="Close active pane" /><TextBlock Grid.Row="1" Grid.Column="1" Classes="shortcutGesture" Text="Ctrl+Shift+W" />
                 <TextBlock Grid.Row="2" Text="Next tab" /><TextBlock Grid.Row="2" Grid.Column="1" Classes="shortcutGesture" Text="Ctrl+Tab" />
                 <TextBlock Grid.Row="3" Text="Previous tab" /><TextBlock Grid.Row="3" Grid.Column="1" Classes="shortcutGesture" Text="Ctrl+Shift+Tab" />
                 <TextBlock Grid.Row="4" Text="Search terminal output" /><TextBlock Grid.Row="4" Grid.Column="1" Classes="shortcutGesture" Text="Ctrl+Shift+F" />
                 <TextBlock Grid.Row="5" Text="Copy terminal selection" /><TextBlock Grid.Row="5" Grid.Column="1" Classes="shortcutGesture" Text="Ctrl+Shift+C" />
+                <TextBlock Grid.Row="6" Text="Split right" /><TextBlock Grid.Row="6" Grid.Column="1" Classes="shortcutGesture" Text="Alt+Shift+Right" />
+                <TextBlock Grid.Row="7" Text="Split down" /><TextBlock Grid.Row="7" Grid.Column="1" Classes="shortcutGesture" Text="Alt+Shift+Down" />
+                <TextBlock Grid.Row="8" Text="Focus right / down" /><TextBlock Grid.Row="8" Grid.Column="1" Classes="shortcutGesture" Text="Alt+Right / Alt+Down" />
+                <TextBlock Grid.Row="9" Text="Focus left / up" /><TextBlock Grid.Row="9" Grid.Column="1" Classes="shortcutGesture" Text="Alt+Left / Alt+Up" />
               </Grid>
             </StackPanel>
 

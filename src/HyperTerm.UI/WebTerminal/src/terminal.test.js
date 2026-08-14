@@ -32,7 +32,7 @@ vi.mock('@xterm/xterm', () => ({
 
     getSelection() { return this.selection; }
     clearSelection() { this.selection = ''; }
-    refresh() { this.refreshed = true; }
+    refresh() { this.refreshed = true; this.refreshCount = (this.refreshCount ?? 0) + 1; }
     focus() { this.focused = true; }
     dispose() { this.disposed = true; }
   }
@@ -131,7 +131,7 @@ describe('terminal host bridge', () => {
     searchResultsDuringFind = null;
   });
 
-  it('creates one isolated terminal per tab and forwards raw input', async () => {
+  it('creates one isolated terminal per pane and forwards raw input', async () => {
     const { host, sent } = await loadHost();
     host.create({ tabId: 'a', options: createOptions() });
     host.create({ tabId: 'a', options: createOptions() });
@@ -145,7 +145,7 @@ describe('terminal host bridge', () => {
     expect(terminalInstances[0].options.theme.background).toBe('#1e1e1e');
     expect(document.documentElement.dataset.theme).toBe('dark');
     terminalInstances[0].dataHandler('\u0003');
-    expect(sent).toContainEqual({ type: 'input', tabId: 'a', data: '\u0003' });
+    expect(sent).toContainEqual({ type: 'input', tabId: 'a', paneId: 'a', data: '\u0003' });
   });
 
   it('sends ready once and resize only when dimensions change', async () => {
@@ -159,7 +159,7 @@ describe('terminal host bridge', () => {
 
     expect(sent.filter(message => message.type === 'ready')).toHaveLength(1);
     expect(sent.filter(message => message.type === 'resize')).toEqual([
-      { type: 'resize', tabId: 'a', columns: 100, rows: 24 }
+      { type: 'resize', tabId: 'a', paneId: 'a', columns: 100, rows: 24 }
     ]);
   });
 
@@ -172,9 +172,9 @@ describe('terminal host bridge', () => {
     host.write('a', 3, 'bad');
 
     expect(sent.filter(message => message.type === 'writeComplete')).toEqual([
-      { type: 'writeComplete', tabId: 'missing', token: 1, success: false },
-      { type: 'writeComplete', tabId: 'a', token: 2, success: true },
-      { type: 'writeComplete', tabId: 'a', token: 3, success: false }
+      { type: 'writeComplete', tabId: 'missing', paneId: 'missing', token: 1, success: false },
+      { type: 'writeComplete', tabId: 'a', paneId: 'a', token: 2, success: true },
+      { type: 'writeComplete', tabId: 'a', paneId: 'a', token: 3, success: false }
     ]);
   });
 
@@ -196,6 +196,71 @@ describe('terminal host bridge', () => {
     expect(sent.filter(message => message.command === 'newTerminal')).toHaveLength(1);
   });
 
+  it('lays out multiple panes without recreating terminal instances', async () => {
+    const { host } = await loadHost();
+    host.create({ paneId: 'a', tabId: 'tab', options: createOptions() });
+    host.create({ paneId: 'b', tabId: 'tab', options: createOptions() });
+    const firstElement = terminalInstances[0].element;
+    const secondElement = terminalInstances[1].element;
+
+    host.layout({
+      tabId: 'tab',
+      activePaneId: 'b',
+      root: {
+        type: 'split',
+        orientation: 'vertical',
+        ratio: .5,
+        first: { type: 'terminal', paneId: 'a' },
+        second: { type: 'terminal', paneId: 'b' }
+      }
+    });
+
+    expect(terminalInstances).toHaveLength(2);
+    expect(document.getElementById('terminal-host').classList.contains('has-splits')).toBe(true);
+    expect(document.querySelector('.pane-split.vertical')).not.toBeNull();
+    expect(document.querySelector('[data-pane-id="a"]')).toBe(firstElement);
+    expect(document.querySelector('[data-pane-id="b"]')).toBe(secondElement);
+    expect(secondElement.classList.contains('active')).toBe(true);
+  });
+
+  it('omits active-pane decoration when the tab has one terminal', async () => {
+    const { host } = await loadHost();
+    host.create({ paneId: 'a', tabId: 'tab', options: createOptions() });
+    host.layout({
+      tabId: 'tab',
+      activePaneId: 'a',
+      root: { type: 'terminal', paneId: 'a' }
+    });
+
+    expect(document.getElementById('terminal-host').classList.contains('has-splits')).toBe(false);
+    expect(document.querySelector('[data-pane-id="a"]').classList.contains('active')).toBe(true);
+  });
+
+  it('preserves the inactive pane rendering and buffer while focus changes', async () => {
+    const { host } = await loadHost();
+    host.create({ paneId: 'a', tabId: 'tab', options: createOptions() });
+    host.activate('a');
+    host.write('a', 1, 'persistent output');
+    const originalRenderer = webglInstances[0];
+    host.create({ paneId: 'b', tabId: 'tab', options: createOptions() });
+    host.layout({
+      tabId: 'tab',
+      activePaneId: 'b',
+      root: {
+        type: 'split', orientation: 'vertical', ratio: .5,
+        first: { type: 'terminal', paneId: 'a' },
+        second: { type: 'terminal', paneId: 'b' }
+      }
+    });
+    host.activate('a');
+    host.activate('b');
+
+    expect(terminalInstances[0].lastWrite).toBe('persistent output');
+    expect(terminalInstances[0].disposed).toBeUndefined();
+    expect(originalRenderer.disposed).toBeUndefined();
+    expect(webglInstances).toHaveLength(1);
+  });
+
   it('copies selected text without forwarding the key', async () => {
     const { host, sent } = await loadHost();
     host.create({ tabId: 'a', options: createOptions() });
@@ -207,7 +272,7 @@ describe('terminal host bridge', () => {
     });
 
     expect(handled).toBe(false);
-    expect(sent).toContainEqual({ type: 'copy', tabId: 'a', data: 'selected' });
+    expect(sent).toContainEqual({ type: 'copy', tabId: 'a', paneId: 'a', data: 'selected' });
     expect(terminalInstances[0].selection).toBe('');
   });
 
@@ -222,7 +287,7 @@ describe('terminal host bridge', () => {
     });
     expect(handled).toBe(false);
     expect(sent).toContainEqual({
-      type: 'applicationCommand', tabId: 'a', command: 'searchTerminal'
+      type: 'applicationCommand', tabId: 'a', paneId: 'a', command: 'searchTerminal'
     });
 
     host.openSearch('a');
@@ -357,12 +422,42 @@ describe('terminal host bridge', () => {
       options: { ...createOptions(), fontSize: 18, selectionBackground: '#007ACC' }
     });
 
-    expect(webglInstances[0].disposed).toBe(true);
+    expect(webglInstances).toHaveLength(0);
     expect(terminalInstances[0].options.fontSize).toBe(18);
     expect(terminalInstances[0].options.theme.selectionBackground).toBe('#007ACC');
     expect(terminalInstances[0].options.theme.selectionInactiveBackground).toBe('#007ACC');
     expect(terminalInstances[1].focused).toBe(true);
     expect(document.querySelector('[data-tab-id="a"]').classList.contains('active')).toBe(false);
+  });
+
+  it('maps vertical Alt arrows to pane navigation', async () => {
+    const { host, sent } = await loadHost();
+    host.create({ paneId: 'a', tabId: 'tab', options: createOptions() });
+    const key = terminalInstances[0].keyHandler;
+    const base = { type: 'keydown', altKey: true, ctrlKey: false, shiftKey: false,
+      metaKey: false, repeat: false };
+
+    expect(key({ ...base, code: 'ArrowDown' })).toBe(false);
+    expect(key({ ...base, code: 'ArrowUp' })).toBe(false);
+
+    expect(sent.map(message => message.command)).toEqual([
+      'focusDownPane', 'focusUpPane'
+    ]);
+  });
+
+  it('maps horizontal Alt arrows to directional pane navigation', async () => {
+    const { host, sent } = await loadHost();
+    host.create({ paneId: 'a', tabId: 'tab', options: createOptions() });
+    const key = terminalInstances[0].keyHandler;
+    const base = { type: 'keydown', altKey: true, ctrlKey: false, shiftKey: false,
+      metaKey: false, repeat: false };
+
+    expect(key({ ...base, code: 'ArrowRight' })).toBe(false);
+    expect(key({ ...base, code: 'ArrowLeft' })).toBe(false);
+
+    expect(sent.map(message => message.command)).toEqual([
+      'focusRightPane', 'focusLeftPane'
+    ]);
   });
 
   it('applies light palette when terminals are created and reconfigured', async () => {

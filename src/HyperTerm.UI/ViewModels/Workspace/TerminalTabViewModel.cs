@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Avalonia.Threading;
+using System.Collections.ObjectModel;
 using HyperTerm.Core.Abstractions.Terminal;
 using HyperTerm.Core.Models;
 
@@ -10,10 +11,8 @@ public sealed partial class TerminalTabViewModel : ViewModelBase, IAsyncDisposab
 {
     private readonly Func<TerminalTabViewModel, Task> closeAction;
     private readonly IPtySessionFactory ptySessionFactory;
-    private readonly SemaphoreSlim startGate = new(1, 1);
-    private readonly CancellationTokenSource lifetime = new();
+    private readonly PaneTree paneTree;
     private Action? killProcess;
-    private IPtySession? ptySession;
     private int terminationSignaled;
     private int disposed;
 
@@ -96,6 +95,9 @@ public sealed partial class TerminalTabViewModel : ViewModelBase, IAsyncDisposab
         CursorStyle = cursorStyle;
         CursorBlink = cursorBlink;
         Theme = theme;
+        Guid firstPaneId = Guid.NewGuid();
+        paneTree = new PaneTree(firstPaneId);
+        AddPane(new TerminalPaneViewModel(firstPaneId, definition, ptySessionFactory));
     }
 
     public Guid Id { get; }
@@ -110,6 +112,17 @@ public sealed partial class TerminalTabViewModel : ViewModelBase, IAsyncDisposab
 
     public TerminalSessionDefinition Definition { get; }
 
+    public ObservableCollection<TerminalPaneViewModel> Panes { get; } = [];
+
+    public PaneNode? PaneRoot => paneTree.Root;
+
+    public Guid? ActivePaneId => paneTree.ActivePaneId;
+
+    public TerminalPaneViewModel? ActivePane =>
+        ActivePaneId is Guid paneId
+            ? Panes.FirstOrDefault(pane => pane.PaneId == paneId)
+            : null;
+
     public string FontFamily { get; private set; }
 
     public double FontSize { get; private set; }
@@ -123,6 +136,10 @@ public sealed partial class TerminalTabViewModel : ViewModelBase, IAsyncDisposab
     public string Theme { get; private set; }
 
     public event EventHandler<string>? TerminalOutputReceived;
+
+    public event EventHandler<TerminalPaneOutputEventArgs>? PaneOutputReceived;
+
+    public event EventHandler? PaneLayoutChanged;
 
     public event EventHandler? FocusRequested;
 
@@ -196,28 +213,16 @@ public sealed partial class TerminalTabViewModel : ViewModelBase, IAsyncDisposab
         }
 
         SignalTerminating();
-        lifetime.Cancel();
         killProcess?.Invoke();
         killProcess = null;
 
-        await startGate.WaitAsync();
-        try
+        foreach (TerminalPaneViewModel pane in Panes.ToArray())
         {
-            if (ptySession is null)
-            {
-                return;
-            }
+            RemovePaneSubscriptions(pane);
+            await pane.DisposeAsync();
+        }
 
-            ptySession.OutputReceived -= OnPtyOutputReceived;
-            ptySession.Exited -= OnPtyExited;
-            await ptySession.DisposeAsync();
-            ptySession = null;
-        }
-        finally
-        {
-            startGate.Release();
-            lifetime.Dispose();
-        }
+        Panes.Clear();
     }
 
     public async Task StartPtyAsync(
@@ -225,65 +230,136 @@ public sealed partial class TerminalTabViewModel : ViewModelBase, IAsyncDisposab
         int rows,
         CancellationToken cancellationToken = default)
     {
-        if (Volatile.Read(ref disposed) != 0)
+        await StartPaneAsync(ActivePaneId, columns, rows, cancellationToken);
+    }
+
+    public async Task StartPaneAsync(
+        Guid? paneId,
+        int columns,
+        int rows,
+        CancellationToken cancellationToken = default)
+    {
+        TerminalPaneViewModel? pane = FindPane(paneId);
+        if (pane is null || Volatile.Read(ref disposed) != 0)
         {
             return;
         }
 
-        using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
-            cancellationToken,
-            lifetime.Token);
-        await startGate.WaitAsync(linkedCancellation.Token);
         try
         {
-            if (Volatile.Read(ref disposed) != 0)
-            {
-                return;
-            }
-
-            if (ptySession is not null)
-            {
-                ptySession.Resize(columns, rows);
-                return;
-            }
-
             ConnectionStatus = "Starting ConPTY";
-            ptySession = await ptySessionFactory.CreateAsync(
-                Definition,
-                columns,
-                rows,
-                linkedCancellation.Token);
-            ptySession.OutputReceived += OnPtyOutputReceived;
-            ptySession.Exited += OnPtyExited;
-            string terminalName = Definition.Kind switch
+            await pane.StartAsync(columns, rows, cancellationToken);
+            string terminalName = pane.Definition.Kind switch
             {
                 TerminalSessionKind.Psmux => "psmux",
                 TerminalSessionKind.Ssh => "SSH",
-                _ => Definition.DisplayName ?? "Terminal",
+                _ => pane.Definition.DisplayName ?? "Terminal",
             };
             ConnectionStatus = $"{terminalName} via xterm.js/WebGL";
-            PtyStarted?.Invoke(this, EventArgs.Empty);
         }
-        catch (OperationCanceledException) when (linkedCancellation.IsCancellationRequested)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
         }
         catch (Exception exception)
         {
             ReportLaunchFailed(exception.Message);
         }
-        finally
-        {
-            startGate.Release();
-        }
     }
 
     public Task WritePtyAsync(
         string data,
         CancellationToken cancellationToken = default) =>
-        ptySession?.WriteAsync(data, cancellationToken) ?? Task.CompletedTask;
+        WritePaneAsync(ActivePaneId, data, cancellationToken);
+
+    public Task WritePaneAsync(
+        Guid? paneId,
+        string data,
+        CancellationToken cancellationToken = default) =>
+        FindPane(paneId)?.WriteAsync(data, cancellationToken) ?? Task.CompletedTask;
 
     public void ResizePty(int columns, int rows) =>
-        ptySession?.Resize(columns, rows);
+        ResizePane(ActivePaneId, columns, rows);
+
+    public void ResizePane(Guid? paneId, int columns, int rows) =>
+        FindPane(paneId)?.Resize(columns, rows);
+
+    public bool SetActivePane(Guid paneId)
+    {
+        if (!paneTree.SetActive(paneId))
+        {
+            return false;
+        }
+
+        OnPropertyChanged(nameof(ActivePaneId));
+        OnPropertyChanged(nameof(ActivePane));
+        PaneLayoutChanged?.Invoke(this, EventArgs.Empty);
+        return true;
+    }
+
+    public TerminalPaneViewModel? SplitActivePane(
+        SplitOrientation orientation,
+        TerminalSessionDefinition definition)
+    {
+        if (ActivePaneId is not Guid activePaneId)
+        {
+            return null;
+        }
+
+        Guid paneId = Guid.NewGuid();
+        if (!paneTree.Split(activePaneId, paneId, orientation))
+        {
+            return null;
+        }
+
+        var pane = new TerminalPaneViewModel(paneId, definition, ptySessionFactory);
+        AddPane(pane);
+        NotifyPaneLayoutChanged();
+        return pane;
+    }
+
+    public async Task<bool> CloseActivePaneAsync()
+    {
+        if (ActivePaneId is not Guid paneId || FindPane(paneId) is not { } pane)
+        {
+            return false;
+        }
+
+        if (Panes.Count == 1)
+        {
+            await closeAction(this);
+            return true;
+        }
+
+        paneTree.Remove(paneId, out _);
+        RemovePaneSubscriptions(pane);
+        Panes.Remove(pane);
+        await pane.DisposeAsync();
+        NotifyPaneLayoutChanged();
+        return true;
+    }
+
+    public bool FocusNextPane() => FocusPane(paneTree.FocusNext());
+
+    public bool FocusPreviousPane() => FocusPane(paneTree.FocusPrevious());
+
+    public bool FocusLeftPane() => FocusPane(paneTree.FocusLeft());
+
+    public bool FocusRightPane() => FocusPane(paneTree.FocusRight());
+
+    public bool FocusUpPane() => FocusPane(paneTree.FocusUp());
+
+    public bool FocusDownPane() => FocusPane(paneTree.FocusDown());
+
+    public bool SetPaneRatio(Guid firstDescendantPaneId, double ratio)
+    {
+        if (!paneTree.SetRatio(firstDescendantPaneId, ratio))
+        {
+            return false;
+        }
+
+        NotifyPaneLayoutChanged();
+        return true;
+    }
 
     public void RequestFocus() =>
         FocusRequested?.Invoke(this, EventArgs.Empty);
@@ -308,8 +384,19 @@ public sealed partial class TerminalTabViewModel : ViewModelBase, IAsyncDisposab
         AppearanceChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    private void OnPtyOutputReceived(object? sender, string output) =>
-        TerminalOutputReceived?.Invoke(this, output);
+    private void OnPaneOutputReceived(object? sender, string output)
+    {
+        if (sender is not TerminalPaneViewModel pane)
+        {
+            return;
+        }
+
+        PaneOutputReceived?.Invoke(this, new TerminalPaneOutputEventArgs(pane.PaneId, output));
+        if (pane.PaneId == ActivePaneId)
+        {
+            TerminalOutputReceived?.Invoke(this, output);
+        }
+    }
 
     private void SignalTerminating()
     {
@@ -319,9 +406,9 @@ public sealed partial class TerminalTabViewModel : ViewModelBase, IAsyncDisposab
         }
     }
 
-    private void OnPtyExited(object? sender, int exitCode)
+    private void OnPaneExited(object? sender, int exitCode)
     {
-        if (IsPsmux)
+        if (sender is TerminalPaneViewModel { Definition.Kind: TerminalSessionKind.Psmux })
         {
             TerminalOutputReceived?.Invoke(
                 this,
@@ -337,6 +424,48 @@ public sealed partial class TerminalTabViewModel : ViewModelBase, IAsyncDisposab
                     ReportProcessExited(exitCode);
                 }
             });
+    }
+
+    private void AddPane(TerminalPaneViewModel pane)
+    {
+        pane.OutputReceived += OnPaneOutputReceived;
+        pane.Exited += OnPaneExited;
+        pane.Started += OnPaneStarted;
+        Panes.Add(pane);
+    }
+
+    private void RemovePaneSubscriptions(TerminalPaneViewModel pane)
+    {
+        pane.OutputReceived -= OnPaneOutputReceived;
+        pane.Exited -= OnPaneExited;
+        pane.Started -= OnPaneStarted;
+    }
+
+    private void OnPaneStarted(object? sender, EventArgs eventArgs) =>
+        PtyStarted?.Invoke(this, EventArgs.Empty);
+
+    private TerminalPaneViewModel? FindPane(Guid? paneId) =>
+        paneId is Guid value
+            ? Panes.FirstOrDefault(pane => pane.PaneId == value)
+            : null;
+
+    private bool FocusPane(bool changed)
+    {
+        if (changed)
+        {
+            NotifyPaneLayoutChanged();
+            RequestFocus();
+        }
+
+        return changed;
+    }
+
+    private void NotifyPaneLayoutChanged()
+    {
+        OnPropertyChanged(nameof(PaneRoot));
+        OnPropertyChanged(nameof(ActivePaneId));
+        OnPropertyChanged(nameof(ActivePane));
+        PaneLayoutChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private static void RunOnUiThread(Action action)

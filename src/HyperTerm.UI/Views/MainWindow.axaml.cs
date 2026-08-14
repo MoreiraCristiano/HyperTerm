@@ -6,6 +6,7 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using HyperTerm.Core.Models;
+using HyperTerm.UI.Controls;
 using HyperTerm.UI.Services;
 using HyperTerm.UI.ViewModels;
 
@@ -13,6 +14,10 @@ namespace HyperTerm.UI.Views;
 
 public sealed partial class MainWindow : Window
 {
+    private WebTerminalHostControl? ActiveTerminalHost =>
+        TerminalHosts.GetVisualDescendants()
+            .OfType<WebTerminalHostControl>()
+            .FirstOrDefault(host => host.IsVisible);
     private static readonly DataFormat<string> SessionDragFormat =
         DataFormat.CreateInProcessFormat<string>("HyperTerm.SessionId");
     private static readonly DataFormat<string> FolderDragFormat =
@@ -184,7 +189,7 @@ public sealed partial class MainWindow : Window
         DataContext = viewModel;
         viewModel.CloseWindowRequested += (_, _) => Close();
         viewModel.TerminalSearchRequested += (_, _) =>
-            _ = TerminalHost.OpenSearchAsync();
+            _ = ActiveTerminalHost?.OpenSearchAsync();
         viewModel.SessionEditor.PropertyChanged += (_, eventArgs) =>
         {
             if (eventArgs.PropertyName == nameof(SessionEditorViewModel.IsEditorOpen) &&
@@ -235,7 +240,7 @@ public sealed partial class MainWindow : Window
             else if (eventArgs.PropertyName == nameof(MainWindowViewModel.IsCommandPaletteOpen) &&
                      viewModel.IsCommandPaletteOpen)
             {
-                TerminalHost.CancelWindowActivationFocus();
+                ActiveTerminalHost?.CancelWindowActivationFocus();
                 WindowsWebViewFocus.TryReleaseFocus(this);
                 CommandPaletteDialogHost.FocusQueryAfterNativeFocusRelease();
             }
@@ -250,7 +255,7 @@ public sealed partial class MainWindow : Window
                         IsActive &&
                         viewModel.AreTerminalHostsVisible)
                     {
-                        TerminalHost.FocusAfterWindowActivation();
+                        ActiveTerminalHost?.FocusAfterWindowActivation();
                     }
                 },
                 DispatcherPriority.Background);
@@ -258,7 +263,7 @@ public sealed partial class MainWindow : Window
         Deactivated += (_, _) =>
         {
             activationFocusGeneration++;
-            TerminalHost.CancelWindowActivationFocus();
+            ActiveTerminalHost?.CancelWindowActivationFocus();
         };
         viewModel.InitializationCompleted += (_, _) =>
         {
@@ -274,9 +279,15 @@ public sealed partial class MainWindow : Window
         };
         Closed += (_, _) =>
         {
-            if (TerminalHost.Parent is Panel terminalParent)
+            foreach (WebTerminalHostControl terminalHost in TerminalHosts
+                         .GetVisualDescendants()
+                         .OfType<WebTerminalHostControl>()
+                         .ToArray())
             {
-                terminalParent.Children.Remove(TerminalHost);
+                if (terminalHost.Parent is Panel terminalParent)
+                {
+                    terminalParent.Children.Remove(terminalHost);
+                }
             }
         };
     }
