@@ -6,6 +6,29 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:viewModels="using:HyperTerm.UI.ViewModels"
     IsVisible="{Binding Settings.IsSettingsOpen}">
+  <UserControl.Resources>
+    <DataTemplate x:Key="ThemeOptionTemplate" x:DataType="viewModels:ThemeOption">
+      <Grid Margin="12" ColumnDefinitions="64,*">
+        <Border
+            Width="52"
+            Height="34"
+            VerticalAlignment="Center"
+            Background="{Binding PreviewBackground}"
+            BorderBrush="{DynamicResource BorderHoverBrush}"
+            BorderThickness="1"
+            CornerRadius="4">
+          <Grid RowDefinitions="8,*">
+            <Border Background="{Binding PreviewHeader}" CornerRadius="3,3,0,0" />
+            <Border Grid.Row="1" Width="12" HorizontalAlignment="Left" Background="{Binding PreviewSidebar}" CornerRadius="0,0,0,3" />
+          </Grid>
+        </Border>
+        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+          <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
+          <TextBlock Classes="secondary" Text="{Binding Description}" TextWrapping="Wrap" />
+        </StackPanel>
+      </Grid>
+    </DataTemplate>
+  </UserControl.Resources>
   <Panel>
     <Border Background="{DynamicResource OverlayBrush}" />
     <Border
@@ -72,37 +95,26 @@
                   <StackPanel>
                     <TextBlock Classes="settingsSectionTitle" Text="Application theme" />
                     <TextBlock Classes="settingsSectionDescription" Text="Choose the appearance used throughout HyperTerm." />
-                    <ListBox
-                        x:Name="ThemePicker"
-                        MaxWidth="520"
-                        HorizontalAlignment="Left"
-                        Classes="themePicker"
-                        ItemsSource="{Binding Settings.ThemeOptions}"
-                        SelectedItem="{Binding Settings.SettingsTheme, Mode=TwoWay}">
-                      <ListBox.ItemTemplate>
-                        <DataTemplate x:DataType="viewModels:ThemeOption">
-                          <Grid Margin="12" ColumnDefinitions="64,*">
-                            <Border
-                                Width="52"
-                                Height="34"
-                                VerticalAlignment="Center"
-                                Background="{Binding PreviewBackground}"
-                                BorderBrush="{DynamicResource BorderHoverBrush}"
-                                BorderThickness="1"
-                                CornerRadius="4">
-                              <Grid RowDefinitions="8,*">
-                                <Border Background="{Binding PreviewHeader}" CornerRadius="3,3,0,0" />
-                                <Border Grid.Row="1" Width="12" HorizontalAlignment="Left" Background="{Binding PreviewSidebar}" CornerRadius="0,0,0,3" />
-                              </Grid>
-                            </Border>
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                              <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
-                              <TextBlock Classes="secondary" Text="{Binding Description}" />
-                            </StackPanel>
-                          </Grid>
-                        </DataTemplate>
-                      </ListBox.ItemTemplate>
-                    </ListBox>
+                    <Grid x:Name="ThemeColumns" ColumnDefinitions="*,16,*">
+                      <StackPanel>
+                        <TextBlock Margin="0,4,0,8" Classes="themeGroupTitle" Text="Dark themes" />
+                        <ListBox
+                            x:Name="ThemePicker"
+                            Classes="themePicker"
+                            ItemTemplate="{StaticResource ThemeOptionTemplate}"
+                            ItemsSource="{Binding Settings.DarkThemeOptions}"
+                            SelectedItem="{Binding Settings.SelectedDarkTheme, Mode=TwoWay}" />
+                      </StackPanel>
+                      <StackPanel Grid.Column="2">
+                        <TextBlock Margin="0,4,0,8" Classes="themeGroupTitle" Text="Light themes" />
+                        <ListBox
+                            x:Name="LightThemePicker"
+                            Classes="themePicker"
+                            ItemTemplate="{StaticResource ThemeOptionTemplate}"
+                            ItemsSource="{Binding Settings.LightThemeOptions}"
+                            SelectedItem="{Binding Settings.SelectedLightTheme, Mode=TwoWay}" />
+                      </StackPanel>
+                    </Grid>
                   </StackPanel>
                 </Border>
               </StackPanel>

@@ -81,6 +81,9 @@ public sealed partial class SettingsViewModel(
     public WindowSettings WindowSettings => applicationSettings.Window;
     public IReadOnlyList<ThemeOption> ThemeOptions { get; } =
         [DefaultTheme, DarculaTheme, MintaraTheme, VesperTheme, AbyssTheme, DefaultLightTheme];
+    public IReadOnlyList<ThemeOption> DarkThemeOptions { get; } =
+        [DefaultTheme, DarculaTheme, MintaraTheme, VesperTheme, AbyssTheme];
+    public IReadOnlyList<ThemeOption> LightThemeOptions { get; } = [DefaultLightTheme];
     public IReadOnlyList<string> TerminalCursorStyles { get; } =
         ["Bar", "Block", "Underline"];
     public IReadOnlyList<TerminalSelectionColorOption> TerminalSelectionColors { get; } =
@@ -115,6 +118,30 @@ public sealed partial class SettingsViewModel(
 
     [ObservableProperty]
     private ThemeOption settingsTheme = DefaultTheme;
+
+    public ThemeOption? SelectedDarkTheme
+    {
+        get => DarkThemeOptions.Contains(SettingsTheme) ? SettingsTheme : null;
+        set
+        {
+            if (value is not null && DarkThemeOptions.Contains(value))
+            {
+                SettingsTheme = value;
+            }
+        }
+    }
+
+    public ThemeOption? SelectedLightTheme
+    {
+        get => LightThemeOptions.Contains(SettingsTheme) ? SettingsTheme : null;
+        set
+        {
+            if (value is not null && LightThemeOptions.Contains(value))
+            {
+                SettingsTheme = value;
+            }
+        }
+    }
 
     [ObservableProperty]
     private string settingsTerminalFontFamily = "Cascadia Mono";
@@ -176,6 +203,12 @@ public sealed partial class SettingsViewModel(
 
     partial void OnSettingsTerminalFontFamilyChanged(string value) =>
         OnPropertyChanged(nameof(SettingsTerminalFontFamilyIndex));
+
+    partial void OnSettingsThemeChanged(ThemeOption value)
+    {
+        OnPropertyChanged(nameof(SelectedDarkTheme));
+        OnPropertyChanged(nameof(SelectedLightTheme));
+    }
 
     partial void OnLogContentChanged(string value)
     {

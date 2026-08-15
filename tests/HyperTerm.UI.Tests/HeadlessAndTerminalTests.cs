@@ -932,7 +932,13 @@ public sealed class AvaloniaHeadlessTests
         ComboBox fontFamilyPicker = dialog.FindControl<ComboBox>("FontFamilyPicker")!;
         Assert.Equal(360, fontFamilyPicker.Width);
         Assert.False(fontFamilyPicker.IsEditable);
+        Grid themeColumns = dialog.FindControl<Grid>("ThemeColumns")!;
+        Assert.Equal(3, themeColumns.ColumnDefinitions.Count);
+        Assert.Equal(new GridLength(1, GridUnitType.Star), themeColumns.ColumnDefinitions[0].Width);
+        Assert.Equal(new GridLength(16), themeColumns.ColumnDefinitions[1].Width);
+        Assert.Equal(new GridLength(1, GridUnitType.Star), themeColumns.ColumnDefinitions[2].Width);
         Assert.Contains("themePicker", dialog.FindControl<ListBox>("ThemePicker")!.Classes);
+        Assert.Contains("themePicker", dialog.FindControl<ListBox>("LightThemePicker")!.Classes);
         Assert.Contains(
             "profileList",
             dialog.FindControl<ListBox>("TerminalProfileList")!.Classes);

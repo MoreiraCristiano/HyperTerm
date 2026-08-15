@@ -1682,6 +1682,33 @@ public sealed class ViewModelTests
     }
 
     [Fact]
+    public void Theme_options_are_grouped_and_share_one_selection()
+    {
+        var viewModel = CreateSettingsViewModel(new FakeSettingsService(exists: true));
+
+        Assert.Equal(
+            ["Default Dark", "Darcula", "Mintara", "Vesper", "Abyss"],
+            viewModel.DarkThemeOptions.Select(option => option.Value).ToArray());
+        ThemeOption lightTheme = Assert.Single(viewModel.LightThemeOptions);
+        Assert.Equal("Default Light", lightTheme.Value);
+        Assert.Equal("Default Dark", viewModel.SelectedDarkTheme?.Value);
+        Assert.Null(viewModel.SelectedLightTheme);
+
+        viewModel.SelectedLightTheme = lightTheme;
+
+        Assert.Same(lightTheme, viewModel.SettingsTheme);
+        Assert.Null(viewModel.SelectedDarkTheme);
+        Assert.Same(lightTheme, viewModel.SelectedLightTheme);
+
+        ThemeOption darkTheme = viewModel.DarkThemeOptions[1];
+        viewModel.SelectedDarkTheme = darkTheme;
+
+        Assert.Same(darkTheme, viewModel.SettingsTheme);
+        Assert.Same(darkTheme, viewModel.SelectedDarkTheme);
+        Assert.Null(viewModel.SelectedLightTheme);
+    }
+
+    [Fact]
     public async Task Settings_saves_and_applies_default_dark_theme()
     {
         var settingsService = new FakeSettingsService(exists: true);

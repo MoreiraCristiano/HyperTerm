@@ -1109,7 +1109,7 @@
     <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
   </Style>
   <Style Selector="ListBox.themePicker > ListBoxItem">
-    <Setter Property="MinWidth" Value="360" />
+    <Setter Property="MinWidth" Value="280" />
     <Setter Property="Margin" Value="0,0,0,8" />
     <Setter Property="Padding" Value="0" />
     <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}" />
@@ -1138,6 +1138,11 @@
     <Setter Property="Background" Value="{DynamicResource SelectionBackgroundBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource BorderFocusBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource SelectionForegroundBrush}" />
+  </Style>
+  <Style Selector="TextBlock.themeGroupTitle">
+    <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
   </Style>
   <Style Selector="Border.profileListPanel, Border.profileEditor">
     <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
