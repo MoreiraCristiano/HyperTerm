@@ -387,25 +387,15 @@
           ResizeBehavior="PreviousAndNext"
           ResizeDirection="Columns" />
 
-    <ItemsControl
-          x:Name="TerminalHosts"
+    <controls:WebTerminalHostControl
+          x:Name="TerminalHost"
+          AutomationProperties.AutomationId="TerminalHost"
           Grid.Row="1"
           Grid.Column="2"
+          ActiveTab="{Binding Workspace.SelectedTab}"
+          Background="{DynamicResource AppBackgroundBrush}"
           IsVisible="{Binding AreTerminalHostsVisible}"
-          ItemsSource="{Binding Workspace.Tabs}">
-      <ItemsControl.ItemsPanel>
-        <ItemsPanelTemplate><Grid /></ItemsPanelTemplate>
-      </ItemsControl.ItemsPanel>
-      <ItemsControl.ItemTemplate>
-        <DataTemplate x:DataType="viewModels:TerminalTabViewModel">
-          <controls:WebTerminalHostControl
-              AutomationProperties.AutomationId="TerminalHost"
-              Background="{DynamicResource AppBackgroundBrush}"
-              IsVisible="{Binding IsSelected}"
-              Tab="{Binding}" />
-        </DataTemplate>
-      </ItemsControl.ItemTemplate>
-    </ItemsControl>
+          Tabs="{Binding Workspace.Tabs}" />
 
     <Border
         Grid.Row="2"

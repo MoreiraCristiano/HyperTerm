@@ -246,7 +246,6 @@ public sealed class HostedTerminalRegistryTests
         registry.Observe(tabs);
         hostReady = true;
         await registry.CreateExistingAsync();
-        await registry.ActivateAsync(tab);
 
         Guid paneId = tab.ActivePaneId!.Value;
         Assert.True(registry.TryGet(paneId, out HostedTerminal hosted));
@@ -293,6 +292,127 @@ public sealed class HostedTerminalRegistryTests
             script.StartsWith("window.terminalHost.dispose(", StringComparison.Ordinal) &&
             script.Contains(paneId, StringComparison.Ordinal));
         Assert.True(registry.TryGet(tab.ActivePaneId!.Value, out _));
+    }
+
+    [Fact]
+    public async Task RegistrySharesOneSurfaceAcrossTabsAndReusesCreatedTerminals()
+    {
+        var scripts = new List<string>();
+        var bridge = new WebTerminalScriptBridge(script =>
+        {
+            scripts.Add(script);
+            return Task.CompletedTask;
+        });
+        TerminalTabViewModel first = WebTerminalScriptBridgeTests.CreateTab();
+        TerminalTabViewModel second = WebTerminalScriptBridgeTests.CreateTab();
+        TerminalTabViewModel active = first;
+        var tabs = new ObservableCollection<TerminalTabViewModel> { first, second };
+        var registry = new HostedTerminalRegistry(
+            bridge,
+            () => active,
+            () => true,
+            _ => { },
+            () => { });
+        registry.Observe(tabs);
+
+        await registry.CreateExistingAsync();
+        scripts.Clear();
+        active = second;
+        await registry.ActivateAsync(second);
+
+        Assert.Collection(
+            scripts,
+            script => Assert.StartsWith("window.terminalHost.create(", script),
+            script => Assert.StartsWith("window.terminalHost.layout(", script),
+            script => Assert.StartsWith("window.terminalHost.activate(", script));
+
+        scripts.Clear();
+        active = first;
+        await registry.ActivateAsync(first);
+
+        Assert.Collection(
+            scripts,
+            script => Assert.StartsWith("window.terminalHost.layout(", script),
+            script => Assert.StartsWith("window.terminalHost.activate(", script));
+    }
+
+    [Fact]
+    public async Task InactiveTabLayoutWaitsUntilActivation()
+    {
+        var scripts = new List<string>();
+        var bridge = new WebTerminalScriptBridge(script =>
+        {
+            scripts.Add(script);
+            return Task.CompletedTask;
+        });
+        TerminalTabViewModel first = WebTerminalScriptBridgeTests.CreateTab();
+        TerminalTabViewModel second = WebTerminalScriptBridgeTests.CreateTab();
+        TerminalTabViewModel active = first;
+        var registry = new HostedTerminalRegistry(
+            bridge,
+            () => active,
+            () => true,
+            _ => { },
+            () => { });
+        registry.Observe(new ObservableCollection<TerminalTabViewModel> { first, second });
+        await registry.CreateExistingAsync();
+        scripts.Clear();
+
+        second.SplitActivePane(SplitOrientation.Vertical, second.Definition);
+
+        Assert.Empty(scripts);
+        active = second;
+        await registry.ActivateAsync(second);
+        Assert.Equal(2, scripts.Count(script =>
+            script.StartsWith("window.terminalHost.create(", StringComparison.Ordinal)));
+        Assert.StartsWith("window.terminalHost.layout(", scripts[^2]);
+        Assert.StartsWith("window.terminalHost.activate(", scripts[^1]);
+    }
+
+    [Fact]
+    public async Task LatestTabActivationWinsWhenCreationOverlaps()
+    {
+        var scripts = new List<string>();
+        var firstCreateStarted = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseFirstCreate = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        TerminalTabViewModel first = WebTerminalScriptBridgeTests.CreateTab();
+        TerminalTabViewModel second = WebTerminalScriptBridgeTests.CreateTab();
+        string firstId = first.Id.ToString("N");
+        var bridge = new WebTerminalScriptBridge(script =>
+        {
+            scripts.Add(script);
+            if (script.StartsWith("window.terminalHost.create(", StringComparison.Ordinal) &&
+                script.Contains(firstId, StringComparison.Ordinal))
+            {
+                firstCreateStarted.TrySetResult();
+                return releaseFirstCreate.Task;
+            }
+
+            return Task.CompletedTask;
+        });
+        TerminalTabViewModel active = first;
+        var registry = new HostedTerminalRegistry(
+            bridge,
+            () => active,
+            () => true,
+            _ => { },
+            () => { });
+        registry.Observe(new ObservableCollection<TerminalTabViewModel> { first, second });
+
+        Task firstActivation = registry.ActivateAsync(first);
+        await firstCreateStarted.Task;
+        active = second;
+        Task secondActivation = registry.ActivateAsync(second);
+        releaseFirstCreate.TrySetResult();
+        await Task.WhenAll(firstActivation, secondActivation);
+
+        Assert.DoesNotContain(scripts, script =>
+            script.StartsWith("window.terminalHost.layout(", StringComparison.Ordinal) &&
+            script.Contains(firstId, StringComparison.Ordinal));
+        Assert.Contains(second.Id.ToString("N"), scripts[^2], StringComparison.Ordinal);
+        Assert.StartsWith("window.terminalHost.activate(", scripts[^1], StringComparison.Ordinal);
     }
 }
 

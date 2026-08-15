@@ -25,6 +25,35 @@ public sealed class AvaloniaHeadlessTests
 {
     [AvaloniaFact]
     [Trait("Category", "Headless")]
+    public async Task Terminal_host_removal_is_idempotent_and_clears_tab_references()
+    {
+        var workspace = new TerminalWorkspaceViewModel(
+            new FakeSessionService(),
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory());
+        workspace.ApplySettings(new ApplicationSettings());
+        await workspace.OpenLocalTerminalCommand.ExecuteAsync(null);
+        TerminalTabViewModel tab = Assert.Single(workspace.Tabs);
+        var parent = new Grid();
+        var host = new WebTerminalHostControl
+        {
+            Tabs = workspace.Tabs,
+            ActiveTab = tab,
+            Tab = tab,
+        };
+        parent.Children.Add(host);
+
+        MainWindow.RemoveTerminalHost(host);
+        MainWindow.RemoveTerminalHost(host);
+
+        Assert.Empty(parent.Children);
+        Assert.Null(host.Tabs);
+        Assert.Null(host.ActiveTab);
+        Assert.Null(host.Tab);
+    }
+
+    [AvaloniaFact]
+    [Trait("Category", "Headless")]
     public void Headless_application_is_initialized()
     {
         Avalonia.Application? application = Avalonia.Application.Current;

@@ -1,14 +1,19 @@
 param(
     [string]$Scenario = "manual",
     [int]$Samples = 5,
-    [int]$IntervalMilliseconds = 500
+    [int]$IntervalMilliseconds = 500,
+    [int]$ProcessId = 0
 )
 
-$root = Get-CimInstance Win32_Process |
-    Where-Object { $_.Name -eq "HyperTerm.exe" } |
-    Select-Object -First 1
+$root = if ($ProcessId -gt 0) {
+    Get-CimInstance Win32_Process -Filter "ProcessId = $ProcessId"
+} else {
+    Get-CimInstance Win32_Process |
+        Where-Object { $_.Name -eq "HyperTerm.exe" } |
+        Select-Object -First 1
+}
 if ($null -eq $root) {
-    throw "HyperTerm.exe is not running."
+    throw "HyperTerm.exe is not running for the requested process id."
 }
 
 $rows = for ($sample = 1; $sample -le $Samples; $sample++) {
@@ -30,6 +35,10 @@ $rows = for ($sample = 1; $sample -le $Samples; $sample++) {
             Get-Process -Id $process.ProcessId -ErrorAction SilentlyContinue
         }
     }
+    $webViewProcesses = @($live | Where-Object ProcessName -eq "msedgewebview2")
+    $webViewProcessDetails = @($all | Where-Object {
+        $ids.Contains([uint32]$_.ProcessId) -and $_.Name -eq "msedgewebview2.exe"
+    })
 
     [pscustomobject]@{
         Scenario = $Scenario
@@ -38,7 +47,15 @@ $rows = for ($sample = 1; $sample -le $Samples; $sample++) {
         PrivateMB = [math]::Round((($live | Measure-Object PrivateMemorySize64 -Sum).Sum / 1MB), 1)
         CpuSeconds = [math]::Round((($live | Measure-Object CPU -Sum).Sum), 2)
         Processes = @($live).Count
-        WebViewProcesses = @($live | Where-Object ProcessName -eq "msedgewebview2").Count
+        WebViewProcesses = $webViewProcesses.Count
+        WebViewRenderers = @($webViewProcessDetails |
+            Where-Object CommandLine -Match "--type=renderer").Count
+        WebViewWorkingSetMB = [math]::Round(
+            (($webViewProcesses | Measure-Object WorkingSet64 -Sum).Sum / 1MB),
+            1)
+        WebViewPrivateMB = [math]::Round(
+            (($webViewProcesses | Measure-Object PrivateMemorySize64 -Sum).Sum / 1MB),
+            1)
         Handles = ($live | Measure-Object HandleCount -Sum).Sum
         Threads = ($live | ForEach-Object Threads | Measure-Object).Count
     }

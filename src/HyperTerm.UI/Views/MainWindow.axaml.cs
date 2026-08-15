@@ -15,9 +15,7 @@ namespace HyperTerm.UI.Views;
 public sealed partial class MainWindow : Window
 {
     private WebTerminalHostControl? ActiveTerminalHost =>
-        TerminalHosts.GetVisualDescendants()
-            .OfType<WebTerminalHostControl>()
-            .FirstOrDefault(host => host.IsVisible);
+        TerminalHost.IsVisible ? TerminalHost : null;
     private static readonly DataFormat<string> SessionDragFormat =
         DataFormat.CreateInProcessFormat<string>("HyperTerm.SessionId");
     private static readonly DataFormat<string> FolderDragFormat =
@@ -279,17 +277,17 @@ public sealed partial class MainWindow : Window
         };
         Closed += (_, _) =>
         {
-            foreach (WebTerminalHostControl terminalHost in TerminalHosts
-                         .GetVisualDescendants()
-                         .OfType<WebTerminalHostControl>()
-                         .ToArray())
-            {
-                if (terminalHost.Parent is Panel terminalParent)
-                {
-                    terminalParent.Children.Remove(terminalHost);
-                }
-            }
+            RemoveTerminalHost(TerminalHost);
         };
+    }
+
+    internal static void RemoveTerminalHost(WebTerminalHostControl terminalHost)
+    {
+        terminalHost.PrepareForRemoval();
+        if (terminalHost.Parent is Panel terminalParent)
+        {
+            terminalParent.Children.Remove(terminalHost);
+        }
     }
 
     private void RestoreWindowState(WindowSettings settings)

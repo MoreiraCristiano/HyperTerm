@@ -28,6 +28,7 @@ public sealed class WebTerminalHostControl : NativeWebView
     private bool navigated;
     private int flushScheduled;
     private bool focusAfterActivationPending;
+    private bool preparedForRemoval;
 
     public WebTerminalHostControl()
     {
@@ -70,6 +71,11 @@ public sealed class WebTerminalHostControl : NativeWebView
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
+        if (preparedForRemoval)
+        {
+            return;
+        }
+
         terminalRegistry.Observe(ObservedTabs);
 
         if (!navigated)
@@ -82,12 +88,36 @@ public sealed class WebTerminalHostControl : NativeWebView
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
-        terminalRegistry.StopObserving();
+        PrepareForRemoval();
         base.OnDetachedFromVisualTree(e);
+    }
+
+    internal void PrepareForRemoval()
+    {
+        if (preparedForRemoval)
+        {
+            return;
+        }
+
+        preparedForRemoval = true;
+        focusAfterActivationPending = false;
+        Interlocked.Exchange(ref flushScheduled, 0);
+        terminalRegistry.StopObserving();
+        hostReady = false;
+        WebMessageReceived -= OnWebMessageReceived;
+        (TryGetPlatformHandle() as IDisposable)?.Dispose();
+        Tabs = null;
+        ActiveTab = null;
+        Tab = null;
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
+        if (preparedForRemoval)
+        {
+            return;
+        }
+
         base.OnPropertyChanged(change);
 
         if (change.Property == TabsProperty)
@@ -118,6 +148,11 @@ public sealed class WebTerminalHostControl : NativeWebView
         object? sender,
         WebMessageReceivedEventArgs eventArgs)
     {
+        if (preparedForRemoval)
+        {
+            return;
+        }
+
         if (!WebTerminalMessage.TryParse(eventArgs.Body, out WebTerminalMessage? parsed) ||
             parsed is not { } message)
         {
@@ -135,7 +170,6 @@ public sealed class WebTerminalHostControl : NativeWebView
 
                 hostReady = true;
                 await terminalRegistry.CreateExistingAsync();
-                await terminalRegistry.ActivateAsync(CurrentTab);
                 ScheduleOutputFlush();
                 await FocusAfterWindowActivationIfReadyAsync();
                 return;
@@ -201,7 +235,9 @@ public sealed class WebTerminalHostControl : NativeWebView
 
     private void ScheduleOutputFlush()
     {
-        if (!hostReady || Interlocked.Exchange(ref flushScheduled, 1) != 0)
+        if (preparedForRemoval ||
+            !hostReady ||
+            Interlocked.Exchange(ref flushScheduled, 1) != 0)
         {
             return;
         }

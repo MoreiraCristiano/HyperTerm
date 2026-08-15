@@ -14,6 +14,9 @@ const searchCloseElement = document.getElementById('terminal-search-close');
 const paneContextMenuElement = document.getElementById('pane-context-menu');
 const terminals = new Map();
 let activePaneId = null;
+let activeTabId = null;
+let visiblePaneIds = new Set();
+let webglSuppressed = false;
 let resizeFrame = null;
 let activeTheme = 'dark';
 
@@ -317,6 +320,7 @@ function createTerminal({ paneId, tabId, options }) {
   });
   terminal.attachCustomKeyEventHandler(event => handleKeyEvent(state, event));
   terminals.set(paneId, state);
+  element.hidden = activeTabId !== null && tabId !== activeTabId;
 }
 
 function handleKeyEvent(state, event) {
@@ -412,7 +416,7 @@ function handleWheelEvent(event) {
 
 function setActiveTerminal(paneId, notify = false) {
   const next = terminals.get(paneId);
-  if (!next) {
+  if (!next || next.tabId !== activeTabId || !visiblePaneIds.has(paneId)) {
     return;
   }
 
@@ -426,9 +430,6 @@ function setActiveTerminal(paneId, notify = false) {
 
   activePaneId = paneId;
   next.element.classList.add('active');
-  if (terminals.size === 1) {
-    enableWebgl(next);
-  }
   fitTerminal(next);
   next.terminal.refresh(0, next.terminal.rows - 1);
   next.terminal.focus();
@@ -438,6 +439,25 @@ function setActiveTerminal(paneId, notify = false) {
 }
 
 function activateTerminal(paneId) {
+  const next = terminals.get(paneId);
+  if (!next) {
+    return;
+  }
+
+  if (next.tabId !== activeTabId || !visiblePaneIds.has(paneId)) {
+    activeTabId = next.tabId;
+    visiblePaneIds = new Set(
+      [...terminals.values()]
+        .filter(state => state.tabId === activeTabId)
+        .map(state => state.paneId));
+    terminalHostElement.classList.toggle('has-splits', visiblePaneIds.size > 1);
+    mountTerminalLayout(
+      [...terminals.values()]
+        .filter(state => visiblePaneIds.has(state.paneId))
+        .map(state => state.element));
+    applyRendererPolicy();
+  }
+
   setActiveTerminal(paneId, false);
 }
 
@@ -453,6 +473,7 @@ function disposeTerminal(paneId) {
   }
 
   disableWebgl(state);
+  visiblePaneIds.delete(paneId);
   state.searchResultsDisposable?.dispose();
   state.terminal.dispose();
   state.element.remove();
@@ -677,13 +698,24 @@ function scheduleFitAllTerminals() {
 }
 
 function applyRendererPolicy() {
-  if (terminals.size !== 1) return;
+  if (terminals.size > 1) {
+    webglSuppressed = true;
+  }
 
-  const state = terminals.get(activePaneId) ?? terminals.values().next().value;
+  if (webglSuppressed || visiblePaneIds.size !== 1) {
+    return;
+  }
+
+  const paneId = visiblePaneIds.values().next().value;
+  const state = terminals.get(paneId);
   if (state) enableWebgl(state);
 }
 
 function fitTerminal(state) {
+  if (state.tabId !== activeTabId || !visiblePaneIds.has(state.paneId)) {
+    return;
+  }
+
   const paneBounds = state.element.getBoundingClientRect();
   const bounds = paneBounds.width > 0 && paneBounds.height > 0
     ? paneBounds
@@ -742,6 +774,31 @@ function createLayoutNode(node, tabId) {
   return split;
 }
 
+function collectPaneIds(node, paneIds = new Set()) {
+  if (!node) {
+    return paneIds;
+  }
+
+  if (node.type === 'terminal') {
+    paneIds.add(node.paneId);
+  } else {
+    collectPaneIds(node.first, paneIds);
+    collectPaneIds(node.second, paneIds);
+  }
+  return paneIds;
+}
+
+function mountTerminalLayout(activeNodes) {
+  terminalHostElement.replaceChildren(...activeNodes);
+  terminals.forEach(state => {
+    const isVisible = state.tabId === activeTabId && visiblePaneIds.has(state.paneId);
+    state.element.hidden = !isVisible;
+    if (!isVisible) {
+      terminalHostElement.appendChild(state.element);
+    }
+  });
+}
+
 function firstPaneId(node) {
   return node.type === 'terminal' ? node.paneId : firstPaneId(node.first);
 }
@@ -775,9 +832,10 @@ function bindDivider(split, divider, first, second, firstNode, tabId) {
 }
 
 function layoutTerminals({ tabId, activePaneId: nextActivePaneId, root }) {
-  terminalHostElement.classList.toggle('has-splits', terminals.size > 1);
-  terminalHostElement.replaceChildren();
-  if (root) terminalHostElement.appendChild(createLayoutNode(root, tabId));
+  activeTabId = tabId;
+  visiblePaneIds = collectPaneIds(root);
+  terminalHostElement.classList.toggle('has-splits', visiblePaneIds.size > 1);
+  mountTerminalLayout(root ? [createLayoutNode(root, tabId)] : []);
   applyRendererPolicy();
   if (nextActivePaneId) setActiveTerminal(nextActivePaneId, false);
   scheduleFitAllTerminals();

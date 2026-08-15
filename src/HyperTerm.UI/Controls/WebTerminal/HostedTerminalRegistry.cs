@@ -12,8 +12,11 @@ internal sealed class HostedTerminalRegistry
     private readonly Func<bool> isHostReady;
     private readonly Action<TerminalTabViewModel> requestFocus;
     private readonly TerminalOutputCoordinator outputCoordinator;
+    private readonly object activationSync = new();
     private INotifyCollectionChanged? observedCollection;
     private IEnumerable<TerminalTabViewModel>? observedTabs;
+    private Task activationTail = Task.CompletedTask;
+    private long activationVersion;
 
     public HostedTerminalRegistry(
         ITerminalSurface scriptBridge,
@@ -55,6 +58,7 @@ internal sealed class HostedTerminalRegistry
 
     public void StopObserving()
     {
+        Interlocked.Increment(ref activationVersion);
         if (observedCollection is not null)
         {
             observedCollection.CollectionChanged -= OnCollectionChanged;
@@ -72,36 +76,62 @@ internal sealed class HostedTerminalRegistry
     public bool TryGet(Guid paneId, out HostedTerminal hosted) =>
         terminals.TryGetValue(paneId, out hosted!);
 
-    public async Task CreateExistingAsync()
-    {
-        HostedTerminal[] existing = terminals.Values
-            .OrderByDescending(hosted => ReferenceEquals(hosted.Tab, getActiveTab()))
-            .ToArray();
-        foreach (HostedTerminal hosted in existing)
-        {
-            await CreateAsync(hosted);
-        }
-    }
+    public Task CreateExistingAsync() => ActivateAsync(getActiveTab());
 
     public async Task ActivateAsync(TerminalTabViewModel? tab)
     {
-        if (!isHostReady() || tab is null ||
-            tab.ActivePaneId is not Guid activePaneId ||
-            !terminals.TryGetValue(activePaneId, out HostedTerminal? hosted))
+        long version = Interlocked.Increment(ref activationVersion);
+        if (!isHostReady() || tab is null)
         {
             return;
         }
 
-        if (!hosted.Created)
+        var completion = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        Task previousActivation;
+        lock (activationSync)
         {
-            await CreateAsync(hosted);
+            previousActivation = activationTail;
+            activationTail = completion.Task;
         }
 
-        if (hosted.Created && await InvokeScriptAsync(
-                () => scriptBridge.ActivateAsync(activePaneId),
-                tab))
+        await previousActivation;
+        try
         {
-            requestFocus(tab);
+            if (!IsCurrentActivation(tab, version))
+            {
+                return;
+            }
+
+            foreach (TerminalPaneViewModel pane in tab.Panes)
+            {
+                if (terminals.TryGetValue(pane.PaneId, out HostedTerminal? paneHost))
+                {
+                    await CreateAsync(paneHost);
+                }
+            }
+
+            if (!IsCurrentActivation(tab, version) ||
+                tab.ActivePaneId is not Guid activePaneId ||
+                !terminals.TryGetValue(activePaneId, out HostedTerminal? hosted) ||
+                !hosted.Created ||
+                !await InvokeScriptAsync(() => scriptBridge.LayoutAsync(tab), tab) ||
+                !IsCurrentActivation(tab, version))
+            {
+                return;
+            }
+
+            if (await InvokeScriptAsync(
+                    () => scriptBridge.ActivateAsync(activePaneId),
+                    tab) &&
+                IsCurrentActivation(tab, version))
+            {
+                requestFocus(tab);
+            }
+        }
+        finally
+        {
+            completion.TrySetResult();
         }
     }
 
@@ -178,10 +208,6 @@ internal sealed class HostedTerminalRegistry
                 continue;
             }
 
-            if (isHostReady())
-            {
-                _ = CreateAsync(hosted);
-            }
         }
     }
 
@@ -190,16 +216,16 @@ internal sealed class HostedTerminalRegistry
         HostedTerminal[] hostedPanes = terminals.Values
             .Where(hosted => ReferenceEquals(hosted.Tab, tab))
             .ToArray();
-        if (hostedPanes.Length == 0)
-        {
-            return;
-        }
-
         tab.PaneOutputReceived -= OnPaneOutputReceived;
         tab.PaneLayoutChanged -= OnPaneLayoutChanged;
         tab.FocusRequested -= OnFocusRequested;
         tab.AppearanceChanged -= OnAppearanceChanged;
         tab.Terminating -= OnTabTerminating;
+        if (hostedPanes.Length == 0)
+        {
+            return;
+        }
+
         foreach (HostedTerminal hosted in hostedPanes)
         {
             RemoveHosted(hosted);
@@ -234,7 +260,6 @@ internal sealed class HostedTerminalRegistry
 
             await scriptBridge.CreateAsync(hosted.Tab, hosted.Pane);
             hosted.Created = true;
-            await scriptBridge.LayoutAsync(hosted.Tab);
         }
         catch (Exception exception)
         {
@@ -290,9 +315,9 @@ internal sealed class HostedTerminalRegistry
         }
 
         Synchronize(observedTabs);
-        if (isHostReady())
+        if (isHostReady() && ReferenceEquals(tab, getActiveTab()))
         {
-            _ = scriptBridge.LayoutAsync(tab);
+            _ = ActivateAsync(tab);
         }
     }
 
@@ -345,4 +370,8 @@ internal sealed class HostedTerminalRegistry
         terminals.TryGetValue(activePaneId, out HostedTerminal? hosted)
             ? hosted
             : null;
+
+    private bool IsCurrentActivation(TerminalTabViewModel tab, long version) =>
+        Volatile.Read(ref activationVersion) == version &&
+        ReferenceEquals(tab, getActiveTab());
 }

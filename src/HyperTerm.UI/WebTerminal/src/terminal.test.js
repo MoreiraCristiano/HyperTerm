@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const terminalInstances = [];
 const webglInstances = [];
 const searchInstances = [];
+const fitInstances = [];
 let throwWebglConstructor = false;
 let throwWebglDispose = false;
 let searchResult = true;
@@ -39,7 +40,10 @@ vi.mock('@xterm/xterm', () => ({
 }));
 
 vi.mock('@xterm/addon-fit', () => ({
-  FitAddon: class { fit() { this.fitted = true; } }
+  FitAddon: class {
+    constructor() { this.fitCount = 0; fitInstances.push(this); }
+    fit() { this.fitCount++; }
+  }
 }));
 
 vi.mock('@xterm/addon-webgl', () => ({
@@ -128,6 +132,7 @@ describe('terminal host bridge', () => {
     terminalInstances.length = 0;
     webglInstances.length = 0;
     searchInstances.length = 0;
+    fitInstances.length = 0;
     throwWebglConstructor = false;
     throwWebglDispose = false;
     searchResult = true;
@@ -230,6 +235,7 @@ describe('terminal host bridge', () => {
   it('omits active-pane decoration when the tab has one terminal', async () => {
     const { host } = await loadHost();
     host.create({ paneId: 'a', tabId: 'tab', options: createOptions() });
+    host.create({ paneId: 'other', tabId: 'other-tab', options: createOptions() });
     host.layout({
       tabId: 'tab',
       activePaneId: 'a',
@@ -240,7 +246,7 @@ describe('terminal host bridge', () => {
     expect(document.querySelector('[data-pane-id="a"]').classList.contains('active')).toBe(true);
   });
 
-  it('preserves the inactive pane rendering and buffer while focus changes', async () => {
+  it('preserves pane buffers and the existing WebGL renderer in split layout', async () => {
     const { host } = await loadHost();
     host.create({ paneId: 'a', tabId: 'tab', options: createOptions() });
     host.activate('a');
@@ -527,7 +533,9 @@ describe('terminal host bridge', () => {
     expect(terminalInstances[0].options.theme.selectionBackground).toBe('#007ACC');
     expect(terminalInstances[0].options.theme.selectionInactiveBackground).toBe('#007ACC');
     expect(terminalInstances[1].focused).toBe(true);
-    expect(document.querySelector('[data-tab-id="a"]').classList.contains('active')).toBe(false);
+    expect(document.querySelector('[data-tab-id="a"]')).toBe(terminalInstances[0].element);
+    expect(terminalInstances[0].element.hidden).toBe(true);
+    expect(terminalInstances[0].element.classList.contains('active')).toBe(false);
   });
 
   it('maps vertical Alt arrows to pane navigation', async () => {
@@ -790,6 +798,80 @@ describe('terminal host bridge', () => {
     terminalInstances[0].cols = 0;
     hidden.module.fitActiveTerminal();
     expect(hidden.sent).toEqual([]);
+  });
+
+  it('keeps inactive tabs mounted, hidden, buffered, and excluded from fit', async () => {
+    const { host } = await loadHost();
+    host.create({ paneId: 'a', tabId: 'tab-a', options: createOptions() });
+    host.create({ paneId: 'b', tabId: 'tab-b', options: createOptions() });
+    host.layout({
+      tabId: 'tab-a', activePaneId: 'a',
+      root: { type: 'terminal', paneId: 'a' }
+    });
+    await new Promise(resolve => setTimeout(resolve, 0));
+    const inactiveFitCount = fitInstances[0].fitCount;
+
+    host.layout({
+      tabId: 'tab-b', activePaneId: 'b',
+      root: { type: 'terminal', paneId: 'b' }
+    });
+    host.write('a', 1, 'background output');
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(document.querySelector('[data-pane-id="a"]')).toBe(terminalInstances[0].element);
+    expect(terminalInstances[0].element.hidden).toBe(true);
+    expect(document.querySelector('[data-pane-id="b"]')).not.toBeNull();
+    expect(terminalInstances[1].element.hidden).toBe(false);
+    expect(terminalInstances[0].lastWrite).toBe('background output');
+    expect(fitInstances[0].fitCount).toBe(inactiveFitCount);
+    expect(webglInstances).toHaveLength(0);
+  });
+
+  it('keeps the original WebGL renderer when a tab is restored', async () => {
+    const { host } = await loadHost();
+    host.create({ paneId: 'a', tabId: 'tab-a', options: createOptions() });
+    host.activate('a');
+    const firstRenderer = webglInstances[0];
+
+    host.create({ paneId: 'b', tabId: 'tab-b', options: createOptions() });
+    host.layout({
+      tabId: 'tab-b', activePaneId: 'b',
+      root: { type: 'terminal', paneId: 'b' }
+    });
+
+    expect(firstRenderer.disposed).toBeUndefined();
+
+    const refreshCount = terminalInstances[0].refreshCount ?? 0;
+    host.layout({
+      tabId: 'tab-a', activePaneId: 'a',
+      root: { type: 'terminal', paneId: 'a' }
+    });
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(document.querySelector('[data-pane-id="a"]')).toBe(terminalInstances[0].element);
+    expect(terminalInstances[0].element.hidden).toBe(false);
+    expect(terminalInstances[1].element.hidden).toBe(true);
+    expect(terminalInstances[0].refreshCount).toBeGreaterThan(refreshCount);
+    expect(webglInstances).toEqual([firstRenderer]);
+  });
+
+  it('does not recreate WebGL after the window has hosted multiple terminals', async () => {
+    const { host } = await loadHost();
+    host.create({ paneId: 'a', tabId: 'tab-a', options: createOptions() });
+    host.activate('a');
+    host.create({ paneId: 'b', tabId: 'tab-b', options: createOptions() });
+    host.layout({
+      tabId: 'tab-b', activePaneId: 'b',
+      root: { type: 'terminal', paneId: 'b' }
+    });
+    host.dispose('a');
+    host.layout({
+      tabId: 'tab-b', activePaneId: 'b',
+      root: { type: 'terminal', paneId: 'b' }
+    });
+
+    expect(webglInstances).toHaveLength(1);
+    expect(webglInstances[0].disposed).toBe(true);
   });
 
   it('keeps DOM rendering when WebGL construction or disposal fails', async () => {
