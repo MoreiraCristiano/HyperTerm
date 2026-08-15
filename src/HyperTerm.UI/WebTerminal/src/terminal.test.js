@@ -392,9 +392,10 @@ describe('terminal host bridge', () => {
       metaKey: false, code: 'KeyF', repeat: false
     });
     expect(handled).toBe(false);
-    expect(sent).toContainEqual({
-      type: 'applicationCommand', tabId: 'a', paneId: 'a', command: 'searchTerminal'
-    });
+    expect(sent).not.toContainEqual(expect.objectContaining({ command: 'searchTerminal' }));
+    document.getElementById('terminal-search-close').focus();
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(document.activeElement).toBe(document.getElementById('terminal-search-input'));
 
     host.openSearch('a');
     const input = document.getElementById('terminal-search-input');

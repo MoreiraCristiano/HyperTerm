@@ -722,6 +722,7 @@ public sealed class ViewModelTests
 
         Assert.True(viewModel.IsCommandPaletteOpen);
         Assert.Contains(viewModel.CommandPaletteResults, item => item.Title == "New SSH session");
+        Assert.Contains(viewModel.CommandPaletteResults, item => item.Title == "Search terminal");
         Assert.Contains(viewModel.CommandPaletteResults, item => item.Title == "Production server");
         Assert.Contains(viewModel.CommandPaletteResults, item => item.Category == "Open tab");
         Assert.Contains(viewModel.CommandPaletteResults, item => item.Title == "persistent-work");
@@ -770,6 +771,39 @@ public sealed class ViewModelTests
         Assert.Contains(
             viewModel.CommandPaletteResults,
             item => item.Kind == CommandPaletteItemKind.PsmuxSession);
+    }
+
+    [Fact]
+    public async Task CommandPaletteSearchActionOpensSearchWithoutRestoringTerminalFocus()
+    {
+        var sessions = new FakeSessionService();
+        var folders = new FakeFolderService();
+        var explorer = new SessionExplorerViewModel(sessions, folders);
+        await explorer.InitializeAsync(TestContext.Current.CancellationToken);
+        var workspace = new TerminalWorkspaceViewModel(
+            sessions,
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory());
+        await workspace.OpenLocalTerminalCommand.ExecuteAsync(null);
+        var viewModel = new MainWindowViewModel(
+            explorer,
+            workspace,
+            CreateSettingsViewModel(new FakeSettingsService(exists: true)),
+            new SessionEditorViewModel(sessions),
+            new SessionManagerViewModel(sessions, folders),
+            new FolderEditorViewModel(folders));
+        int terminalFocusRequests = 0;
+        workspace.SelectedTab!.FocusRequested += (_, _) => terminalFocusRequests++;
+        bool searchRequested = false;
+        viewModel.TerminalSearchRequested += (_, _) => searchRequested = true;
+        viewModel.OpenCommandPaletteCommand.Execute(null);
+        viewModel.CommandPaletteQuery = "> search terminal";
+
+        await viewModel.ExecuteSelectedCommandPaletteItemCommand.ExecuteAsync(null);
+
+        Assert.True(searchRequested);
+        Assert.Equal(0, terminalFocusRequests);
+        Assert.False(viewModel.IsCommandPaletteOpen);
     }
 
     [Fact]

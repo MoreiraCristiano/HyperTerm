@@ -15,7 +15,8 @@ public sealed class CommandPaletteItemViewModel(
     string subtitle,
     string searchText,
     int displayOrder,
-    Func<Task> executeAsync)
+    Func<Task> executeAsync,
+    bool restoreTerminalFocusOnClose = true)
 {
     private readonly Func<Task> execute = executeAsync;
 
@@ -30,6 +31,8 @@ public sealed class CommandPaletteItemViewModel(
     public string SearchText { get; } = searchText;
 
     public int DisplayOrder { get; } = displayOrder;
+
+    public bool RestoreTerminalFocusOnClose { get; } = restoreTerminalFocusOnClose;
 
     public Task ExecuteAsync() => execute();
 }

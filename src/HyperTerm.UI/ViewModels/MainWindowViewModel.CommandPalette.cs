@@ -96,7 +96,7 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
-        CloseCommandPalette();
+        CloseCommandPalette(item.RestoreTerminalFocusOnClose);
         await item.ExecuteAsync();
     }
 
@@ -286,19 +286,21 @@ public sealed partial class MainWindowViewModel
             () => Settings.OpenSettingsCommand.Execute(null));
         yield return Action("Show keyboard shortcuts", "View all shortcuts", 23,
             () => IsShortcutsOpen = true);
-        yield return Action("Toggle sidebar", "Show or hide saved sessions", 24,
+        yield return Action("Search terminal", "Find text in the active terminal", 24,
+            OpenTerminalSearch, restoreTerminalFocusOnClose: false);
+        yield return Action("Toggle sidebar", "Show or hide saved sessions", 25,
             () => IsSidebarVisible = !IsSidebarVisible);
-        yield return Action("Toggle status bar", "Show or hide terminal status", 25,
+        yield return Action("Toggle status bar", "Show or hide terminal status", 26,
             () => IsStatusBarVisible = !IsStatusBarVisible);
-        yield return AsyncAction("Terminal: Split Right", "Split the active pane vertically", 26,
+        yield return AsyncAction("Terminal: Split Right", "Split the active pane vertically", 27,
             () => Workspace.SplitRightCommand.ExecuteAsync(null));
-        yield return AsyncAction("Terminal: Split Down", "Split the active pane horizontally", 27,
+        yield return AsyncAction("Terminal: Split Down", "Split the active pane horizontally", 28,
             () => Workspace.SplitDownCommand.ExecuteAsync(null));
-        yield return AsyncAction("Terminal: Close Pane", "Close the active terminal pane", 28,
+        yield return AsyncAction("Terminal: Close Pane", "Close the active terminal pane", 29,
             () => Workspace.ClosePaneCommand.ExecuteAsync(null));
-        yield return Action("Terminal: Focus Next Pane", "Focus the next terminal pane", 29,
+        yield return Action("Terminal: Focus Next Pane", "Focus the next terminal pane", 30,
             () => Workspace.FocusNextPaneCommand.Execute(null));
-        yield return Action("Terminal: Focus Previous Pane", "Focus the previous terminal pane", 30,
+        yield return Action("Terminal: Focus Previous Pane", "Focus the previous terminal pane", 31,
             () => Workspace.FocusPreviousPaneCommand.Execute(null));
     }
 
@@ -306,7 +308,8 @@ public sealed partial class MainWindowViewModel
         string title,
         string subtitle,
         int order,
-        Action execute) =>
+        Action execute,
+        bool restoreTerminalFocusOnClose = true) =>
         new(
             CommandPaletteItemKind.Action,
             "Action",
@@ -318,7 +321,8 @@ public sealed partial class MainWindowViewModel
             {
                 execute();
                 return Task.CompletedTask;
-            });
+            },
+            restoreTerminalFocusOnClose);
 
     private static CommandPaletteItemViewModel AsyncAction(
         string title,

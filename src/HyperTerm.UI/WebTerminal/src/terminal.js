@@ -367,6 +367,10 @@ function handleKeyEvent(state, event) {
     const command = applicationCommands[event.code];
     if (command) {
       if (!event.repeat) {
+        if (command === 'searchTerminal') {
+          openSearch(state.paneId);
+          return false;
+        }
         send({
           type: 'applicationCommand',
           tabId: state.tabId,
@@ -548,8 +552,12 @@ function openSearch(paneId = activePaneId) {
 
   searchBarElement.classList.add('open');
   searchBarElement.setAttribute('aria-hidden', 'false');
-  searchInputElement.focus();
-  searchInputElement.select();
+  setTimeout(() => {
+    if (searchBarElement.classList.contains('open') && terminals.has(paneId)) {
+      searchInputElement.focus();
+      searchInputElement.select();
+    }
+  }, 0);
   runSearch(true);
 }
 
