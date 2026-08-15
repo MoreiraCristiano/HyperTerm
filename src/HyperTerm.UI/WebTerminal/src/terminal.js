@@ -230,6 +230,96 @@ const terminalThemes = {
       activeMatchBackground: '#f0d49a',
       activeMatchColorOverviewRuler: '#8d5f1b'
     }
+  },
+  'mintara-light': {
+    background: '#f3f7f5',
+    foreground: '#26332e',
+    cursor: '#3f9674',
+    cursorAccent: '#ffffff',
+    black: '#26332e',
+    red: '#b94752',
+    green: '#34795e',
+    yellow: '#8c6a28',
+    blue: '#33729b',
+    magenta: '#805d96',
+    cyan: '#2e766f',
+    white: '#596a64',
+    brightBlack: '#60736c',
+    brightRed: '#c13f4c',
+    brightGreen: '#287a5b',
+    brightYellow: '#825d18',
+    brightBlue: '#236f9c',
+    brightMagenta: '#8a55a2',
+    brightCyan: '#19766f',
+    brightWhite: '#344a42',
+    selection: '#c9e4d9',
+    selectionForeground: '#173c2e',
+    search: {
+      matchBackground: '#d8eadf',
+      matchOverviewRuler: '#66ae91',
+      activeMatchBackground: '#f0d69a',
+      activeMatchColorOverviewRuler: '#8a641e'
+    }
+  },
+  'vesper-light': {
+    background: '#f7f5f9',
+    foreground: '#342f38',
+    cursor: '#835da5',
+    cursorAccent: '#ffffff',
+    black: '#342f38',
+    red: '#b94753',
+    green: '#3d795f',
+    yellow: '#8e6926',
+    blue: '#486fad',
+    magenta: '#835da5',
+    cyan: '#397a85',
+    white: '#625b66',
+    brightBlack: '#746c79',
+    brightRed: '#c23e4c',
+    brightGreen: '#33775b',
+    brightYellow: '#865d17',
+    brightBlue: '#3c6dae',
+    brightMagenta: '#6e3f91',
+    brightCyan: '#287580',
+    brightWhite: '#493e4e',
+    selection: '#ddd0e8',
+    selectionForeground: '#382447',
+    search: {
+      matchBackground: '#e7ddf0',
+      matchOverviewRuler: '#a47bc2',
+      activeMatchBackground: '#f0d49a',
+      activeMatchColorOverviewRuler: '#8c631b'
+    }
+  },
+  'abyss-light': {
+    background: '#f3f7fa',
+    foreground: '#263640',
+    cursor: '#397fb5',
+    cursorAccent: '#ffffff',
+    black: '#263640',
+    red: '#b94752',
+    green: '#34785e',
+    yellow: '#8d6927',
+    blue: '#326fad',
+    magenta: '#785a9d',
+    cyan: '#297b89',
+    white: '#596a74',
+    brightBlack: '#5e727e',
+    brightRed: '#c23f4c',
+    brightGreen: '#2c785b',
+    brightYellow: '#855e18',
+    brightBlue: '#1f70af',
+    brightMagenta: '#8053a7',
+    brightCyan: '#187684',
+    brightWhite: '#354a56',
+    selection: '#c8deee',
+    selectionForeground: '#17374e',
+    search: {
+      matchBackground: '#d6e7f2',
+      matchOverviewRuler: '#64a0ca',
+      activeMatchBackground: '#efd59a',
+      activeMatchColorOverviewRuler: '#89631b'
+    }
   }
 };
 
@@ -239,6 +329,9 @@ function resolveTheme(theme) {
   switch (theme.toLowerCase()) {
     case 'default light': return 'light';
     case 'aurora': return 'aurora';
+    case 'mintara light': return 'mintara-light';
+    case 'vesper light': return 'vesper-light';
+    case 'abyss light': return 'abyss-light';
     case 'darcula': return 'darcula';
     case 'mintara': return 'mintara';
     case 'vesper': return 'vesper';

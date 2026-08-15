@@ -366,6 +366,163 @@ public sealed class AvaloniaHeadlessTests
 
     [AvaloniaFact]
     [Trait("Category", "Headless")]
+    public void Light_family_themes_expose_complete_semantic_palettes()
+    {
+        var service = new AvaloniaThemeService();
+        var window = new Window();
+        window.Styles.Add(new StyleInclude((Uri?)null)
+        {
+            Source = new Uri("avares://HyperTerm/Styles/DesignSystem.axaml"),
+        });
+        window.Show();
+        var themes = new[]
+        {
+            (
+                Name: "Mintara Light",
+                Variant: ApplicationThemeVariants.MintaraLight,
+                Colors: new Dictionary<string, string>
+                {
+                    ["AppBackgroundBrush"] = "#F3F7F5",
+                    ["SecondaryBackgroundBrush"] = "#EAF1EE",
+                    ["PanelBackgroundBrush"] = "#F8FAF9",
+                    ["CardBackgroundBrush"] = "#FFFFFF",
+                    ["HeaderBackgroundBrush"] = "#EAF1EE",
+                    ["InputBackgroundBrush"] = "#FFFFFF",
+                    ["BorderBrush"] = "#CDD9D4",
+                    ["BorderHoverBrush"] = "#91A69D",
+                    ["BorderFocusBrush"] = "#3F9674",
+                    ["HoverBackgroundBrush"] = "#E3EDE9",
+                    ["NavigationHoverBackgroundBrush"] = "#E3EDE9",
+                    ["PressedBackgroundBrush"] = "#D7E5DF",
+                    ["SelectionBackgroundBrush"] = "#C9E4D9",
+                    ["SelectionForegroundBrush"] = "#173C2E",
+                    ["AccentBrush"] = "#348363",
+                    ["AccentForegroundBrush"] = "#FFFFFF",
+                    ["AccentHoverBrush"] = "#2E7559",
+                    ["AccentPressedBrush"] = "#27664C",
+                    ["PrimaryTextBrush"] = "#26332E",
+                    ["MutedTextBrush"] = "#60736C",
+                    ["DisabledForegroundBrush"] = "#9AA8A2",
+                    ["DisabledBackgroundBrush"] = "#EDF1EF",
+                    ["DangerBrush"] = "#BD4350",
+                    ["DangerBackgroundBrush"] = "#FBEAEC",
+                    ["DangerHoverBackgroundBrush"] = "#F5DADD",
+                    ["DangerPressedBackgroundBrush"] = "#BD4350",
+                    ["DangerForegroundBrush"] = "#FFFFFF",
+                    ["WarningBrush"] = "#8A641E",
+                    ["SuccessBrush"] = "#2E7559",
+                    ["OverlayBrush"] = "#66000000",
+                    ["ScrollbarBrush"] = "#C5D1CC",
+                    ["ScrollbarHoverBrush"] = "#879B93",
+                    ["FocusRingBrush"] = "#66AE91",
+                }),
+            (
+                Name: "Vesper Light",
+                Variant: ApplicationThemeVariants.VesperLight,
+                Colors: new Dictionary<string, string>
+                {
+                    ["AppBackgroundBrush"] = "#F7F5F9",
+                    ["SecondaryBackgroundBrush"] = "#F0ECF3",
+                    ["PanelBackgroundBrush"] = "#FAF9FB",
+                    ["CardBackgroundBrush"] = "#FFFFFF",
+                    ["HeaderBackgroundBrush"] = "#F0ECF3",
+                    ["InputBackgroundBrush"] = "#FFFFFF",
+                    ["BorderBrush"] = "#DCD4E1",
+                    ["BorderHoverBrush"] = "#A99CB2",
+                    ["BorderFocusBrush"] = "#835DA5",
+                    ["HoverBackgroundBrush"] = "#EEE8F2",
+                    ["NavigationHoverBackgroundBrush"] = "#EEE8F2",
+                    ["PressedBackgroundBrush"] = "#E4DAEA",
+                    ["SelectionBackgroundBrush"] = "#DDD0E8",
+                    ["SelectionForegroundBrush"] = "#382447",
+                    ["AccentBrush"] = "#835DA5",
+                    ["AccentForegroundBrush"] = "#FFFFFF",
+                    ["AccentHoverBrush"] = "#704C91",
+                    ["AccentPressedBrush"] = "#603D7F",
+                    ["PrimaryTextBrush"] = "#342F38",
+                    ["MutedTextBrush"] = "#746C79",
+                    ["DisabledForegroundBrush"] = "#A69FAA",
+                    ["DisabledBackgroundBrush"] = "#F0EDF2",
+                    ["DangerBrush"] = "#BF4553",
+                    ["DangerBackgroundBrush"] = "#FBEAEC",
+                    ["DangerHoverBackgroundBrush"] = "#F4D9DD",
+                    ["DangerPressedBackgroundBrush"] = "#BF4553",
+                    ["DangerForegroundBrush"] = "#FFFFFF",
+                    ["WarningBrush"] = "#8C631B",
+                    ["SuccessBrush"] = "#36745D",
+                    ["OverlayBrush"] = "#66000000",
+                    ["ScrollbarBrush"] = "#CEC6D3",
+                    ["ScrollbarHoverBrush"] = "#95889E",
+                    ["FocusRingBrush"] = "#A47BC2",
+                }),
+            (
+                Name: "Abyss Light",
+                Variant: ApplicationThemeVariants.AbyssLight,
+                Colors: new Dictionary<string, string>
+                {
+                    ["AppBackgroundBrush"] = "#F3F7FA",
+                    ["SecondaryBackgroundBrush"] = "#EAF1F5",
+                    ["PanelBackgroundBrush"] = "#F8FAFC",
+                    ["CardBackgroundBrush"] = "#FFFFFF",
+                    ["HeaderBackgroundBrush"] = "#EAF1F5",
+                    ["InputBackgroundBrush"] = "#FFFFFF",
+                    ["BorderBrush"] = "#CCD8E1",
+                    ["BorderHoverBrush"] = "#91A5B4",
+                    ["BorderFocusBrush"] = "#397FB5",
+                    ["HoverBackgroundBrush"] = "#E2ECF3",
+                    ["NavigationHoverBackgroundBrush"] = "#E2ECF3",
+                    ["PressedBackgroundBrush"] = "#D5E3ED",
+                    ["SelectionBackgroundBrush"] = "#C8DEEE",
+                    ["SelectionForegroundBrush"] = "#17374E",
+                    ["AccentBrush"] = "#3272A3",
+                    ["AccentForegroundBrush"] = "#FFFFFF",
+                    ["AccentHoverBrush"] = "#2B6590",
+                    ["AccentPressedBrush"] = "#24577D",
+                    ["PrimaryTextBrush"] = "#263640",
+                    ["MutedTextBrush"] = "#5F737F",
+                    ["DisabledForegroundBrush"] = "#98A7B0",
+                    ["DisabledBackgroundBrush"] = "#EBF0F3",
+                    ["DangerBrush"] = "#C04653",
+                    ["DangerBackgroundBrush"] = "#FBEAEC",
+                    ["DangerHoverBackgroundBrush"] = "#F4DADD",
+                    ["DangerPressedBackgroundBrush"] = "#C04653",
+                    ["DangerForegroundBrush"] = "#FFFFFF",
+                    ["WarningBrush"] = "#89631B",
+                    ["SuccessBrush"] = "#30765D",
+                    ["OverlayBrush"] = "#66000000",
+                    ["ScrollbarBrush"] = "#C3D0D8",
+                    ["ScrollbarHoverBrush"] = "#8399A7",
+                    ["FocusRingBrush"] = "#64A0CA",
+                }),
+        };
+
+        foreach ((string name, ThemeVariant variant, Dictionary<string, string> colors) in themes)
+        {
+            service.Apply(name);
+            Assert.Equal(variant, Avalonia.Application.Current!.RequestedThemeVariant);
+            Assert.Equal(ThemeVariant.Light, variant.InheritVariant);
+            foreach ((string key, string color) in colors)
+            {
+                Assert.True(window.TryGetResource(key, variant, out object? resource));
+                Assert.Equal(
+                    Color.Parse(color),
+                    Assert.IsType<SolidColorBrush>(resource).Color);
+            }
+
+            Assert.True(window.TryGetResource(
+                "MenuFlyoutItemBackgroundPointerOver",
+                variant,
+                out object? menuHover));
+            Assert.Equal(
+                Color.Parse(colors["NavigationHoverBackgroundBrush"]),
+                Assert.IsType<SolidColorBrush>(menuHover).Color);
+        }
+
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    [Trait("Category", "Headless")]
     public void Aurora_exposes_the_complete_semantic_palette()
     {
         var service = new AvaloniaThemeService();

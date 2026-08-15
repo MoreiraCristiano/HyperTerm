@@ -13,4 +13,10 @@ public static class ApplicationThemeVariants
     public static ThemeVariant Abyss { get; } = new("Abyss", ThemeVariant.Dark);
 
     public static ThemeVariant Aurora { get; } = new("Aurora", ThemeVariant.Light);
+
+    public static ThemeVariant MintaraLight { get; } = new("Mintara Light", ThemeVariant.Light);
+
+    public static ThemeVariant VesperLight { get; } = new("Vesper Light", ThemeVariant.Light);
+
+    public static ThemeVariant AbyssLight { get; } = new("Abyss Light", ThemeVariant.Light);
 }

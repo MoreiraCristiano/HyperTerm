@@ -678,6 +678,106 @@ describe('terminal host bridge', () => {
     expect(searchInstances[0].next.options.decorations.activeMatchBackground).toBe('#f0d49a');
   });
 
+  it('applies readable light palettes for Mintara, Vesper, and Abyss', async () => {
+    const { host } = await loadHost();
+    host.create({ tabId: 'a', options: createOptions() });
+    const themes = [
+      {
+        name: 'Mintara Light',
+        key: 'mintara-light',
+        colors: {
+          background: '#f3f7f5', foreground: '#26332e', cursor: '#3f9674',
+          cursorAccent: '#ffffff', black: '#26332e', red: '#b94752',
+          green: '#34795e', yellow: '#8c6a28', blue: '#33729b',
+          magenta: '#805d96', cyan: '#2e766f', white: '#596a64',
+          brightBlack: '#60736c', brightRed: '#c13f4c', brightGreen: '#287a5b',
+          brightYellow: '#825d18', brightBlue: '#236f9c',
+          brightMagenta: '#8a55a2', brightCyan: '#19766f', brightWhite: '#344a42',
+          selectionForeground: '#173c2e'
+        },
+        selection: '#c9e4d9',
+        search: ['#d8eadf', '#66ae91', '#f0d69a']
+      },
+      {
+        name: 'Vesper Light',
+        key: 'vesper-light',
+        colors: {
+          background: '#f7f5f9', foreground: '#342f38', cursor: '#835da5',
+          cursorAccent: '#ffffff', black: '#342f38', red: '#b94753',
+          green: '#3d795f', yellow: '#8e6926', blue: '#486fad',
+          magenta: '#835da5', cyan: '#397a85', white: '#625b66',
+          brightBlack: '#746c79', brightRed: '#c23e4c', brightGreen: '#33775b',
+          brightYellow: '#865d17', brightBlue: '#3c6dae',
+          brightMagenta: '#6e3f91', brightCyan: '#287580', brightWhite: '#493e4e',
+          selectionForeground: '#382447'
+        },
+        selection: '#ddd0e8',
+        search: ['#e7ddf0', '#a47bc2', '#f0d49a']
+      },
+      {
+        name: 'Abyss Light',
+        key: 'abyss-light',
+        colors: {
+          background: '#f3f7fa', foreground: '#263640', cursor: '#397fb5',
+          cursorAccent: '#ffffff', black: '#263640', red: '#b94752',
+          green: '#34785e', yellow: '#8d6927', blue: '#326fad',
+          magenta: '#785a9d', cyan: '#297b89', white: '#596a74',
+          brightBlack: '#5e727e', brightRed: '#c23f4c', brightGreen: '#2c785b',
+          brightYellow: '#855e18', brightBlue: '#1f70af',
+          brightMagenta: '#8053a7', brightCyan: '#187684', brightWhite: '#354a56',
+          selectionForeground: '#17374e'
+        },
+        selection: '#c8deee',
+        search: ['#d6e7f2', '#64a0ca', '#efd59a']
+      }
+    ];
+
+    for (const expected of themes) {
+      host.configure({
+        tabId: 'a',
+        options: {
+          ...createOptions(),
+          theme: expected.name,
+          selectionBackground: 'Theme'
+        }
+      });
+
+      const theme = terminalInstances[0].options.theme;
+      for (const [key, color] of Object.entries(expected.colors)) {
+        expect(theme[key]).toBe(color);
+      }
+      for (const [normal, bright] of [
+        ['black', 'brightBlack'], ['red', 'brightRed'], ['green', 'brightGreen'],
+        ['yellow', 'brightYellow'], ['blue', 'brightBlue'],
+        ['magenta', 'brightMagenta'], ['cyan', 'brightCyan'], ['white', 'brightWhite']
+      ]) {
+        expect(theme[normal]).not.toBe(theme[bright]);
+      }
+      for (const color of [
+        'foreground',
+        'black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white',
+        'brightBlack', 'brightRed', 'brightGreen', 'brightYellow',
+        'brightBlue', 'brightMagenta', 'brightCyan', 'brightWhite'
+      ]) {
+        expect(contrastRatio(theme[color], theme.background)).toBeGreaterThanOrEqual(4.5);
+      }
+      expect(theme.selectionBackground).toBe(expected.selection);
+      expect(theme.selectionInactiveBackground).toBe(expected.selection);
+      expect(theme.selection).toBeUndefined();
+      expect(document.documentElement.dataset.theme).toBe(expected.key);
+
+      host.activate('a');
+      document.getElementById('terminal-search-input').value = expected.key;
+      host.openSearch('a');
+      expect(searchInstances[0].next.options.decorations.matchBackground)
+        .toBe(expected.search[0]);
+      expect(searchInstances[0].next.options.decorations.matchOverviewRuler)
+        .toBe(expected.search[1]);
+      expect(searchInstances[0].next.options.decorations.activeMatchBackground)
+        .toBe(expected.search[2]);
+    }
+  });
+
   it('applies Darcula palette and follows its selection color', async () => {
     const { host } = await loadHost();
     host.create({

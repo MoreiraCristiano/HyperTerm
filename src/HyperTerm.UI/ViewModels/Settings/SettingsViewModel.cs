@@ -74,6 +74,27 @@ public sealed partial class SettingsViewModel(
         "#0D1117",
         "#111820",
         "#161D27");
+    private static readonly ThemeOption MintaraLightTheme = new(
+        "Mintara Light",
+        "Mintara Light",
+        "A soft light appearance with Mintara's restrained mint identity.",
+        "#F3F7F5",
+        "#EAF1EE",
+        "#F8FAF9");
+    private static readonly ThemeOption VesperLightTheme = new(
+        "Vesper Light",
+        "Vesper Light",
+        "A sophisticated light appearance with Vesper's violet identity.",
+        "#F7F5F9",
+        "#F0ECF3",
+        "#FAF9FB");
+    private static readonly ThemeOption AbyssLightTheme = new(
+        "Abyss Light",
+        "Abyss Light",
+        "A cool technical light appearance with Abyss's ocean-blue identity.",
+        "#F3F7FA",
+        "#EAF1F5",
+        "#F8FAFC");
     private ApplicationSettings applicationSettings = new();
     private bool windowStateChanged;
     private CancellationTokenSource? logPollingCancellation;
@@ -87,11 +108,22 @@ public sealed partial class SettingsViewModel(
     public ApplicationSettings Current => applicationSettings;
     public WindowSettings WindowSettings => applicationSettings.Window;
     public IReadOnlyList<ThemeOption> ThemeOptions { get; } =
-        [DefaultTheme, DarculaTheme, MintaraTheme, VesperTheme, AbyssTheme, DefaultLightTheme, AuroraTheme];
+    [
+        DefaultTheme,
+        DarculaTheme,
+        MintaraTheme,
+        VesperTheme,
+        AbyssTheme,
+        DefaultLightTheme,
+        AuroraTheme,
+        MintaraLightTheme,
+        VesperLightTheme,
+        AbyssLightTheme,
+    ];
     public IReadOnlyList<ThemeOption> DarkThemeOptions { get; } =
         [DefaultTheme, DarculaTheme, MintaraTheme, VesperTheme, AbyssTheme];
     public IReadOnlyList<ThemeOption> LightThemeOptions { get; } =
-        [DefaultLightTheme, AuroraTheme];
+        [DefaultLightTheme, AuroraTheme, MintaraLightTheme, VesperLightTheme, AbyssLightTheme];
     public IReadOnlyList<string> TerminalCursorStyles { get; } =
         ["Bar", "Block", "Underline"];
     public IReadOnlyList<TerminalSelectionColorOption> TerminalSelectionColors { get; } =

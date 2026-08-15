@@ -1690,7 +1690,7 @@ public sealed class ViewModelTests
             ["Default Dark", "Darcula", "Mintara", "Vesper", "Abyss"],
             viewModel.DarkThemeOptions.Select(option => option.Value).ToArray());
         Assert.Equal(
-            ["Default Light", "Aurora"],
+            ["Default Light", "Aurora", "Mintara Light", "Vesper Light", "Abyss Light"],
             viewModel.LightThemeOptions.Select(option => option.Value).ToArray());
         ThemeOption lightTheme = viewModel.LightThemeOptions[0];
         Assert.Equal("Default Dark", viewModel.SelectedDarkTheme?.Value);
@@ -1782,6 +1782,39 @@ public sealed class ViewModelTests
         Assert.Equal("Aurora", restoredViewModel.SettingsTheme.Value);
         Assert.Equal("Aurora", restoredViewModel.Current.Theme);
         Assert.Equal("Aurora", restoredViewModel.SelectedLightTheme?.Value);
+    }
+
+    [Theory]
+    [InlineData("Mintara Light")]
+    [InlineData("Vesper Light")]
+    [InlineData("Abyss Light")]
+    public async Task Settings_persists_and_restores_light_family_theme(string theme)
+    {
+        var settingsService = new FakeSettingsService(exists: true);
+        var themeService = new FakeThemeService();
+        var viewModel = new SettingsViewModel(
+            settingsService,
+            themeService,
+            new FakeExecutablePicker(),
+            new FakeArchiveService(),
+            new FakeArchiveFilePicker(),
+            new FakeSystemFontService());
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+        viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.SettingsTheme = viewModel.ThemeOptions.Single(option =>
+            option.Value == theme);
+
+        await viewModel.SaveSettingsCommand.ExecuteAsync(null);
+
+        Assert.Equal(theme, settingsService.Value.Theme);
+        Assert.Equal(theme, themeService.AppliedThemes.Last());
+
+        var restoredViewModel = CreateSettingsViewModel(settingsService);
+        await restoredViewModel.InitializeAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(theme, restoredViewModel.SettingsTheme.Value);
+        Assert.Equal(theme, restoredViewModel.Current.Theme);
+        Assert.Equal(theme, restoredViewModel.SelectedLightTheme?.Value);
     }
 
     [Fact]
