@@ -216,11 +216,11 @@ public sealed class HostedTerminalRegistryTests
             "Theme",
             "Bar",
             true,
-            "Default Light");
+            "Aurora");
 
         string configure = Assert.Single(scripts);
         Assert.StartsWith("window.terminalHost.configureTab(", configure, StringComparison.Ordinal);
-        Assert.Contains("\"theme\":\"Default Light\"", configure, StringComparison.Ordinal);
+        Assert.Contains("\"theme\":\"Aurora\"", configure, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -311,6 +311,57 @@
           <StaticResource x:Key="MenuFlyoutSubItemChevronDisabled" ResourceKey="DisabledForegroundBrush" />
           <StaticResource x:Key="MenuFlyoutSubItemChevronSubMenuOpened" ResourceKey="PrimaryTextBrush" />
         </ResourceDictionary>
+        <ResourceDictionary x:Key="{x:Static services:ApplicationThemeVariants.Aurora}">
+          <SolidColorBrush x:Key="AppBackgroundBrush" Color="#F5F8FA" />
+          <SolidColorBrush x:Key="SecondaryBackgroundBrush" Color="#EEF3F6" />
+          <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#FAFCFD" />
+          <SolidColorBrush x:Key="CardBackgroundBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="HeaderBackgroundBrush" Color="#EEF3F6" />
+          <SolidColorBrush x:Key="InputBackgroundBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="BorderBrush" Color="#D3DDE3" />
+          <SolidColorBrush x:Key="BorderHoverBrush" Color="#9DAEB9" />
+          <SolidColorBrush x:Key="BorderFocusBrush" Color="#3D8FBF" />
+          <SolidColorBrush x:Key="HoverBackgroundBrush" Color="#E6EFF4" />
+          <SolidColorBrush x:Key="NavigationHoverBackgroundBrush" Color="#E6EFF4" />
+          <SolidColorBrush x:Key="PressedBackgroundBrush" Color="#DCE8EF" />
+          <SolidColorBrush x:Key="SelectionBackgroundBrush" Color="#CDE4F2" />
+          <SolidColorBrush x:Key="SelectionForegroundBrush" Color="#18384A" />
+          <SolidColorBrush x:Key="AccentBrush" Color="#327DA8" />
+          <SolidColorBrush x:Key="AccentForegroundBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="AccentHoverBrush" Color="#2B7098" />
+          <SolidColorBrush x:Key="AccentPressedBrush" Color="#245F82" />
+          <SolidColorBrush x:Key="PrimaryTextBrush" Color="#26343D" />
+          <SolidColorBrush x:Key="MutedTextBrush" Color="#60737F" />
+          <SolidColorBrush x:Key="DisabledForegroundBrush" Color="#9BA8B0" />
+          <SolidColorBrush x:Key="DisabledBackgroundBrush" Color="#EDF1F3" />
+          <SolidColorBrush x:Key="DangerBrush" Color="#C44855" />
+          <SolidColorBrush x:Key="DangerBackgroundBrush" Color="#F9E8EA" />
+          <SolidColorBrush x:Key="DangerHoverBackgroundBrush" Color="#F3D5D9" />
+          <SolidColorBrush x:Key="DangerPressedBackgroundBrush" Color="#C44855" />
+          <SolidColorBrush x:Key="DangerForegroundBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="WarningBrush" Color="#8D5F1B" />
+          <SolidColorBrush x:Key="SuccessBrush" Color="#30775B" />
+          <SolidColorBrush x:Key="OverlayBrush" Color="#66000000" />
+          <SolidColorBrush x:Key="ScrollbarBrush" Color="#C5D0D6" />
+          <SolidColorBrush x:Key="ScrollbarHoverBrush" Color="#899AA4" />
+          <SolidColorBrush x:Key="FocusRingBrush" Color="#69AAD0" />
+          <StaticResource x:Key="MenuFlyoutPresenterBackground" ResourceKey="CardBackgroundBrush" />
+          <StaticResource x:Key="MenuFlyoutPresenterBorderBrush" ResourceKey="BorderBrush" />
+          <StaticResource x:Key="MenuFlyoutItemBackgroundPointerOver" ResourceKey="NavigationHoverBackgroundBrush" />
+          <StaticResource x:Key="MenuFlyoutItemBackgroundPressed" ResourceKey="PressedBackgroundBrush" />
+          <StaticResource x:Key="MenuFlyoutItemForegroundPointerOver" ResourceKey="PrimaryTextBrush" />
+          <StaticResource x:Key="MenuFlyoutItemForegroundPressed" ResourceKey="PrimaryTextBrush" />
+          <StaticResource x:Key="MenuFlyoutItemForegroundDisabled" ResourceKey="DisabledForegroundBrush" />
+          <StaticResource x:Key="MenuFlyoutItemKeyboardAcceleratorTextForeground" ResourceKey="MutedTextBrush" />
+          <StaticResource x:Key="MenuFlyoutItemKeyboardAcceleratorTextForegroundPointerOver" ResourceKey="PrimaryTextBrush" />
+          <StaticResource x:Key="MenuFlyoutItemKeyboardAcceleratorTextForegroundPressed" ResourceKey="PrimaryTextBrush" />
+          <StaticResource x:Key="MenuFlyoutItemKeyboardAcceleratorTextForegroundDisabled" ResourceKey="DisabledForegroundBrush" />
+          <StaticResource x:Key="MenuFlyoutSubItemChevron" ResourceKey="MutedTextBrush" />
+          <StaticResource x:Key="MenuFlyoutSubItemChevronPointerOver" ResourceKey="PrimaryTextBrush" />
+          <StaticResource x:Key="MenuFlyoutSubItemChevronPressed" ResourceKey="PrimaryTextBrush" />
+          <StaticResource x:Key="MenuFlyoutSubItemChevronDisabled" ResourceKey="DisabledForegroundBrush" />
+          <StaticResource x:Key="MenuFlyoutSubItemChevronSubMenuOpened" ResourceKey="PrimaryTextBrush" />
+        </ResourceDictionary>
       </ResourceDictionary.ThemeDictionaries>
 
     <SolidColorBrush x:Key="TransparentBrush" Color="Transparent" />

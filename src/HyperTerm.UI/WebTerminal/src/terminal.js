@@ -200,6 +200,36 @@ const terminalThemes = {
       activeMatchBackground: '#f0c36a',
       activeMatchColorOverviewRuler: '#8a5700'
     }
+  },
+  aurora: {
+    background: '#f5f8fa',
+    foreground: '#26343d',
+    cursor: '#3d8fbf',
+    cursorAccent: '#ffffff',
+    black: '#26343d',
+    red: '#b9434e',
+    green: '#34785e',
+    yellow: '#956a22',
+    blue: '#2d719b',
+    magenta: '#815ea3',
+    cyan: '#257783',
+    white: '#596b76',
+    brightBlack: '#60717c',
+    brightRed: '#c23f4c',
+    brightGreen: '#287a5b',
+    brightYellow: '#895a18',
+    brightBlue: '#176f9f',
+    brightMagenta: '#8d56ac',
+    brightCyan: '#157684',
+    brightWhite: '#354a55',
+    selection: '#cde4f2',
+    selectionForeground: '#18384a',
+    search: {
+      matchBackground: '#d8eaf4',
+      matchOverviewRuler: '#69aad0',
+      activeMatchBackground: '#f0d49a',
+      activeMatchColorOverviewRuler: '#8d5f1b'
+    }
   }
 };
 
@@ -208,6 +238,7 @@ function resolveTheme(theme) {
 
   switch (theme.toLowerCase()) {
     case 'default light': return 'light';
+    case 'aurora': return 'aurora';
     case 'darcula': return 'darcula';
     case 'mintara': return 'mintara';
     case 'vesper': return 'vesper';

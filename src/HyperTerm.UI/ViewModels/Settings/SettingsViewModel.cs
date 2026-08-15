@@ -39,6 +39,13 @@ public sealed partial class SettingsViewModel(
         "#F4F5F7",
         "#E7EAEE",
         "#FAFAFB");
+    private static readonly ThemeOption AuroraTheme = new(
+        "Aurora",
+        "Aurora",
+        "A fresh light appearance inspired by clear skies and natural light.",
+        "#F5F8FA",
+        "#EEF3F6",
+        "#FAFCFD");
     private static readonly ThemeOption DarculaTheme = new(
         "Darcula",
         "Darcula",
@@ -80,10 +87,11 @@ public sealed partial class SettingsViewModel(
     public ApplicationSettings Current => applicationSettings;
     public WindowSettings WindowSettings => applicationSettings.Window;
     public IReadOnlyList<ThemeOption> ThemeOptions { get; } =
-        [DefaultTheme, DarculaTheme, MintaraTheme, VesperTheme, AbyssTheme, DefaultLightTheme];
+        [DefaultTheme, DarculaTheme, MintaraTheme, VesperTheme, AbyssTheme, DefaultLightTheme, AuroraTheme];
     public IReadOnlyList<ThemeOption> DarkThemeOptions { get; } =
         [DefaultTheme, DarculaTheme, MintaraTheme, VesperTheme, AbyssTheme];
-    public IReadOnlyList<ThemeOption> LightThemeOptions { get; } = [DefaultLightTheme];
+    public IReadOnlyList<ThemeOption> LightThemeOptions { get; } =
+        [DefaultLightTheme, AuroraTheme];
     public IReadOnlyList<string> TerminalCursorStyles { get; } =
         ["Bar", "Block", "Underline"];
     public IReadOnlyList<TerminalSelectionColorOption> TerminalSelectionColors { get; } =

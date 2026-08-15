@@ -16,6 +16,8 @@ internal sealed class AvaloniaThemeService : IThemeService
         {
             string value when value.Equals("Default Light", StringComparison.OrdinalIgnoreCase) =>
                 ThemeVariant.Light,
+            string value when value.Equals("Aurora", StringComparison.OrdinalIgnoreCase) =>
+                ApplicationThemeVariants.Aurora,
             string value when value.Equals("Darcula", StringComparison.OrdinalIgnoreCase) =>
                 ApplicationThemeVariants.Darcula,
             string value when value.Equals("Mintara", StringComparison.OrdinalIgnoreCase) =>

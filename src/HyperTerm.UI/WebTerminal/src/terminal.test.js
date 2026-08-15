@@ -127,6 +127,23 @@ function createOptions() {
   };
 }
 
+function relativeLuminance(hexColor) {
+  const channels = hexColor.slice(1).match(/../g).map(channel => {
+    const value = Number.parseInt(channel, 16) / 255;
+    return value <= 0.04045
+      ? value / 12.92
+      : ((value + 0.055) / 1.055) ** 2.4;
+  });
+  return (0.2126 * channels[0]) + (0.7152 * channels[1]) + (0.0722 * channels[2]);
+}
+
+function contrastRatio(foreground, background) {
+  const foregroundLuminance = relativeLuminance(foreground);
+  const backgroundLuminance = relativeLuminance(background);
+  return (Math.max(foregroundLuminance, backgroundLuminance) + 0.05)
+    / (Math.min(foregroundLuminance, backgroundLuminance) + 0.05);
+}
+
 describe('terminal host bridge', () => {
   beforeEach(() => {
     terminalInstances.length = 0;
@@ -592,6 +609,73 @@ describe('terminal host bridge', () => {
 
     expect(terminalInstances[0].options.theme.background).toBe('#1e1e1e');
     expect(document.documentElement.dataset.theme).toBe('dark');
+  });
+
+  it('applies Aurora palette, search, and theme selection', async () => {
+    const { host } = await loadHost();
+    host.create({
+      tabId: 'a',
+      options: {
+        ...createOptions(),
+        theme: 'Aurora',
+        selectionBackground: 'Theme'
+      }
+    });
+
+    const theme = terminalInstances[0].options.theme;
+    expect(theme.background).toBe('#f5f8fa');
+    expect(theme.foreground).toBe('#26343d');
+    expect(theme.cursor).toBe('#3d8fbf');
+    expect(theme.cursorAccent).toBe('#ffffff');
+    expect(theme.red).toBe('#b9434e');
+    expect(theme.green).toBe('#34785e');
+    expect(theme.yellow).toBe('#956a22');
+    expect(theme.blue).toBe('#2d719b');
+    expect(theme.magenta).toBe('#815ea3');
+    expect(theme.cyan).toBe('#257783');
+    expect(theme.brightBlue).toBe('#176f9f');
+    expect(theme.brightCyan).toBe('#157684');
+    expect(theme.brightWhite).toBe('#354a55');
+    expect(theme.blue).not.toBe(theme.cyan);
+    expect(theme.green).not.toBe(theme.cyan);
+    expect(theme.magenta).not.toBe(theme.blue);
+    expect(theme.yellow).not.toBe(theme.foreground);
+    expect(theme.brightBlue).not.toBe(theme.blue);
+    expect(theme.brightCyan).not.toBe(theme.cyan);
+    expect(theme.white).not.toBe(theme.brightWhite);
+    for (const [normal, bright] of [
+      ['black', 'brightBlack'],
+      ['red', 'brightRed'],
+      ['green', 'brightGreen'],
+      ['yellow', 'brightYellow'],
+      ['blue', 'brightBlue'],
+      ['magenta', 'brightMagenta'],
+      ['cyan', 'brightCyan'],
+      ['white', 'brightWhite']
+    ]) {
+      expect(theme[normal]).not.toBe(theme[bright]);
+    }
+    for (const color of [
+      'foreground',
+      'black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white',
+      'brightBlack', 'brightRed', 'brightGreen', 'brightYellow',
+      'brightBlue', 'brightMagenta', 'brightCyan', 'brightWhite'
+    ]) {
+      expect(contrastRatio(theme[color], theme.background)).toBeGreaterThanOrEqual(4.5);
+    }
+    expect(theme.selectionForeground).toBe('#18384a');
+    expect(theme.selectionBackground).toBe('#cde4f2');
+    expect(theme.selectionInactiveBackground).toBe('#cde4f2');
+    expect(theme.selection).toBeUndefined();
+    expect(document.documentElement.dataset.theme).toBe('aurora');
+
+    host.activate('a');
+    document.getElementById('terminal-search-input').value = 'sky';
+    host.openSearch('a');
+
+    expect(searchInstances[0].next.options.decorations.matchBackground).toBe('#d8eaf4');
+    expect(searchInstances[0].next.options.decorations.matchOverviewRuler).toBe('#69aad0');
+    expect(searchInstances[0].next.options.decorations.activeMatchBackground).toBe('#f0d49a');
   });
 
   it('applies Darcula palette and follows its selection color', async () => {

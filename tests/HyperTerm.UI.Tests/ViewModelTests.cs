@@ -1689,8 +1689,10 @@ public sealed class ViewModelTests
         Assert.Equal(
             ["Default Dark", "Darcula", "Mintara", "Vesper", "Abyss"],
             viewModel.DarkThemeOptions.Select(option => option.Value).ToArray());
-        ThemeOption lightTheme = Assert.Single(viewModel.LightThemeOptions);
-        Assert.Equal("Default Light", lightTheme.Value);
+        Assert.Equal(
+            ["Default Light", "Aurora"],
+            viewModel.LightThemeOptions.Select(option => option.Value).ToArray());
+        ThemeOption lightTheme = viewModel.LightThemeOptions[0];
         Assert.Equal("Default Dark", viewModel.SelectedDarkTheme?.Value);
         Assert.Null(viewModel.SelectedLightTheme);
 
@@ -1750,6 +1752,36 @@ public sealed class ViewModelTests
 
         Assert.Equal("Default Light", settingsService.Value.Theme);
         Assert.Equal("Default Light", themeService.AppliedThemes.Last());
+    }
+
+    [Fact]
+    public async Task Settings_persists_and_restores_aurora()
+    {
+        var settingsService = new FakeSettingsService(exists: true);
+        var themeService = new FakeThemeService();
+        var viewModel = new SettingsViewModel(
+            settingsService,
+            themeService,
+            new FakeExecutablePicker(),
+            new FakeArchiveService(),
+            new FakeArchiveFilePicker(),
+            new FakeSystemFontService());
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+        viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.SettingsTheme = viewModel.ThemeOptions.Single(option =>
+            option.Value == "Aurora");
+
+        await viewModel.SaveSettingsCommand.ExecuteAsync(null);
+
+        Assert.Equal("Aurora", settingsService.Value.Theme);
+        Assert.Equal("Aurora", themeService.AppliedThemes.Last());
+
+        var restoredViewModel = CreateSettingsViewModel(settingsService);
+        await restoredViewModel.InitializeAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal("Aurora", restoredViewModel.SettingsTheme.Value);
+        Assert.Equal("Aurora", restoredViewModel.Current.Theme);
+        Assert.Equal("Aurora", restoredViewModel.SelectedLightTheme?.Value);
     }
 
     [Fact]
