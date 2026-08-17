@@ -13,12 +13,30 @@ public sealed partial class MainWindowViewModel
         OpenSessions,
     }
 
+    private enum CommandPaletteScope
+    {
+        Root,
+        TerminalProfiles,
+    }
+
     private const int PaletteResultLimit = 50;
     private Action? cancelPaletteRefresh;
+    private CommandPaletteScope commandPaletteScope;
 
     public ObservableCollection<CommandPaletteItemViewModel> CommandPaletteResults { get; } = [];
 
     public bool HasCommandPaletteResults => CommandPaletteResults.Count > 0;
+
+    public bool IsCommandPaletteProfileSelection =>
+        commandPaletteScope == CommandPaletteScope.TerminalProfiles;
+
+    public string CommandPalettePlaceholder => IsCommandPaletteProfileSelection
+        ? "Search terminal profiles…"
+        : "Search all…  > commands  : open sessions";
+
+    public string CommandPaletteFooterText => IsCommandPaletteProfileSelection
+        ? "Esc Back   ↑↓ Navigate   Enter Open"
+        : "> Commands   : Open sessions   ↑↓ Navigate   Enter Run   Esc Close";
 
     [ObservableProperty]
     private string commandPaletteEmptyMessage = "No matching commands or resources.";
@@ -56,6 +74,7 @@ public sealed partial class MainWindowViewModel
         var refreshCancellation = new CancellationTokenSource();
         Action cancelRefresh = refreshCancellation.Cancel;
         cancelPaletteRefresh = cancelRefresh;
+        SetCommandPaletteScope(CommandPaletteScope.Root);
         CommandPaletteQuery = string.Empty;
         IsCommandPaletteOpen = true;
         RebuildCommandPalette();
@@ -79,6 +98,7 @@ public sealed partial class MainWindowViewModel
     {
         IsCommandPaletteOpen = false;
         CommandPaletteQuery = string.Empty;
+        SetCommandPaletteScope(CommandPaletteScope.Root);
         CommandPaletteResults.Clear();
         SelectedCommandPaletteItem = null;
         if (restoreTerminalFocus)
@@ -96,8 +116,37 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
-        CloseCommandPalette(item.RestoreTerminalFocusOnClose);
+        if (item.ClosesPaletteOnExecute)
+        {
+            CloseCommandPalette(item.RestoreTerminalFocusOnClose);
+        }
+
         await item.ExecuteAsync();
+    }
+
+    [RelayCommand]
+    private void ReturnToCommandPaletteRoot()
+    {
+        if (!IsCommandPaletteProfileSelection)
+        {
+            return;
+        }
+
+        SetCommandPaletteScope(CommandPaletteScope.Root);
+        CommandPaletteQuery = string.Empty;
+        RebuildCommandPalette();
+    }
+
+    internal void HandleCommandPaletteEscape()
+    {
+        if (IsCommandPaletteProfileSelection)
+        {
+            ReturnToCommandPaletteRoot();
+        }
+        else
+        {
+            CloseCommandPalette();
+        }
     }
 
     internal void MoveCommandPaletteSelection(int offset)
@@ -151,10 +200,13 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
-        (CommandPaletteMode mode, string query) = ParsePaletteQuery(CommandPaletteQuery);
-        IEnumerable<CommandPaletteItemViewModel> candidates = FilterPaletteCandidates(
-            BuildPaletteCandidates(),
-            mode);
+        bool selectingProfile = IsCommandPaletteProfileSelection;
+        (CommandPaletteMode mode, string query) = selectingProfile
+            ? (CommandPaletteMode.All, CommandPaletteQuery.Trim())
+            : ParsePaletteQuery(CommandPaletteQuery);
+        IEnumerable<CommandPaletteItemViewModel> candidates = selectingProfile
+            ? BuildTerminalProfileCandidates()
+            : FilterPaletteCandidates(BuildPaletteCandidates(), mode);
         IEnumerable<CommandPaletteItemViewModel> results = query.Length == 0
             ? candidates.OrderBy(item => item.DisplayOrder).ThenBy(item => item.Title, StringComparer.CurrentCultureIgnoreCase)
             : candidates
@@ -172,13 +224,35 @@ public sealed partial class MainWindowViewModel
         }
 
         SelectedCommandPaletteItem = CommandPaletteResults.FirstOrDefault();
-        CommandPaletteEmptyMessage = mode switch
-        {
-            CommandPaletteMode.Commands => "No matching commands.",
-            CommandPaletteMode.OpenSessions => "No matching open sessions.",
-            _ => "No matching commands or resources.",
-        };
+        CommandPaletteEmptyMessage = selectingProfile
+            ? "No matching terminal profiles."
+            : mode switch
+            {
+                CommandPaletteMode.Commands => "No matching commands.",
+                CommandPaletteMode.OpenSessions => "No matching open sessions.",
+                _ => "No matching commands or resources.",
+            };
         OnPropertyChanged(nameof(HasCommandPaletteResults));
+    }
+
+    private void SetCommandPaletteScope(CommandPaletteScope value)
+    {
+        if (commandPaletteScope == value)
+        {
+            return;
+        }
+
+        commandPaletteScope = value;
+        OnPropertyChanged(nameof(IsCommandPaletteProfileSelection));
+        OnPropertyChanged(nameof(CommandPalettePlaceholder));
+        OnPropertyChanged(nameof(CommandPaletteFooterText));
+    }
+
+    private void OpenTerminalProfileSelection()
+    {
+        SetCommandPaletteScope(CommandPaletteScope.TerminalProfiles);
+        CommandPaletteQuery = string.Empty;
+        RebuildCommandPalette();
     }
 
     private static (CommandPaletteMode Mode, string Query) ParsePaletteQuery(string value)
@@ -263,17 +337,12 @@ public sealed partial class MainWindowViewModel
     {
         yield return Action("New SSH session", "Create a saved connection", 0,
             () => SessionEditor.OpenNew(string.Empty));
-        int profileOrder = 1;
-        foreach (TerminalLaunchProfileViewModel profile in Workspace.TerminalProfiles.Where(
-                     profile => profile.IsAvailable))
-        {
-            TerminalLaunchProfileViewModel selectedProfile = profile;
-            string subtitle = profile.IsDefault
-                ? "Open the default local terminal"
-                : "Open a local terminal profile";
-            yield return AsyncAction($"New {profile.Name} terminal", subtitle, profileOrder++,
-                () => Workspace.OpenTerminalProfileCommand.ExecuteAsync(selectedProfile));
-        }
+        yield return Action(
+            "New Terminal",
+            "Choose a local terminal profile",
+            1,
+            OpenTerminalProfileSelection,
+            closesPaletteOnExecute: false);
 
         if (Workspace.IsPsmuxEnabled)
         {
@@ -304,12 +373,34 @@ public sealed partial class MainWindowViewModel
             () => Workspace.FocusPreviousPaneCommand.Execute(null));
     }
 
+    private IEnumerable<CommandPaletteItemViewModel> BuildTerminalProfileCandidates()
+    {
+        int displayOrder = 0;
+        foreach (TerminalLaunchProfileViewModel profile in Workspace.TerminalProfiles.Where(
+                     profile => profile.IsAvailable))
+        {
+            TerminalLaunchProfileViewModel selectedProfile = profile;
+            string subtitle = profile.IsDefault
+                ? "Default terminal profile"
+                : "Local terminal profile";
+            yield return new CommandPaletteItemViewModel(
+                CommandPaletteItemKind.TerminalProfile,
+                "Terminal profile",
+                profile.Name,
+                subtitle,
+                $"{profile.Name} {subtitle}",
+                displayOrder++,
+                () => Workspace.OpenTerminalProfileCommand.ExecuteAsync(selectedProfile));
+        }
+    }
+
     private static CommandPaletteItemViewModel Action(
         string title,
         string subtitle,
         int order,
         Action execute,
-        bool restoreTerminalFocusOnClose = true) =>
+        bool restoreTerminalFocusOnClose = true,
+        bool closesPaletteOnExecute = true) =>
         new(
             CommandPaletteItemKind.Action,
             "Action",
@@ -322,7 +413,8 @@ public sealed partial class MainWindowViewModel
                 execute();
                 return Task.CompletedTask;
             },
-            restoreTerminalFocusOnClose);
+            restoreTerminalFocusOnClose,
+            closesPaletteOnExecute);
 
     private static CommandPaletteItemViewModel AsyncAction(
         string title,

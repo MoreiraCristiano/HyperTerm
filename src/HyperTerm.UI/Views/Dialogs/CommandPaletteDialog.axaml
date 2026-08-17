@@ -19,12 +19,22 @@
         BorderThickness="1"
         CornerRadius="{DynamicResource RadiusL}">
       <Grid RowDefinitions="Auto,*,Auto">
-        <TextBox
-            x:Name="QueryEditor"
-            Padding="10,7"
-            KeyDown="OnQueryKeyDown"
-            PlaceholderText="Search all…  > commands  : open sessions"
-            Text="{Binding CommandPaletteQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+        <Grid ColumnDefinitions="Auto,*">
+          <Button
+              AutomationProperties.AutomationId="CommandPaletteBackButton"
+              Margin="0,0,8,0"
+              Command="{Binding ReturnToCommandPaletteRootCommand}"
+              Content="←"
+              IsVisible="{Binding IsCommandPaletteProfileSelection}"
+              ToolTip.Tip="Back to command palette" />
+          <TextBox
+              x:Name="QueryEditor"
+              Grid.Column="1"
+              Padding="10,7"
+              KeyDown="OnQueryKeyDown"
+              PlaceholderText="{Binding CommandPalettePlaceholder}"
+              Text="{Binding CommandPaletteQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+        </Grid>
         <ListBox
             x:Name="ResultsList"
             Grid.Row="1"
@@ -68,7 +78,7 @@
             HorizontalAlignment="Right"
             Classes="secondary"
             FontSize="10"
-            Text="> Commands   : Open sessions   ↑↓ Navigate   Enter Run   Esc Close" />
+            Text="{Binding CommandPaletteFooterText}" />
       </Grid>
     </Border>
   </Panel>

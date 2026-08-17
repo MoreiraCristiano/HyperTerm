@@ -83,7 +83,7 @@ public sealed partial class CommandPaletteDialog : UserControl
                 eventArgs.Handled = true;
                 break;
             case Key.Escape:
-                viewModel.CloseCommandPaletteCommand.Execute(null);
+                viewModel.HandleCommandPaletteEscape();
                 eventArgs.Handled = true;
                 break;
         }

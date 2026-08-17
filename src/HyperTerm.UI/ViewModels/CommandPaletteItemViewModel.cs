@@ -3,6 +3,7 @@ namespace HyperTerm.UI.ViewModels;
 public enum CommandPaletteItemKind
 {
     Action,
+    TerminalProfile,
     SavedSshSession,
     OpenTab,
     PsmuxSession,
@@ -16,7 +17,8 @@ public sealed class CommandPaletteItemViewModel(
     string searchText,
     int displayOrder,
     Func<Task> executeAsync,
-    bool restoreTerminalFocusOnClose = true)
+    bool restoreTerminalFocusOnClose = true,
+    bool closesPaletteOnExecute = true)
 {
     private readonly Func<Task> execute = executeAsync;
 
@@ -33,6 +35,8 @@ public sealed class CommandPaletteItemViewModel(
     public int DisplayOrder { get; } = displayOrder;
 
     public bool RestoreTerminalFocusOnClose { get; } = restoreTerminalFocusOnClose;
+
+    public bool ClosesPaletteOnExecute { get; } = closesPaletteOnExecute;
 
     public Task ExecuteAsync() => execute();
 }

@@ -774,6 +774,125 @@ public sealed class ViewModelTests
     }
 
     [Fact]
+    public async Task CommandPaletteUsesSingleActionToChooseAvailableTerminalProfile()
+    {
+        var sessions = new FakeSessionService();
+        var folders = new FakeFolderService();
+        var explorer = new SessionExplorerViewModel(sessions, folders);
+        await explorer.InitializeAsync(TestContext.Current.CancellationToken);
+        var workspace = new TerminalWorkspaceViewModel(
+            sessions,
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory(),
+            terminalProfileResolver: new FakeTerminalProfileResolver(
+                "pwsh.exe",
+                "cmd.exe"));
+        workspace.ApplySettings(new ApplicationSettings
+        {
+            TerminalProfiles =
+            [
+                new TerminalProfile
+                {
+                    Id = "power-shell",
+                    Name = "PowerShell",
+                    ExecutablePath = "pwsh.exe",
+                },
+                new TerminalProfile
+                {
+                    Id = "command-prompt",
+                    Name = "Command Prompt",
+                    ExecutablePath = "cmd.exe",
+                },
+                new TerminalProfile
+                {
+                    Id = "missing-shell",
+                    Name = "Missing Shell",
+                    ExecutablePath = "missing.exe",
+                },
+            ],
+            DefaultTerminalProfileId = "power-shell",
+        });
+        var viewModel = new MainWindowViewModel(
+            explorer,
+            workspace,
+            CreateSettingsViewModel(new FakeSettingsService(exists: true)),
+            new SessionEditorViewModel(sessions),
+            new SessionManagerViewModel(sessions, folders),
+            new FolderEditorViewModel(folders));
+
+        viewModel.OpenCommandPaletteCommand.Execute(null);
+
+        CommandPaletteItemViewModel newTerminal = Assert.Single(
+            viewModel.CommandPaletteResults,
+            item => item.Title == "New Terminal");
+        Assert.DoesNotContain(
+            viewModel.CommandPaletteResults,
+            item => item.Title.StartsWith("New PowerShell", StringComparison.Ordinal));
+        viewModel.SelectedCommandPaletteItem = newTerminal;
+
+        await viewModel.ExecuteSelectedCommandPaletteItemCommand.ExecuteAsync(null);
+
+        Assert.True(viewModel.IsCommandPaletteOpen);
+        Assert.True(viewModel.IsCommandPaletteProfileSelection);
+        Assert.Equal("Search terminal profiles…", viewModel.CommandPalettePlaceholder);
+        Assert.Equal(2, viewModel.CommandPaletteResults.Count);
+        Assert.All(
+            viewModel.CommandPaletteResults,
+            item => Assert.Equal(CommandPaletteItemKind.TerminalProfile, item.Kind));
+        Assert.DoesNotContain(
+            viewModel.CommandPaletteResults,
+            item => item.Title == "Missing Shell");
+
+        viewModel.CommandPaletteQuery = "command";
+        CommandPaletteItemViewModel commandPrompt = Assert.Single(
+            viewModel.CommandPaletteResults);
+        Assert.Equal("Command Prompt", commandPrompt.Title);
+
+        await viewModel.ExecuteSelectedCommandPaletteItemCommand.ExecuteAsync(null);
+
+        Assert.False(viewModel.IsCommandPaletteOpen);
+        TerminalTabViewModel tab = Assert.Single(workspace.Tabs);
+        Assert.Equal("command-prompt", tab.Definition.ProfileId);
+    }
+
+    [Fact]
+    public async Task CommandPaletteEscapeReturnsFromProfilesBeforeClosing()
+    {
+        var sessions = new FakeSessionService();
+        var folders = new FakeFolderService();
+        var explorer = new SessionExplorerViewModel(sessions, folders);
+        await explorer.InitializeAsync(TestContext.Current.CancellationToken);
+        var workspace = new TerminalWorkspaceViewModel(
+            sessions,
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory());
+        workspace.ApplySettings(new ApplicationSettings());
+        var viewModel = new MainWindowViewModel(
+            explorer,
+            workspace,
+            CreateSettingsViewModel(new FakeSettingsService(exists: true)),
+            new SessionEditorViewModel(sessions),
+            new SessionManagerViewModel(sessions, folders),
+            new FolderEditorViewModel(folders));
+        viewModel.OpenCommandPaletteCommand.Execute(null);
+        viewModel.CommandPaletteQuery = "new terminal";
+
+        await viewModel.ExecuteSelectedCommandPaletteItemCommand.ExecuteAsync(null);
+        viewModel.HandleCommandPaletteEscape();
+
+        Assert.True(viewModel.IsCommandPaletteOpen);
+        Assert.False(viewModel.IsCommandPaletteProfileSelection);
+        Assert.Equal(string.Empty, viewModel.CommandPaletteQuery);
+        Assert.Contains(
+            viewModel.CommandPaletteResults,
+            item => item.Title == "New Terminal");
+
+        viewModel.HandleCommandPaletteEscape();
+
+        Assert.False(viewModel.IsCommandPaletteOpen);
+    }
+
+    [Fact]
     public async Task CommandPaletteSearchActionOpensSearchWithoutRestoringTerminalFocus()
     {
         var sessions = new FakeSessionService();
