@@ -3,11 +3,31 @@ using System.Threading.Channels;
 using HyperTerm.Core.Abstractions.Terminal;
 using HyperTerm.Infrastructure.Terminal;
 using Microsoft.Extensions.Logging.Abstractions;
+using Porta.Pty;
 
 namespace HyperTerm.Infrastructure.Tests;
 
 public sealed class PortaPtySessionUnitTests
 {
+    [Fact]
+    public void Connection_adapter_replays_exit_detected_before_session_subscribes()
+    {
+        using var connection = new AlreadyExitedPtyConnection(37);
+        using var adapter = new PortaPtyConnectionAdapter(connection);
+        int calls = 0;
+        int exitCode = -1;
+
+        adapter.Exited += (_, code) =>
+        {
+            calls++;
+            exitCode = code;
+        };
+
+        Assert.Equal(1, calls);
+        Assert.Equal(37, exitCode);
+        Assert.Equal(1, connection.WaitForExitCalls);
+    }
+
     [Fact]
     public async Task Output_reader_preserves_utf8_characters_split_across_reads()
     {
@@ -210,6 +230,48 @@ public sealed class PortaPtySessionUnitTests
 
     private static PortaPtySession CreateSession(IPtyConnectionAdapter connection) =>
         new(connection, NullLogger.Instance);
+
+    private sealed class AlreadyExitedPtyConnection(int exitCode) : IPtyConnection
+    {
+        private readonly MemoryStream reader = new();
+        private readonly MemoryStream writer = new();
+
+        public event EventHandler<PtyExitedEventArgs>? ProcessExited
+        {
+            add { }
+            remove { }
+        }
+
+        public Stream ReaderStream => reader;
+
+        public Stream WriterStream => writer;
+
+        public int Pid => 1;
+
+        public int ExitCode { get; } = exitCode;
+
+        public int WaitForExitCalls { get; private set; }
+
+        public bool WaitForExit(int millisecondsTimeout)
+        {
+            WaitForExitCalls++;
+            return true;
+        }
+
+        public void Kill()
+        {
+        }
+
+        public void Resize(int columns, int rows)
+        {
+        }
+
+        public void Dispose()
+        {
+            reader.Dispose();
+            writer.Dispose();
+        }
+    }
 
     private sealed class FakePtyConnectionAdapter : IPtyConnectionAdapter
     {
