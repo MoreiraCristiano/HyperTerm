@@ -464,6 +464,7 @@ function createTerminal({ paneId, tabId, options }) {
     webglContextLossDisposable: null,
     webglDisabled: false,
     configuredFontSize: options.fontSize,
+    selectionCopyKeyDown: false,
     started: false,
     lastColumns: 0,
     lastRows: 0
@@ -521,6 +522,27 @@ function handleKeyEvent(state, event) {
     return false;
   }
 
+  if (event.type === 'keyup' && event.code === 'KeyC' && state.selectionCopyKeyDown) {
+    state.selectionCopyKeyDown = false;
+    return false;
+  }
+
+  const isPlainCtrlC = event.ctrlKey && !event.shiftKey &&
+    !event.altKey && !event.metaKey && event.code === 'KeyC';
+  if (event.type === 'keydown' && isPlainCtrlC) {
+    if (!event.repeat) {
+      state.selectionCopyKeyDown = false;
+    } else if (state.selectionCopyKeyDown) {
+      return false;
+    }
+
+    if (copyTerminalSelection(state)) {
+      state.selectionCopyKeyDown = true;
+      return false;
+    }
+    return true;
+  }
+
   if (event.type === 'keydown' && event.ctrlKey && event.shiftKey) {
     const applicationCommands = {
       KeyT: 'newTerminal',
@@ -551,14 +573,21 @@ function handleKeyEvent(state, event) {
   }
 
   if (event.type === 'keydown' && event.ctrlKey && event.shiftKey && event.code === 'KeyC') {
-    const selected = state.terminal.getSelection();
-    if (selected) {
-      send({ type: 'copy', tabId: state.tabId, paneId: state.paneId, data: selected });
-      state.terminal.clearSelection();
-    }
+    copyTerminalSelection(state);
     return false;
   }
 
+  return true;
+}
+
+function copyTerminalSelection(state) {
+  const selected = state.terminal.getSelection();
+  if (!selected) {
+    return false;
+  }
+
+  send({ type: 'copy', tabId: state.tabId, paneId: state.paneId, data: selected });
+  state.terminal.clearSelection();
   return true;
 }
 

@@ -368,7 +368,50 @@ describe('terminal host bridge', () => {
     });
   });
 
-  it('copies selected text without forwarding the key', async () => {
+  it('copies selected text with Ctrl+C without forwarding the key', async () => {
+    const { host, sent } = await loadHost();
+    host.create({ tabId: 'a', options: createOptions() });
+    terminalInstances[0].selection = 'selected';
+
+    const handled = terminalInstances[0].keyHandler({
+      type: 'keydown', ctrlKey: true, shiftKey: false, altKey: false,
+      metaKey: false, code: 'KeyC', repeat: false
+    });
+
+    expect(handled).toBe(false);
+    expect(sent).toContainEqual({ type: 'copy', tabId: 'a', paneId: 'a', data: 'selected' });
+    expect(terminalInstances[0].selection).toBe('');
+  });
+
+  it('forwards Ctrl+C without a selection', async () => {
+    const { host, sent } = await loadHost();
+    host.create({ tabId: 'a', options: createOptions() });
+
+    const handled = terminalInstances[0].keyHandler({
+      type: 'keydown', ctrlKey: true, shiftKey: false, altKey: false,
+      metaKey: false, code: 'KeyC', repeat: false
+    });
+
+    expect(handled).toBe(true);
+    expect(sent).not.toContainEqual(expect.objectContaining({ type: 'copy' }));
+  });
+
+  it('suppresses repeated Ctrl+C after copying until the key is released', async () => {
+    const { host, sent } = await loadHost();
+    host.create({ tabId: 'a', options: createOptions() });
+    const key = terminalInstances[0].keyHandler;
+    const ctrlC = { ctrlKey: true, shiftKey: false, altKey: false,
+      metaKey: false, code: 'KeyC' };
+    terminalInstances[0].selection = 'selected';
+
+    expect(key({ ...ctrlC, type: 'keydown', repeat: false })).toBe(false);
+    expect(key({ ...ctrlC, type: 'keydown', repeat: true })).toBe(false);
+    expect(key({ ...ctrlC, type: 'keyup', repeat: false })).toBe(false);
+    expect(key({ ...ctrlC, type: 'keydown', repeat: false })).toBe(true);
+    expect(sent.filter(message => message.type === 'copy')).toHaveLength(1);
+  });
+
+  it('keeps Ctrl+Shift+C as a selection copy shortcut', async () => {
     const { host, sent } = await loadHost();
     host.create({ tabId: 'a', options: createOptions() });
     terminalInstances[0].selection = 'selected';
@@ -379,7 +422,9 @@ describe('terminal host bridge', () => {
     });
 
     expect(handled).toBe(false);
-    expect(sent).toContainEqual({ type: 'copy', tabId: 'a', paneId: 'a', data: 'selected' });
+    expect(sent).toContainEqual({
+      type: 'copy', tabId: 'a', paneId: 'a', data: 'selected'
+    });
     expect(terminalInstances[0].selection).toBe('');
   });
 
