@@ -42,6 +42,7 @@ public sealed class WebTerminalHostControl : NativeWebView
             ScheduleOutputFlush);
         clipboard = new WebTerminalClipboard(
             () => TopLevel.GetTopLevel(this)?.Clipboard);
+        AdapterCreated += OnAdapterCreated;
         WebMessageReceived += OnWebMessageReceived;
     }
 
@@ -104,12 +105,16 @@ public sealed class WebTerminalHostControl : NativeWebView
         Interlocked.Exchange(ref flushScheduled, 0);
         terminalRegistry.StopObserving();
         hostReady = false;
+        AdapterCreated -= OnAdapterCreated;
         WebMessageReceived -= OnWebMessageReceived;
         (TryGetPlatformHandle() as IDisposable)?.Dispose();
         Tabs = null;
         ActiveTab = null;
         Tab = null;
     }
+
+    private void OnAdapterCreated(object? sender, WebViewAdapterEventArgs eventArgs) =>
+        WindowsWebViewSettings.TryDisableBrowserAccelerators(this);
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {

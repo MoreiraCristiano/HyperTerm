@@ -285,22 +285,6 @@
       background: var(--search-active);
     }
     #terminal-search-results { min-width: 62px; text-align: center; color: var(--search-muted); }
-    #pane-context-menu {
-      position: fixed;
-      z-index: 20;
-      display: none;
-      min-width: 130px;
-      padding: 4px;
-      color: var(--search-foreground);
-      background: var(--search-background);
-      border: 1px solid var(--search-border);
-      border-radius: 4px;
-      box-shadow: 0 4px 14px var(--search-shadow);
-      font: 12px "Segoe UI", sans-serif;
-    }
-    #pane-context-menu.open { display: grid; }
-    #pane-context-menu button { padding: 6px 9px; color: inherit; background: transparent; border: 0; text-align: left; }
-    #pane-context-menu button:hover { background: var(--search-hover); }
   </style>
 </head>
 <body>
@@ -312,11 +296,6 @@
     <button id="terminal-search-previous" type="button" aria-label="Previous match" title="Previous match">↑</button>
     <button id="terminal-search-next" type="button" aria-label="Next match" title="Next match">↓</button>
     <button id="terminal-search-close" type="button" aria-label="Close search" title="Close">×</button>
-  </div>
-  <div id="pane-context-menu" aria-hidden="true">
-    <button type="button" data-command="splitRight">Split Right</button>
-    <button type="button" data-command="splitDown">Split Down</button>
-    <button type="button" data-command="closePane">Close Pane</button>
   </div>
   <script src="terminal.js"></script>
 </body>

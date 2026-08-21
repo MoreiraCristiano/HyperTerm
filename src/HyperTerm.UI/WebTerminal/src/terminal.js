@@ -11,7 +11,6 @@ const searchCaseElement = document.getElementById('terminal-search-case');
 const searchPreviousElement = document.getElementById('terminal-search-previous');
 const searchNextElement = document.getElementById('terminal-search-next');
 const searchCloseElement = document.getElementById('terminal-search-close');
-const paneContextMenuElement = document.getElementById('pane-context-menu');
 const terminals = new Map();
 let activePaneId = null;
 let activeTabId = null;
@@ -19,6 +18,10 @@ let visiblePaneIds = new Set();
 let webglSuppressed = false;
 let resizeFrame = null;
 let activeTheme = 'dark';
+let terminalZoomOffset = 0;
+
+const minimumTerminalFontSize = 8;
+const maximumTerminalFontSize = 32;
 
 const terminalThemes = {
   dark: {
@@ -365,6 +368,54 @@ function send(message) {
   }
 }
 
+function zoomedFontSize(fontSize, offset = terminalZoomOffset) {
+  return Math.min(maximumTerminalFontSize, Math.max(minimumTerminalFontSize, fontSize + offset));
+}
+
+function applyTerminalZoom() {
+  terminals.forEach(state => {
+    state.terminal.options.fontSize = zoomedFontSize(state.configuredFontSize);
+  });
+  scheduleFitAllTerminals();
+}
+
+function changeTerminalZoom(change) {
+  if (change === 0) {
+    terminalZoomOffset = 0;
+  } else {
+    const candidateOffset = terminalZoomOffset + change;
+    const canChange = terminals.size === 0 || [...terminals.values()].some(state =>
+      zoomedFontSize(state.configuredFontSize, candidateOffset)
+        !== zoomedFontSize(state.configuredFontSize));
+    if (!canChange) {
+      return;
+    }
+    terminalZoomOffset = candidateOffset;
+  }
+  applyTerminalZoom();
+}
+
+function handleZoomKeyEvent(event) {
+  if (!event.ctrlKey || event.altKey || event.metaKey) {
+    return;
+  }
+
+  const zoomChange = event.key === '+' || event.key === '=' || event.code === 'NumpadAdd'
+    ? 1
+    : event.key === '-' || event.code === 'NumpadSubtract'
+      ? -1
+      : event.key === '0' || event.code === 'Numpad0'
+        ? 0
+        : null;
+  if (zoomChange === null) {
+    return;
+  }
+
+  event.preventDefault();
+  event.stopPropagation();
+  changeTerminalZoom(zoomChange);
+}
+
 function createTerminal({ paneId, tabId, options }) {
   paneId ??= tabId;
   if (terminals.has(paneId)) {
@@ -375,16 +426,8 @@ function createTerminal({ paneId, tabId, options }) {
   element.className = 'terminal-pane';
   element.dataset.paneId = paneId;
   element.dataset.tabId = tabId;
-  element.addEventListener('contextmenu', event => {
-    event.preventDefault();
-    setActiveTerminal(paneId, true);
-    if (paneContextMenuElement) {
-      paneContextMenuElement.style.left = `${event.clientX}px`;
-      paneContextMenuElement.style.top = `${event.clientY}px`;
-      paneContextMenuElement.classList.add('open');
-      paneContextMenuElement.setAttribute('aria-hidden', 'false');
-    }
-  });
+  element.addEventListener('contextmenu', event => event.preventDefault());
+  element.addEventListener('keydown', handleZoomKeyEvent, true);
   terminalHostElement.appendChild(element);
 
   const palette = applyHostTheme(options.theme);
@@ -397,7 +440,7 @@ function createTerminal({ paneId, tabId, options }) {
     cursorBlink: options.cursorBlink,
     cursorStyle: options.cursorStyle,
     fontFamily: options.fontFamily,
-    fontSize: options.fontSize,
+    fontSize: zoomedFontSize(options.fontSize),
     lineHeight: 1.1,
     scrollback: 5000,
     allowTransparency: false,
@@ -420,6 +463,7 @@ function createTerminal({ paneId, tabId, options }) {
     webglAddon: null,
     webglContextLossDisposable: null,
     webglDisabled: false,
+    configuredFontSize: options.fontSize,
     started: false,
     lastColumns: 0,
     lastRows: 0
@@ -614,7 +658,8 @@ function configureTerminal(state, options) {
     options.theme,
     options.selectionBackground);
   state.terminal.options.fontFamily = options.fontFamily;
-  state.terminal.options.fontSize = options.fontSize;
+  state.configuredFontSize = options.fontSize;
+  state.terminal.options.fontSize = zoomedFontSize(options.fontSize);
   state.terminal.options.theme = {
     ...xtermTheme(palette),
     selectionBackground,
@@ -761,21 +806,6 @@ searchCaseElement.addEventListener('click', () => {
 searchPreviousElement.addEventListener('click', () => runSearch(false));
 searchNextElement.addEventListener('click', () => runSearch(true));
 searchCloseElement.addEventListener('click', () => closeSearch());
-paneContextMenuElement?.addEventListener('click', event => {
-  const command = event.target?.dataset?.command;
-  const state = terminals.get(activePaneId);
-  if (command && state) {
-    send({ type: 'applicationCommand', tabId: state.tabId, paneId: state.paneId, command });
-  }
-  paneContextMenuElement.classList.remove('open');
-  paneContextMenuElement.setAttribute('aria-hidden', 'true');
-});
-document.addEventListener('pointerdown', event => {
-  if (paneContextMenuElement && !paneContextMenuElement.contains(event.target)) {
-    paneContextMenuElement.classList.remove('open');
-    paneContextMenuElement.setAttribute('aria-hidden', 'true');
-  }
-});
 
 function enableWebgl(state) {
   if (state.webglAddon || state.webglDisabled) {

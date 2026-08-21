@@ -97,10 +97,6 @@ async function loadHost({ width = 800, height = 600, bridge = true } = {}) {
       <button id="terminal-search-previous"></button>
       <button id="terminal-search-next"></button>
       <button id="terminal-search-close"></button>
-    </div>
-    <div id="pane-context-menu" aria-hidden="true">
-      <button data-command="splitRight"></button>
-      <button data-command="closePane"></button>
     </div>`;
   const host = document.getElementById('terminal-host');
   host.getBoundingClientRect = () => ({ width, height });
@@ -288,7 +284,7 @@ describe('terminal host bridge', () => {
     expect(webglInstances).toHaveLength(1);
   });
 
-  it('activates panes and forwards context menu commands', async () => {
+  it('activates panes and suppresses context menus', async () => {
     const { host, sent } = await loadHost();
     host.create({ paneId: 'a', tabId: 'tab', options: createOptions() });
     host.create({ paneId: 'b', tabId: 'tab', options: createOptions() });
@@ -298,26 +294,14 @@ describe('terminal host bridge', () => {
       new MouseEvent('pointerdown', { bubbles: true }));
     expect(sent).toContainEqual({ type: 'paneActivated', tabId: 'tab', paneId: 'b' });
 
-    terminalInstances[1].element.dispatchEvent(new MouseEvent('contextmenu', {
+    const contextMenu = new MouseEvent('contextmenu', {
       bubbles: true, cancelable: true, clientX: 12, clientY: 34
-    }));
-    const menu = document.getElementById('pane-context-menu');
-    expect(menu.classList.contains('open')).toBe(true);
-    expect(menu.style.left).toBe('12px');
-    expect(menu.style.top).toBe('34px');
-
-    menu.querySelector('[data-command="splitRight"]').click();
-    expect(sent).toContainEqual({
-      type: 'applicationCommand', tabId: 'tab', paneId: 'b', command: 'splitRight'
     });
-    expect(menu.getAttribute('aria-hidden')).toBe('true');
+    terminalInstances[1].element.dispatchEvent(contextMenu);
 
-    terminalInstances[1].element.dispatchEvent(
-      new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
-    menu.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
-    expect(menu.classList.contains('open')).toBe(true);
-    document.body.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
-    expect(menu.classList.contains('open')).toBe(false);
+    expect(contextMenu.defaultPrevented).toBe(true);
+    expect(document.getElementById('pane-context-menu')).toBeNull();
+    expect(sent.some(message => message.type === 'applicationCommand')).toBe(false);
   });
 
   it('reconfigures every pane belonging to one tab', async () => {
@@ -529,6 +513,35 @@ describe('terminal host bridge', () => {
 
     expect(zoomWheel.defaultPrevented).toBe(true);
     expect(scrollWheel.defaultPrevented).toBe(false);
+  });
+
+  it('zooms terminal fonts with Ctrl plus, minus, and zero', async () => {
+    const { host } = await loadHost();
+    host.create({ paneId: 'a', tabId: 'tab', options: createOptions() });
+    host.create({ paneId: 'b', tabId: 'tab', options: createOptions() });
+
+    const zoomIn = new KeyboardEvent('keydown', {
+      key: '+', code: 'Equal', ctrlKey: true, shiftKey: true, cancelable: true
+    });
+    terminalInstances[0].element.dispatchEvent(zoomIn);
+    expect(zoomIn.defaultPrevented).toBe(true);
+    expect(terminalInstances.map(terminal => terminal.options.fontSize)).toEqual([14, 14]);
+
+    terminalInstances[0].element.dispatchEvent(new KeyboardEvent('keydown', {
+      key: '-', code: 'Minus', ctrlKey: true, cancelable: true
+    }));
+    expect(terminalInstances.map(terminal => terminal.options.fontSize)).toEqual([13, 13]);
+
+    terminalInstances[0].element.dispatchEvent(new KeyboardEvent('keydown', {
+      key: '+', code: 'Equal', ctrlKey: true, shiftKey: true, cancelable: true
+    }));
+    host.configureTab({ tabId: 'tab', options: { ...createOptions(), fontSize: 18 } });
+    expect(terminalInstances.map(terminal => terminal.options.fontSize)).toEqual([19, 19]);
+
+    terminalInstances[0].element.dispatchEvent(new KeyboardEvent('keydown', {
+      key: '0', code: 'Digit0', ctrlKey: true, cancelable: true
+    }));
+    expect(terminalInstances.map(terminal => terminal.options.fontSize)).toEqual([18, 18]);
   });
 
   it('switches active tabs, updates options, and focuses only the active terminal', async () => {
