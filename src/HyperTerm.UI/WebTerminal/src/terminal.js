@@ -22,6 +22,7 @@ let terminalZoomOffset = 0;
 
 const minimumTerminalFontSize = 8;
 const maximumTerminalFontSize = 32;
+const maximumOsc52Bytes = 128 * 1024;
 
 const terminalThemes = {
   dark: {
@@ -459,6 +460,7 @@ function createTerminal({ paneId, tabId, options }) {
     fitAddon,
     searchAddon,
     searchResultsDisposable: null,
+    osc52Disposable: null,
     lastSearchResults: null,
     webglAddon: null,
     webglContextLossDisposable: null,
@@ -481,6 +483,9 @@ function createTerminal({ paneId, tabId, options }) {
     }
   });
   terminal.open(element);
+  state.osc52Disposable = terminal.parser.registerOscHandler(
+    52,
+    data => handleOsc52(state, data));
   terminal.onData(data => send({ type: 'input', tabId, paneId, data }));
   element.addEventListener('pointerdown', () => {
     if (activePaneId !== paneId) {
@@ -591,6 +596,45 @@ function copyTerminalSelection(state) {
   return true;
 }
 
+function handleOsc52(state, data) {
+  const separatorIndex = data.indexOf(';');
+  if (separatorIndex < 0) {
+    return true;
+  }
+
+  const selectionTargets = data.slice(0, separatorIndex);
+  const payload = data.slice(separatorIndex + 1);
+  if (payload === '?' || (selectionTargets && !selectionTargets.includes('c'))) {
+    return true;
+  }
+
+  const text = decodeOsc52Payload(payload);
+  if (text) {
+    send({ type: 'copy', tabId: state.tabId, paneId: state.paneId, data: text });
+  }
+  return true;
+}
+
+function decodeOsc52Payload(payload) {
+  const maximumEncodedLength = Math.ceil(maximumOsc52Bytes / 3) * 4;
+  if (payload.length === 0 || payload.length > maximumEncodedLength ||
+      payload.length % 4 === 1 || !/^[A-Za-z0-9+/]*={0,2}$/.test(payload)) {
+    return null;
+  }
+
+  try {
+    const decoded = atob(payload);
+    if (decoded.length > maximumOsc52Bytes) {
+      return null;
+    }
+
+    const bytes = Uint8Array.from(decoded, character => character.charCodeAt(0));
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  } catch {
+    return null;
+  }
+}
+
 function handlePaneKeyEvent(state, event) {
   if (event.type !== 'keydown' || event.ctrlKey || event.metaKey || !event.altKey) {
     return null;
@@ -676,6 +720,7 @@ function disposeTerminal(paneId) {
   disableWebgl(state);
   visiblePaneIds.delete(paneId);
   state.searchResultsDisposable?.dispose();
+  state.osc52Disposable?.dispose();
   state.terminal.dispose();
   state.element.remove();
   terminals.delete(paneId);

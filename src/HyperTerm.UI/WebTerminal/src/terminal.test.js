@@ -18,6 +18,18 @@ vi.mock('@xterm/xterm', () => ({
       this.rows = 24;
       this.selection = '';
       this.throwOnWrite = false;
+      this.oscHandlers = new Map();
+      this.parser = {
+        registerOscHandler: (identifier, handler) => {
+          this.oscHandlers.set(identifier, handler);
+          return {
+            dispose: () => {
+              this.oscHandlers.delete(identifier);
+              this.oscHandlerDisposed = true;
+            }
+          };
+        }
+      };
       terminalInstances.push(this);
     }
 
@@ -121,6 +133,11 @@ function createOptions() {
     selectionBackground: '#264F78',
     theme: 'Default Dark'
   };
+}
+
+function encodeBase64(text) {
+  const bytes = new TextEncoder().encode(text);
+  return btoa(String.fromCharCode(...bytes));
 }
 
 function relativeLuminance(hexColor) {
@@ -428,6 +445,41 @@ describe('terminal host bridge', () => {
     expect(terminalInstances[0].selection).toBe('');
   });
 
+  it('copies OSC 52 clipboard writes as UTF-8', async () => {
+    const { host, sent } = await loadHost();
+    host.create({ tabId: 'a', options: createOptions() });
+    const osc52 = terminalInstances[0].oscHandlers.get(52);
+
+    expect(osc52(`c;${encodeBase64('ação 🚀')}`)).toBe(true);
+    expect(osc52(`;${encodeBase64('default clipboard')}`)).toBe(true);
+    expect(osc52(`cp;${encodeBase64('combined target')}`)).toBe(true);
+
+    expect(sent).toContainEqual({
+      type: 'copy', tabId: 'a', paneId: 'a', data: 'ação 🚀'
+    });
+    expect(sent).toContainEqual({
+      type: 'copy', tabId: 'a', paneId: 'a', data: 'default clipboard'
+    });
+    expect(sent).toContainEqual({
+      type: 'copy', tabId: 'a', paneId: 'a', data: 'combined target'
+    });
+  });
+
+  it('blocks OSC 52 reads and invalid or oversized writes', async () => {
+    const { host, sent } = await loadHost();
+    host.create({ tabId: 'a', options: createOptions() });
+    const osc52 = terminalInstances[0].oscHandlers.get(52);
+    const oversized = btoa('a'.repeat((128 * 1024) + 1));
+
+    expect(osc52('c;?')).toBe(true);
+    expect(osc52(`p;${encodeBase64('primary')}`)).toBe(true);
+    expect(osc52('c;not base64')).toBe(true);
+    expect(osc52(`c;${btoa(String.fromCharCode(0xff, 0xfe))}`)).toBe(true);
+    expect(osc52(`c;${oversized}`)).toBe(true);
+
+    expect(sent).not.toContainEqual(expect.objectContaining({ type: 'copy' }));
+  });
+
   it('opens search without forwarding the shortcut and navigates matches', async () => {
     const { host, sent } = await loadHost();
     host.create({ tabId: 'a', options: createOptions() });
@@ -527,6 +579,8 @@ describe('terminal host bridge', () => {
     host.dispose('a');
 
     expect(terminalInstances[0].disposed).toBe(true);
+    expect(terminalInstances[0].oscHandlerDisposed).toBe(true);
+    expect(terminalInstances[0].oscHandlers.has(52)).toBe(false);
     expect(document.querySelector('[data-tab-id="a"]')).toBeNull();
   });
 
