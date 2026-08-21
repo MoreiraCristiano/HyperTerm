@@ -25,6 +25,21 @@ public sealed class AvaloniaHeadlessTests
 {
     [AvaloniaFact]
     [Trait("Category", "Headless")]
+    public void Shortcut_dialog_uses_spacious_two_column_layout()
+    {
+        var dialog = new ShortcutsDialog();
+        Border dialogCard = dialog.FindControl<Border>("ShortcutDialogCard")!;
+        Grid shortcutColumns = dialog.FindControl<Grid>("ShortcutColumns")!;
+
+        Assert.Equal(760, dialogCard.Width);
+        Assert.Equal(2, shortcutColumns.ColumnDefinitions.Count);
+        Assert.All(
+            shortcutColumns.ColumnDefinitions,
+            column => Assert.Equal(GridUnitType.Star, column.Width.GridUnitType));
+    }
+
+    [AvaloniaFact]
+    [Trait("Category", "Headless")]
     public async Task Terminal_host_removal_is_idempotent_and_clears_tab_references()
     {
         var workspace = new TerminalWorkspaceViewModel(

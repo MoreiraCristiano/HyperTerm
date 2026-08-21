@@ -8,8 +8,9 @@
   <Panel>
     <Border Background="{DynamicResource OverlayBrush}" />
     <Border
-        Width="560"
-        MaxHeight="640"
+        x:Name="ShortcutDialogCard"
+        Width="760"
+        MaxHeight="680"
         Margin="24"
         Padding="{DynamicResource DialogPadding}"
         HorizontalAlignment="Center"
@@ -26,45 +27,73 @@
             Margin="0,16"
             HorizontalScrollBarVisibility="Disabled"
             VerticalScrollBarVisibility="Auto">
-          <StackPanel Spacing="18">
-            <StackPanel>
-              <TextBlock Classes="shortcutGroupTitle" Text="Sessions" />
-              <Grid Classes="shortcutList" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto">
-                <TextBlock Text="New session" /><TextBlock Grid.Column="1" Classes="shortcutGesture" Text="Ctrl+Shift+N" />
-                <TextBlock Grid.Row="1" Text="Open selected session" /><TextBlock Grid.Row="1" Grid.Column="1" Classes="shortcutGesture" Text="Ctrl+Shift+O" />
-                <TextBlock Grid.Row="2" Text="Edit selected session" /><TextBlock Grid.Row="2" Grid.Column="1" Classes="shortcutGesture" Text="F2" />
-              </Grid>
+          <Grid x:Name="ShortcutColumns" ColumnDefinitions="*,*">
+            <StackPanel Margin="0,0,8,0" Spacing="16">
+              <Border Classes="shortcutGroupCard">
+                <StackPanel>
+                  <TextBlock Classes="shortcutGroupTitle" Text="Sessions" />
+                  <Grid Classes="shortcutList" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto">
+                    <TextBlock Text="New session" />
+                    <Border Grid.Column="1" Classes="shortcutGesture"><TextBlock Text="Ctrl+Shift+N" /></Border>
+                    <TextBlock Grid.Row="1" Text="Open selected session" />
+                    <Border Grid.Row="1" Grid.Column="1" Classes="shortcutGesture"><TextBlock Text="Ctrl+Shift+O" /></Border>
+                    <TextBlock Grid.Row="2" Text="Edit selected session" />
+                    <Border Grid.Row="2" Grid.Column="1" Classes="shortcutGesture"><TextBlock Text="F2" /></Border>
+                  </Grid>
+                </StackPanel>
+              </Border>
+
+              <Border Classes="shortcutGroupCard">
+                <StackPanel>
+                  <TextBlock Classes="shortcutGroupTitle" Text="Application" />
+                  <Grid Classes="shortcutList" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
+                    <TextBlock Text="Toggle sidebar" />
+                    <Border Grid.Column="1" Classes="shortcutGesture"><TextBlock Text="Ctrl+Shift+B" /></Border>
+                    <TextBlock Grid.Row="1" Text="Open settings" />
+                    <Border Grid.Row="1" Grid.Column="1" Classes="shortcutGesture"><TextBlock Text="Ctrl+Shift+," /></Border>
+                    <TextBlock Grid.Row="2" Text="Open command palette" />
+                    <Border Grid.Row="2" Grid.Column="1" Classes="shortcutGesture"><TextBlock Text="Ctrl+Shift+K" /></Border>
+                    <TextBlock Grid.Row="3" Text="Show shortcuts" />
+                    <Border Grid.Row="3" Grid.Column="1" Classes="shortcutGesture"><TextBlock Text="F1" /></Border>
+                    <TextBlock Grid.Row="4" Text="Close active screen" />
+                    <Border Grid.Row="4" Grid.Column="1" Classes="shortcutGesture"><TextBlock Text="Esc" /></Border>
+                    <TextBlock Grid.Row="5" Text="Close HyperTerm" />
+                    <Border Grid.Row="5" Grid.Column="1" Classes="shortcutGesture"><TextBlock Text="Alt+F4" /></Border>
+                  </Grid>
+                </StackPanel>
+              </Border>
             </StackPanel>
 
-            <StackPanel>
-              <TextBlock Classes="shortcutGroupTitle" Text="Terminal and tabs" />
-              <Grid Classes="shortcutList" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
-                <TextBlock Text="New default terminal" /><TextBlock Grid.Column="1" Classes="shortcutGesture" Text="Ctrl+Shift+T" />
-                <TextBlock Grid.Row="1" Text="Close active pane" /><TextBlock Grid.Row="1" Grid.Column="1" Classes="shortcutGesture" Text="Ctrl+Shift+W" />
-                <TextBlock Grid.Row="2" Text="Next tab" /><TextBlock Grid.Row="2" Grid.Column="1" Classes="shortcutGesture" Text="Ctrl+Tab" />
-                <TextBlock Grid.Row="3" Text="Previous tab" /><TextBlock Grid.Row="3" Grid.Column="1" Classes="shortcutGesture" Text="Ctrl+Shift+Tab" />
-                <TextBlock Grid.Row="4" Text="Search terminal output" /><TextBlock Grid.Row="4" Grid.Column="1" Classes="shortcutGesture" Text="Ctrl+Shift+F" />
-                <TextBlock Grid.Row="5" Text="Copy terminal selection" /><TextBlock Grid.Row="5" Grid.Column="1" Classes="shortcutGesture" Text="Ctrl+Shift+C" />
-                <TextBlock Grid.Row="6" Text="Split right" /><TextBlock Grid.Row="6" Grid.Column="1" Classes="shortcutGesture" Text="Alt+Shift+Right" />
-                <TextBlock Grid.Row="7" Text="Split down" /><TextBlock Grid.Row="7" Grid.Column="1" Classes="shortcutGesture" Text="Alt+Shift+Down" />
-                <TextBlock Grid.Row="8" Text="Focus right / down" /><TextBlock Grid.Row="8" Grid.Column="1" Classes="shortcutGesture" Text="Alt+Right / Alt+Down" />
-                <TextBlock Grid.Row="9" Text="Focus left / up" /><TextBlock Grid.Row="9" Grid.Column="1" Classes="shortcutGesture" Text="Alt+Left / Alt+Up" />
-                <TextBlock Grid.Row="10" Text="Zoom in / out / reset" /><TextBlock Grid.Row="10" Grid.Column="1" Classes="shortcutGesture" Text="Ctrl++ / Ctrl+- / Ctrl+0" />
-              </Grid>
-            </StackPanel>
-
-            <StackPanel>
-              <TextBlock Classes="shortcutGroupTitle" Text="Application" />
-              <Grid Classes="shortcutList" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
-                <TextBlock Text="Toggle sidebar" /><TextBlock Grid.Column="1" Classes="shortcutGesture" Text="Ctrl+Shift+B" />
-                <TextBlock Grid.Row="1" Text="Open settings" /><TextBlock Grid.Row="1" Grid.Column="1" Classes="shortcutGesture" Text="Ctrl+Shift+," />
-                <TextBlock Grid.Row="2" Text="Open command palette" /><TextBlock Grid.Row="2" Grid.Column="1" Classes="shortcutGesture" Text="Ctrl+Shift+K" />
-                <TextBlock Grid.Row="3" Text="Show shortcuts" /><TextBlock Grid.Row="3" Grid.Column="1" Classes="shortcutGesture" Text="F1" />
-                <TextBlock Grid.Row="4" Text="Close active screen" /><TextBlock Grid.Row="4" Grid.Column="1" Classes="shortcutGesture" Text="Esc" />
-                <TextBlock Grid.Row="5" Text="Close HyperTerm" /><TextBlock Grid.Row="5" Grid.Column="1" Classes="shortcutGesture" Text="Alt+F4" />
-              </Grid>
-            </StackPanel>
-          </StackPanel>
+            <Border Grid.Column="1" Margin="8,0,0,0" Classes="shortcutGroupCard">
+              <StackPanel>
+                <TextBlock Classes="shortcutGroupTitle" Text="Terminal and tabs" />
+                <Grid Classes="shortcutList" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+                  <TextBlock Text="New default terminal" />
+                  <Border Grid.Column="1" Classes="shortcutGesture"><TextBlock Text="Ctrl+Shift+T" /></Border>
+                  <TextBlock Grid.Row="1" Text="Close active pane" />
+                  <Border Grid.Row="1" Grid.Column="1" Classes="shortcutGesture"><TextBlock Text="Ctrl+Shift+W" /></Border>
+                  <TextBlock Grid.Row="2" Text="Next tab" />
+                  <Border Grid.Row="2" Grid.Column="1" Classes="shortcutGesture"><TextBlock Text="Ctrl+Tab" /></Border>
+                  <TextBlock Grid.Row="3" Text="Previous tab" />
+                  <Border Grid.Row="3" Grid.Column="1" Classes="shortcutGesture"><TextBlock Text="Ctrl+Shift+Tab" /></Border>
+                  <TextBlock Grid.Row="4" Text="Search terminal output" />
+                  <Border Grid.Row="4" Grid.Column="1" Classes="shortcutGesture"><TextBlock Text="Ctrl+Shift+F" /></Border>
+                  <TextBlock Grid.Row="5" Text="Copy terminal selection" />
+                  <Border Grid.Row="5" Grid.Column="1" Classes="shortcutGesture"><TextBlock Text="Ctrl+Shift+C" /></Border>
+                  <TextBlock Grid.Row="6" Text="Split right" />
+                  <Border Grid.Row="6" Grid.Column="1" Classes="shortcutGesture"><TextBlock Text="Alt+Shift+Right" /></Border>
+                  <TextBlock Grid.Row="7" Text="Split down" />
+                  <Border Grid.Row="7" Grid.Column="1" Classes="shortcutGesture"><TextBlock Text="Alt+Shift+Down" /></Border>
+                  <TextBlock Grid.Row="8" Text="Focus right / down" />
+                  <Border Grid.Row="8" Grid.Column="1" Classes="shortcutGesture"><TextBlock Text="Alt+Right / Alt+Down" /></Border>
+                  <TextBlock Grid.Row="9" Text="Focus left / up" />
+                  <Border Grid.Row="9" Grid.Column="1" Classes="shortcutGesture"><TextBlock Text="Alt+Left / Alt+Up" /></Border>
+                  <TextBlock Grid.Row="10" Text="Zoom in / out / reset" />
+                  <Border Grid.Row="10" Grid.Column="1" Classes="shortcutGesture"><TextBlock Text="Ctrl++ / Ctrl+- / Ctrl+0" /></Border>
+                </Grid>
+              </StackPanel>
+            </Border>
+          </Grid>
         </ScrollViewer>
 
         <Button Grid.Row="2" HorizontalAlignment="Right" Command="{Binding CloseShortcutsCommand}" Content="Close" />
