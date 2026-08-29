@@ -106,6 +106,36 @@ jobs:
           if ($checksum -cne $expectedChecksum) {
               throw "Release checksum does not match $archiveName."
           }
+
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zip = [System.IO.Compression.ZipFile]::OpenRead($archivePath)
+          try {
+              $manifestEntry = $zip.GetEntry('HyperTerm.manifest.json')
+              if ($null -eq $manifestEntry) {
+                  throw 'Release manifest is missing.'
+              }
+
+              $reader = [System.IO.StreamReader]::new($manifestEntry.Open())
+              try {
+                  $manifest = $reader.ReadToEnd() | ConvertFrom-Json
+              }
+              finally {
+                  $reader.Dispose()
+              }
+
+              $archiveFiles = @($zip.Entries |
+                  Where-Object { -not [string]::IsNullOrEmpty($_.Name) } |
+                  ForEach-Object FullName |
+                  Sort-Object)
+              $manifestFiles = @($manifest.files | Sort-Object)
+              if ($manifest.schemaVersion -ne 2 -or
+                  (Compare-Object $archiveFiles $manifestFiles)) {
+                  throw 'Release manifest file list does not match archive contents.'
+              }
+          }
+          finally {
+              $zip.Dispose()
+          }
       - name: Publish GitHub release
         shell: pwsh
         env:

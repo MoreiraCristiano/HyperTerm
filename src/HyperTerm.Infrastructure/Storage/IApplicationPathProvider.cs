@@ -8,4 +8,6 @@ internal interface IApplicationPathProvider
 
     string SettingsPath { get; }
     string LogsDirectory { get; }
+
+    string UpdatesDirectory { get; }
 }

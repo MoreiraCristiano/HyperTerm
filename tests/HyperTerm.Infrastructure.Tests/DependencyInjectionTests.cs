@@ -38,6 +38,7 @@ public sealed class DependencyInjectionTests
             Assert.NotNull(provider.GetRequiredService<ITerminalSessionFactory>());
             Assert.NotNull(provider.GetRequiredService<IPtySessionFactory>());
             Assert.NotNull(provider.GetRequiredService<IPsmuxService>());
+            Assert.NotNull(provider.GetRequiredService<IApplicationUpdateService>());
             Assert.NotNull(provider.GetRequiredService<IDbContextFactory<HyperTermDbContext>>());
         }
         finally

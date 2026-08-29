@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using HyperTerm.Core.Abstractions.Persistence;
 using HyperTerm.Core.Abstractions.Logging;
+using HyperTerm.Core.Abstractions.Services;
 using HyperTerm.Core.Abstractions.Settings;
 using HyperTerm.Core.Abstractions.Terminal;
 using HyperTerm.Infrastructure.Persistence;
@@ -10,6 +11,7 @@ using HyperTerm.Infrastructure.Settings;
 using HyperTerm.Infrastructure.Logging;
 using HyperTerm.Infrastructure.Storage;
 using HyperTerm.Infrastructure.Terminal;
+using HyperTerm.Infrastructure.Updates;
 
 namespace HyperTerm.Infrastructure;
 
@@ -42,6 +44,7 @@ public static class DependencyInjection
         services.AddSingleton<IPsmuxCommandClient, PsmuxCommandClient>();
         services.AddSingleton<IPsmuxService, PsmuxService>();
         services.AddSingleton<IPtySessionFactory, PortaPtySessionFactory>();
+        services.AddSingleton<IApplicationUpdateService, GitHubApplicationUpdateService>();
 
         return services;
     }

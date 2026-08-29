@@ -1513,6 +1513,36 @@ public sealed class ViewModelTests
     }
 
     [Fact]
+    public async Task Settings_preserve_snap_compatible_window_dimensions()
+    {
+        var settingsService = new FakeSettingsService(exists: true);
+        var viewModel = CreateSettingsViewModel(settingsService);
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+
+        viewModel.CaptureWindowState(640, 500, 12, 24);
+        await viewModel.ShutdownAsync();
+
+        Assert.Equal(640, settingsService.Value.Window.Width);
+        Assert.Equal(500, settingsService.Value.Window.Height);
+        Assert.Equal(12, settingsService.Value.Window.X);
+        Assert.Equal(24, settingsService.Value.Window.Y);
+    }
+
+    [Fact]
+    public async Task Settings_clamp_window_dimensions_to_snap_compatible_minimums()
+    {
+        var settingsService = new FakeSettingsService(exists: true);
+        var viewModel = CreateSettingsViewModel(settingsService);
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+
+        viewModel.CaptureWindowState(320, 200, 12, 24);
+        await viewModel.ShutdownAsync();
+
+        Assert.Equal(480, settingsService.Value.Window.Width);
+        Assert.Equal(360, settingsService.Value.Window.Height);
+    }
+
+    [Fact]
     public async Task SettingsSavePsmuxShutdownPreference()
     {
         var settingsService = new FakeSettingsService(exists: true);

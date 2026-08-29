@@ -12,6 +12,7 @@ internal sealed class ApplicationPathProvider : IApplicationPathProvider
             DatabasePath = Path.Combine(ApplicationDirectory, "hyperterm.db");
             SettingsPath = Path.Combine(ApplicationDirectory, "settings.json");
             LogsDirectory = Path.Combine(ApplicationDirectory, "logs");
+            UpdatesDirectory = Path.Combine(ApplicationDirectory, "updates");
             return;
         }
 
@@ -26,6 +27,7 @@ internal sealed class ApplicationPathProvider : IApplicationPathProvider
         DatabasePath = Path.Combine(ApplicationDirectory, "hyperterm.db");
         SettingsPath = Path.Combine(ApplicationDirectory, "settings.json");
         LogsDirectory = Path.Combine(ApplicationDirectory, "logs");
+        UpdatesDirectory = Path.Combine(ApplicationDirectory, "updates");
 
         CopyFirstAvailableIfNeeded(
             [
@@ -47,6 +49,7 @@ internal sealed class ApplicationPathProvider : IApplicationPathProvider
 
     public string SettingsPath { get; }
     public string LogsDirectory { get; }
+    public string UpdatesDirectory { get; }
 
     private static string? GetTestDataRoot()
     {

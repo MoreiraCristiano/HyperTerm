@@ -62,6 +62,7 @@ public sealed partial class App : Application, IDisposable
             mainWindow.Opened += OnMainWindowOpened;
             mainWindow.Closing += OnMainWindowClosing;
             mainWindowViewModel.Settings.SettingsSaved += OnSettingsSaved;
+            mainWindowViewModel.RestartRequested += OnRestartRequested;
             desktop.Exit += OnDesktopExit;
             desktop.MainWindow = mainWindow;
             systemTrayIcon = TrayIcon.GetIcons(this)?.FirstOrDefault();
@@ -91,6 +92,7 @@ public sealed partial class App : Application, IDisposable
         if (mainWindowViewModel is not null)
         {
             mainWindowViewModel.Settings.SettingsSaved -= OnSettingsSaved;
+            mainWindowViewModel.RestartRequested -= OnRestartRequested;
         }
 
         systemTrayIcon?.Dispose();
@@ -142,6 +144,17 @@ public sealed partial class App : Application, IDisposable
     private void OnOpenFromTrayClicked(object? sender, EventArgs eventArgs) => OpenFromTray();
 
     private void OnExitFromTrayClicked(object? sender, EventArgs eventArgs)
+    {
+        explicitShutdownRequested = true;
+        if (systemTrayIcon is not null)
+        {
+            systemTrayIcon.IsVisible = false;
+        }
+
+        desktopLifetime?.Shutdown();
+    }
+
+    private void OnRestartRequested(object? sender, EventArgs eventArgs)
     {
         explicitShutdownRequested = true;
         if (systemTrayIcon is not null)

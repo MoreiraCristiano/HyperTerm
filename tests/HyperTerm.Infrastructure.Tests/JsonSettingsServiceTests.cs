@@ -96,6 +96,7 @@ public sealed class JsonSettingsServiceTests : IDisposable
             DatabasePath = Path.Combine(root, "test.db");
             SettingsPath = Path.Combine(root, "settings.json");
             LogsDirectory = Path.Combine(root, "logs");
+            UpdatesDirectory = Path.Combine(root, "updates");
             Directory.CreateDirectory(root);
         }
 
@@ -103,5 +104,6 @@ public sealed class JsonSettingsServiceTests : IDisposable
         public string DatabasePath { get; }
         public string SettingsPath { get; }
         public string LogsDirectory { get; }
+        public string UpdatesDirectory { get; }
     }
 }

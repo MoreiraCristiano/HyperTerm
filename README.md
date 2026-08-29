@@ -44,6 +44,7 @@ directory. Additional profiles can launch other local shells and tools.
 - Recursive horizontal and vertical split panes with independent terminals
 - Persistent psmux sessions with attach, detach, and shutdown controls
 - Terminal output search and command palette
+- Built-in stable release updates with SHA-256 package verification
 - Configurable font, cursor, and selection appearance
 - WebGL-accelerated xterm.js renderer with DOM fallback
 - Local SQLite storage with no remote telemetry
@@ -107,6 +108,7 @@ HyperTerm stores its data under `%LocalAppData%\HyperTerm\`:
 ```text
 hyperterm.db   Saved sessions and folders
 settings.json Application, profile, and appearance settings
+updates\      Verified update download and staging cache
 ```
 
 Settings writes are atomic, imported archives are validated before mutation,

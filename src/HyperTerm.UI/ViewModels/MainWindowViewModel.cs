@@ -33,6 +33,27 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         SessionManagerViewModel sessionManager,
         FolderEditorViewModel folderEditor,
         ILogger<MainWindowViewModel>? logger = null)
+        : this(
+            explorer,
+            workspace,
+            settings,
+            sessionEditor,
+            sessionManager,
+            folderEditor,
+            null,
+            logger)
+    {
+    }
+
+    public MainWindowViewModel(
+        SessionExplorerViewModel explorer,
+        TerminalWorkspaceViewModel workspace,
+        SettingsViewModel settings,
+        SessionEditorViewModel sessionEditor,
+        SessionManagerViewModel sessionManager,
+        FolderEditorViewModel folderEditor,
+        ApplicationUpdateViewModel? updates,
+        ILogger<MainWindowViewModel>? logger = null)
     {
         Explorer = explorer;
         Workspace = workspace;
@@ -40,6 +61,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         SessionEditor = sessionEditor;
         SessionManager = sessionManager;
         FolderEditor = folderEditor;
+        Updates = updates;
         diagnostics = logger ?? NullLogger<MainWindowViewModel>.Instance;
         WireEvents();
     }
@@ -50,6 +72,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     public event EventHandler? CloseWindowRequested;
     public event EventHandler? InitializationCompleted;
     public event EventHandler? TerminalSearchRequested;
+    public event EventHandler? RestartRequested;
 
     public SessionExplorerViewModel Explorer { get; }
     public TerminalWorkspaceViewModel Workspace { get; }
@@ -57,6 +80,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     public SessionEditorViewModel SessionEditor { get; }
     public SessionManagerViewModel SessionManager { get; }
     public FolderEditorViewModel FolderEditor { get; }
+    public ApplicationUpdateViewModel? Updates { get; }
 
     public string Title => Workspace.Title;
     public WindowSettings WindowSettings => Settings.WindowSettings;
@@ -141,6 +165,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     {
         IsInitialized = true;
         IsInitializing = false;
+        Updates?.StartAutomaticCheck();
         InitializationCompleted?.Invoke(this, EventArgs.Empty);
     }
 
@@ -154,6 +179,11 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
     public async Task ShutdownAsync()
     {
+        if (Updates is not null)
+        {
+            await Updates.ShutdownAsync();
+        }
+
         await Workspace.ShutdownAsync();
         await Settings.ShutdownAsync();
     }
@@ -442,6 +472,12 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         Settings.SessionsImported += OnSessionsImported;
         Settings.StatusRequested += Workspace.SetStatus;
 
+        if (Updates is not null)
+        {
+            Updates.OpenDetailsRequested += OnOpenUpdateDetailsRequested;
+            Updates.RestartRequested += OnRestartRequested;
+        }
+
         Workspace.SettingsRequested += Settings.OpenWithError;
         Workspace.SessionsRefreshRequested += OnSessionsRefreshRequested;
         Workspace.ApplicationCommandRequested += OnApplicationCommandRequested;
@@ -452,6 +488,12 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         SessionManager.PropertyChanged += OnChildPropertyChanged;
         FolderEditor.PropertyChanged += OnChildPropertyChanged;
     }
+
+    private void OnOpenUpdateDetailsRequested(object? sender, EventArgs eventArgs) =>
+        Settings.OpenUpdates();
+
+    private void OnRestartRequested(object? sender, EventArgs eventArgs) =>
+        RestartRequested?.Invoke(this, EventArgs.Empty);
 
     private void OnSessionOpenRequested(SessionListItemViewModel session) =>
         Observe(Workspace.OpenSessionAsync(session), "open terminal session");

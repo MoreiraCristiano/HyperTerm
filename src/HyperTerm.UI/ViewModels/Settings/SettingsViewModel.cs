@@ -238,6 +238,9 @@ public sealed partial class SettingsViewModel(
     [ObservableProperty]
     private string? settingsDataStatus;
 
+    [ObservableProperty]
+    private int selectedSettingsTabIndex;
+
     partial void OnSettingsDataStatusChanged(string? value) =>
         OnPropertyChanged(nameof(HasSettingsDataStatus));
 
@@ -300,8 +303,8 @@ public sealed partial class SettingsViewModel(
         {
             Window = new WindowSettings
             {
-                Width = Math.Max(900, width),
-                Height = Math.Max(600, height),
+                Width = Math.Max(480, width),
+                Height = Math.Max(360, height),
                 X = x,
                 Y = y,
             },
@@ -328,7 +331,14 @@ public sealed partial class SettingsViewModel(
         LoadEditorValues();
         SettingsError = null;
         SettingsDataStatus = null;
+        SelectedSettingsTabIndex = 0;
         IsSettingsOpen = true;
+    }
+
+    public void OpenUpdates()
+    {
+        OpenSettings();
+        SelectedSettingsTabIndex = 6;
     }
 
     [RelayCommand]

@@ -38,6 +38,7 @@ public sealed class ApplicationPathProviderTests
             Assert.Equal(Path.Combine(directory, "hyperterm.db"), provider.DatabasePath);
             Assert.Equal(Path.Combine(directory, "settings.json"), provider.SettingsPath);
             Assert.Equal(Path.Combine(directory, "logs"), provider.LogsDirectory);
+            Assert.Equal(Path.Combine(directory, "updates"), provider.UpdatesDirectory);
         }
         finally
         {
@@ -132,12 +133,14 @@ internal sealed class TemporaryPaths : IApplicationPathProvider, IDisposable
         DatabasePath = Path.Combine(ApplicationDirectory, "test.db");
         SettingsPath = Path.Combine(ApplicationDirectory, "settings.json");
         LogsDirectory = Path.Combine(ApplicationDirectory, "logs");
+        UpdatesDirectory = Path.Combine(ApplicationDirectory, "updates");
     }
 
     public string ApplicationDirectory { get; }
     public string DatabasePath { get; }
     public string SettingsPath { get; }
     public string LogsDirectory { get; }
+    public string UpdatesDirectory { get; }
 
     public void Dispose() => Directory.Delete(ApplicationDirectory, recursive: true);
 }

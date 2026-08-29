@@ -25,6 +25,20 @@ public sealed class AvaloniaHeadlessTests
 {
     [AvaloniaFact]
     [Trait("Category", "Headless")]
+    public void Main_window_uses_windows_snap_compatible_chrome_and_size_limits()
+    {
+        var window = new MainWindow();
+
+        Assert.Equal(WindowDecorations.BorderOnly, window.WindowDecorations);
+        Assert.True(window.ExtendClientAreaToDecorationsHint);
+        Assert.True(window.CanResize);
+        Assert.True(window.CanMaximize);
+        Assert.Equal(480, window.MinWidth);
+        Assert.Equal(360, window.MinHeight);
+    }
+
+    [AvaloniaFact]
+    [Trait("Category", "Headless")]
     public void Shortcut_dialog_uses_spacious_two_column_layout()
     {
         var dialog = new ShortcutsDialog();
@@ -1170,9 +1184,9 @@ public sealed class AvaloniaHeadlessTests
         TabControl tabs = dialog.FindControl<TabControl>("SettingsTabs")!;
         TabItem[] items = tabs.Items.OfType<TabItem>().ToArray();
         Assert.Equal(Dock.Left, tabs.TabStripPlacement);
-        Assert.Equal(6, items.Length);
+        Assert.Equal(7, items.Length);
         Assert.Equal(
-            ["General", "Themes", "Profiles", "Terminal", "Data", "Logs"],
+            ["General", "Themes", "Profiles", "Terminal", "Data", "Logs", "Updates"],
             items.Select(item => item.Header).ToArray());
         Assert.All(items.Where((_, index) => index != 2), item =>
             Assert.IsType<ScrollViewer>(item.Content));

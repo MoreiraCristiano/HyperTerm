@@ -36,4 +36,20 @@ public sealed class ModelTests
         Assert.Equal("1.0", available.Version);
         Assert.Equal("missing", unavailable.Error);
     }
+
+    [Theory]
+    [InlineData(50L, 100L, 50)]
+    [InlineData(150L, 100L, 100)]
+    [InlineData(-50L, 100L, 0)]
+    [InlineData(50L, null, 0)]
+    [InlineData(50L, 0L, 0)]
+    public void Update_progress_reports_bounded_percentage(
+        long received,
+        long? total,
+        int expected)
+    {
+        var progress = new ApplicationUpdateProgress(received, total);
+
+        Assert.Equal(expected, progress.Percentage);
+    }
 }

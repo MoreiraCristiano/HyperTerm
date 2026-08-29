@@ -16,6 +16,14 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+        if (ApplicationUpdateApplier.IsUpdateInvocation(args))
+        {
+            Environment.ExitCode = ApplicationUpdateApplier.RunAsync(args)
+                .GetAwaiter()
+                .GetResult();
+            return;
+        }
+
         var singleInstance = new SingleInstanceCoordinator(
             SingleInstanceCoordinator.CreateIdentity());
 
@@ -108,6 +116,7 @@ internal static class Program
                 services.AddSingleton<ISessionArchiveFilePicker, SessionArchiveFilePicker>();
                 services.AddSingleton<ISystemFontService, AvaloniaSystemFontService>();
                 services.AddSingleton<ILogInteractionService, LogInteractionService>();
+                services.AddSingleton<IApplicationUpdateLauncher, WindowsApplicationUpdateLauncher>();
                 services.AddSingleton<ApplicationExceptionMonitor>();
                 services.AddSingleton<ApplicationLifecycleCoordinator>();
                 services.AddSingleton<SessionExplorerViewModel>();
@@ -116,6 +125,7 @@ internal static class Program
                 services.AddSingleton<SessionEditorViewModel>();
                 services.AddSingleton<SessionManagerViewModel>();
                 services.AddSingleton<FolderEditorViewModel>();
+                services.AddSingleton<ApplicationUpdateViewModel>();
                 services.AddSingleton<MainWindowViewModel>();
                 services.AddSingleton<MainWindow>();
             })

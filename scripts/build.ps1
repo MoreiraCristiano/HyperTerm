@@ -249,8 +249,17 @@ foreach ($package in $sortedPackages) {
 }
 $webPackage = Get-Content -LiteralPath (
     Join-Path $webTerminalPath 'package.json') -Raw | ConvertFrom-Json
+$managedFiles = @(
+    Get-ChildItem -LiteralPath $releasePublishPath -File -Recurse |
+        ForEach-Object {
+            [System.IO.Path]::GetRelativePath(
+                $releasePublishPath,
+                $_.FullName).Replace('\', '/')
+        }
+    'HyperTerm.manifest.json'
+) | Sort-Object -Unique
 $manifest = [ordered]@{
-    schemaVersion = 1
+    schemaVersion = 2
     product = 'HyperTerm'
     version = $Version
     runtime = $Runtime
@@ -263,6 +272,7 @@ $manifest = [ordered]@{
         '@xterm/xterm' = $webPackage.dependencies.'@xterm/xterm'
         esbuild = $webPackage.devDependencies.esbuild
     }
+    files = $managedFiles
 }
 $manifest | ConvertTo-Json -Depth 5 |
     Set-Content -LiteralPath (Join-Path $releasePublishPath 'HyperTerm.manifest.json') `

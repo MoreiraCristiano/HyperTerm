@@ -11,11 +11,13 @@
     Title="{Binding Title}"
     Width="1200"
     Height="760"
-    MinWidth="900"
-    MinHeight="600"
+    MinWidth="480"
+    MinHeight="360"
     WindowState="Maximized"
-    WindowDecorations="None"
+    WindowDecorations="BorderOnly"
     ExtendClientAreaToDecorationsHint="True"
+    CanResize="True"
+    CanMaximize="True"
     ShowInTaskbar="True"
     Background="{DynamicResource AppBackgroundBrush}">
   <Window.KeyBindings>
@@ -396,6 +398,34 @@
           Background="{DynamicResource AppBackgroundBrush}"
           IsVisible="{Binding AreTerminalHostsVisible}"
           Tabs="{Binding Workspace.Tabs}" />
+
+    <Border
+        Grid.Row="1"
+        Grid.Column="2"
+        Margin="16"
+        Padding="12,8"
+        HorizontalAlignment="Center"
+        VerticalAlignment="Top"
+        Background="{DynamicResource SecondaryBackgroundBrush}"
+        BorderBrush="{DynamicResource AccentBrush}"
+        BorderThickness="1"
+        CornerRadius="{DynamicResource RadiusM}"
+        IsVisible="{Binding Updates.IsBannerVisible}">
+      <Grid ColumnDefinitions="Auto,Auto,Auto">
+        <TextBlock VerticalAlignment="Center" Text="{Binding Updates.BannerText}" />
+        <Button
+            Grid.Column="1"
+            Margin="12,0,0,0"
+            Classes="accent"
+            Command="{Binding Updates.OpenDetailsCommand}"
+            Content="View update" />
+        <Button
+            Grid.Column="2"
+            Margin="8,0,0,0"
+            Command="{Binding Updates.DismissBannerCommand}"
+            Content="Dismiss" />
+      </Grid>
+    </Border>
 
     <Border
         Grid.Row="2"

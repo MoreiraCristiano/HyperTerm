@@ -53,6 +53,7 @@
             Margin="{DynamicResource SettingsBodyMargin}"
             Classes="settingsTabs"
             HorizontalContentAlignment="Stretch"
+            SelectedIndex="{Binding Settings.SelectedSettingsTabIndex, Mode=TwoWay}"
             TabStripPlacement="Left"
             VerticalContentAlignment="Stretch">
           <TabItem Classes="settingsTab" Header="General">
@@ -357,6 +358,63 @@
                       <Button Command="{Binding Settings.OpenLogsFolderCommand}" Content="Open folder" />
                     </StackPanel>
                   </Grid>
+                </StackPanel>
+              </StackPanel>
+            </ScrollViewer>
+          </TabItem>
+
+          <TabItem Classes="settingsTab" Header="Updates">
+            <ScrollViewer Margin="{DynamicResource SettingsContentMargin}" Classes="settingsContent">
+              <StackPanel x:Name="UpdatesGroup">
+                <TextBlock Classes="settingsGroupTitle" Text="Updates" />
+                <StackPanel Spacing="{DynamicResource SettingsSectionSpacing}">
+                  <Border Classes="settingsSection">
+                    <StackPanel>
+                      <TextBlock Classes="settingsSectionTitle" Text="HyperTerm updates" />
+                      <TextBlock Classes="settingsSectionDescription" Text="Check GitHub Releases for stable HyperTerm updates." />
+                      <TextBlock Text="{Binding Updates.CurrentVersionText, StringFormat='Current version: {0}'}" />
+                      <TextBlock
+                          Margin="0,4,0,0"
+                          IsVisible="{Binding Updates.IsUpdateAvailable}"
+                          Text="{Binding Updates.AvailableVersionText, StringFormat='Available version: {0}'}" />
+                      <TextBlock Margin="0,10,0,0" Classes="secondary" Text="{Binding Updates.StatusText}" TextWrapping="Wrap" />
+                      <ProgressBar
+                          Margin="0,10,0,0"
+                          Minimum="0"
+                          Maximum="100"
+                          IsVisible="{Binding Updates.IsBusy}"
+                          Value="{Binding Updates.DownloadPercentage}" />
+                      <TextBlock
+                          Margin="0,10,0,0"
+                          Foreground="{DynamicResource DangerBrush}"
+                          IsVisible="{Binding Updates.HasError}"
+                          Text="{Binding Updates.ErrorMessage}"
+                          TextWrapping="Wrap" />
+                      <StackPanel Margin="0,12,0,0" Orientation="Horizontal" Spacing="8">
+                        <Button Command="{Binding Updates.CheckForUpdatesCommand}" Content="Check for updates" />
+                        <Button
+                            Classes="accent"
+                            Command="{Binding Updates.DownloadUpdateCommand}"
+                            Content="Download update"
+                            IsVisible="{Binding Updates.CanDownload}" />
+                      </StackPanel>
+                    </StackPanel>
+                  </Border>
+                  <Border Classes="settingsSection" IsVisible="{Binding Updates.IsReadyToInstall}">
+                    <StackPanel>
+                      <TextBlock Classes="settingsSectionTitle" Text="Install and restart" />
+                      <TextBlock
+                          Classes="settingsSectionDescription"
+                          Text="Installing closes active terminals. Unsaved settings changes are discarded. psmux shutdown behavior follows your current settings."
+                          TextWrapping="Wrap" />
+                      <Button
+                          Width="160"
+                          HorizontalAlignment="Left"
+                          Classes="accent"
+                          Command="{Binding Updates.InstallUpdateCommand}"
+                          Content="Install and restart" />
+                    </StackPanel>
+                  </Border>
                 </StackPanel>
               </StackPanel>
             </ScrollViewer>
