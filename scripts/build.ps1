@@ -18,7 +18,17 @@ $releaseStagingRoot = Join-Path $repositoryRoot "artifacts\staging\release-$PID"
 $releasePublishPath = Join-Path $releaseStagingRoot $packageName
 $archivePath = Join-Path $releaseRoot "$packageName.zip"
 $archiveHashPath = "$archivePath.sha256"
+$installerBaseName = "$packageName-setup"
+$installerPath = Join-Path $releaseRoot "$installerBaseName.exe"
+$installerHashPath = "$installerPath.sha256"
+$installerScriptPath = Join-Path $repositoryRoot 'installer\HyperTerm.iss'
 $dotnetPath = 'C:\Program Files\dotnet\dotnet.exe'
+$innoSetupVersion = '6.7.3'
+$innoSetupInstallerHash = '9c73c3bae7ed48d44112a0f48e66742c00090bdb5bef71d9d3c056c66e97b732'
+$innoSetupCompilerHash = '0a8757031b33777e4c9cbffee40f11a5062b36d25cbe144c1db73b6102b80ad7'
+$innoSetupCachePath = Join-Path $repositoryRoot "artifacts\cache\inno-setup\$innoSetupVersion"
+$innoSetupInstallerPath = Join-Path $innoSetupCachePath "innosetup-$innoSetupVersion.exe"
+$innoSetupCompilerPath = Join-Path $innoSetupCachePath 'ISCC.exe'
 $psmuxVersion = '3.3.7'
 $psmuxLicensePath = Join-Path $repositoryRoot 'licenses\psmux-LICENSE.txt'
 $psmuxPackages = @{
@@ -49,7 +59,7 @@ function Invoke-CheckedCommand {
     }
 }
 
-function Assert-PsmuxArchiveHash {
+function Assert-FileHash {
     param(
         [Parameter(Mandatory)]
         [string]$Path,
@@ -60,8 +70,81 @@ function Assert-PsmuxArchiveHash {
 
     $actualHash = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
     if ($actualHash -ne $ExpectedHash) {
-        throw "psmux archive SHA-256 mismatch. Expected $ExpectedHash, found $actualHash."
+        throw "SHA-256 mismatch for $Path. Expected $ExpectedHash, found $actualHash."
     }
+}
+
+function Get-InnoSetupCompiler {
+    if (Test-Path -LiteralPath $innoSetupCompilerPath) {
+        Assert-FileHash `
+            -Path $innoSetupCompilerPath `
+            -ExpectedHash $innoSetupCompilerHash
+        return $innoSetupCompilerPath
+    }
+
+    New-Item -ItemType Directory -Path $innoSetupCachePath -Force | Out-Null
+    if (-not (Test-Path -LiteralPath $innoSetupInstallerPath)) {
+        $partialInstallerPath = "$innoSetupInstallerPath.download"
+        if (Test-Path -LiteralPath $partialInstallerPath) {
+            Remove-Item -LiteralPath $partialInstallerPath -Force
+        }
+
+        Write-Host "Downloading Inno Setup $innoSetupVersion..."
+        Invoke-WebRequest `
+            -Uri "https://github.com/jrsoftware/issrc/releases/download/is-$($innoSetupVersion.Replace('.', '_'))/innosetup-$innoSetupVersion.exe" `
+            -OutFile $partialInstallerPath
+        try {
+            Assert-FileHash `
+                -Path $partialInstallerPath `
+                -ExpectedHash $innoSetupInstallerHash
+            Move-Item -LiteralPath $partialInstallerPath -Destination $innoSetupInstallerPath
+        }
+        catch {
+            Remove-Item -LiteralPath $partialInstallerPath -Force -ErrorAction SilentlyContinue
+            throw
+        }
+    }
+    else {
+        Assert-FileHash `
+            -Path $innoSetupInstallerPath `
+            -ExpectedHash $innoSetupInstallerHash
+    }
+
+    $signature = Get-AuthenticodeSignature -LiteralPath $innoSetupInstallerPath
+    if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid -or
+        $null -eq $signature.SignerCertificate -or
+        $signature.SignerCertificate.Subject -notmatch '(^|,\s*)CN=Pyrsys B\.V\.(,|$)') {
+        throw 'The Inno Setup bootstrapper does not have a valid Pyrsys B.V. signature.'
+    }
+
+    Write-Host "Installing portable Inno Setup $innoSetupVersion..."
+    $portableInstallArguments = @(
+        '/PORTABLE=1',
+        '/VERYSILENT',
+        '/CURRENTUSER',
+        '/SUPPRESSMSGBOXES',
+        '/NORESTART',
+        '/NOICONS',
+        "/DIR=`"$innoSetupCachePath`"")
+    $portableInstall = Start-Process `
+        -FilePath $innoSetupInstallerPath `
+        -ArgumentList $portableInstallArguments `
+        -Wait `
+        -PassThru `
+        -WindowStyle Hidden
+    if ($portableInstall.ExitCode -ne 0) {
+        throw "Portable Inno Setup installation failed with exit code $($portableInstall.ExitCode)."
+    }
+
+    if (-not (Test-Path -LiteralPath $innoSetupCompilerPath)) {
+        throw "Inno Setup compiler was not created: $innoSetupCompilerPath"
+    }
+
+    Assert-FileHash `
+        -Path $innoSetupCompilerPath `
+        -ExpectedHash $innoSetupCompilerHash
+
+    return $innoSetupCompilerPath
 }
 
 function New-DeterministicZipArchive {
@@ -130,6 +213,10 @@ function New-DeterministicZipArchive {
     }
 }
 
+if ($Version -notmatch '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$') {
+    throw "Version must use the MAJOR.MINOR.PATCH format: $Version"
+}
+
 if (-not (Test-Path -LiteralPath $dotnetPath)) {
     $dotnetCommand = Get-Command dotnet -ErrorAction SilentlyContinue
     if ($null -eq $dotnetCommand) {
@@ -141,6 +228,9 @@ if (-not (Test-Path -LiteralPath $dotnetPath)) {
 
 if (-not (Test-Path -LiteralPath $psmuxLicensePath)) {
     throw "psmux license was not found: $psmuxLicensePath"
+}
+if (-not (Test-Path -LiteralPath $installerScriptPath)) {
+    throw "Installer definition was not found: $installerScriptPath"
 }
 
 $npmCommand = Get-Command npm.cmd -ErrorAction SilentlyContinue
@@ -156,6 +246,14 @@ if (Test-Path -LiteralPath $archivePath) {
 }
 if (Test-Path -LiteralPath $archiveHashPath) {
     Remove-Item -LiteralPath $archiveHashPath -Force
+}
+if ($Runtime -eq 'win-x64') {
+    if (Test-Path -LiteralPath $installerPath) {
+        Remove-Item -LiteralPath $installerPath -Force
+    }
+    if (Test-Path -LiteralPath $installerHashPath) {
+        Remove-Item -LiteralPath $installerHashPath -Force
+    }
 }
 
 Invoke-CheckedCommand 'Installing web terminal dependencies...' {
@@ -204,7 +302,7 @@ if (-not (Test-Path -LiteralPath $psmuxArchivePath)) {
     Write-Host "Downloading psmux $psmuxVersion for $Runtime..."
     Invoke-WebRequest -Uri $psmuxDownloadUri -OutFile $partialArchivePath
     try {
-        Assert-PsmuxArchiveHash `
+        Assert-FileHash `
             -Path $partialArchivePath `
             -ExpectedHash $psmuxPackage.Sha256
         Move-Item -LiteralPath $partialArchivePath -Destination $psmuxArchivePath
@@ -216,7 +314,7 @@ if (-not (Test-Path -LiteralPath $psmuxArchivePath)) {
 }
 else {
     Write-Host "Using cached psmux $psmuxVersion for $Runtime..."
-    Assert-PsmuxArchiveHash `
+    Assert-FileHash `
         -Path $psmuxArchivePath `
         -ExpectedHash $psmuxPackage.Sha256
 }
@@ -303,6 +401,23 @@ if (-not (Test-Path -LiteralPath $archivePath)) {
     throw "ZIP package was not created: $archivePath"
 }
 
+if ($Runtime -eq 'win-x64') {
+    $innoSetupCompiler = Get-InnoSetupCompiler
+    Invoke-CheckedCommand 'Creating per-user installer...' {
+        & $innoSetupCompiler `
+            "/DAppVersion=$Version" `
+            "/DSourceDirectory=$releasePublishPath" `
+            "/DOutputDirectory=$releaseRoot" `
+            "/DOutputBaseFilename=$installerBaseName" `
+            "/DSetupIconPath=$(Join-Path $repositoryRoot 'assets\hyperterm_minimal.ico')" `
+            $installerScriptPath
+    }
+
+    if (-not (Test-Path -LiteralPath $installerPath)) {
+        throw "Installer was not created: $installerPath"
+    }
+}
+
 Remove-Item -LiteralPath $releaseStagingRoot -Recurse -Force
 
 $archive = Get-Item -LiteralPath $archivePath
@@ -312,8 +427,22 @@ Set-Content -LiteralPath $archiveHashPath `
     -Value "$archiveHash  $($archive.Name)" `
     -Encoding ascii
 
+if ($Runtime -eq 'win-x64') {
+    $installer = Get-Item -LiteralPath $installerPath
+    $installerSizeMb = [Math]::Round($installer.Length / 1MB, 2)
+    $installerHash = (Get-FileHash -LiteralPath $installerPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    Set-Content -LiteralPath $installerHashPath `
+        -Value "$installerHash  $($installer.Name)" `
+        -Encoding ascii
+}
+
 Write-Host ''
 Write-Host 'Build outputs created successfully:'
 Write-Host "  Complete ZIP: $archivePath"
 Write-Host "  SHA-256: $archiveHashPath"
 Write-Host "  ZIP size: $archiveSizeMb MB"
+if ($Runtime -eq 'win-x64') {
+    Write-Host "  Installer: $installerPath"
+    Write-Host "  SHA-256: $installerHashPath"
+    Write-Host "  Installer size: $installerSizeMb MB"
+}

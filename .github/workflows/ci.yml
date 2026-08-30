@@ -82,7 +82,7 @@ jobs:
           }
 
           "version=$($Matches.version)" >> $env:GITHUB_OUTPUT
-      - name: Build portable release
+      - name: Build distributable release
         shell: pwsh
         run: .\scripts\build.ps1 -Runtime win-x64 -Version '${{ steps.version.outputs.version }}'
       - name: Verify release assets
@@ -92,19 +92,24 @@ jobs:
         run: |
           $archiveName = "HyperTerm-$env:RELEASE_VERSION-win-x64.zip"
           $archivePath = Join-Path 'artifacts\releases' $archiveName
-          $checksumPath = "$archivePath.sha256"
-          if (-not (Test-Path -LiteralPath $archivePath)) {
-              throw "Release archive was not created: $archivePath"
-          }
-          if (-not (Test-Path -LiteralPath $checksumPath)) {
-              throw "Release checksum was not created: $checksumPath"
-          }
+          $installerName = "HyperTerm-$env:RELEASE_VERSION-win-x64-setup.exe"
+          $installerPath = Join-Path 'artifacts\releases' $installerName
+          foreach ($assetPath in @($archivePath, $installerPath)) {
+              $checksumPath = "$assetPath.sha256"
+              if (-not (Test-Path -LiteralPath $assetPath)) {
+                  throw "Release asset was not created: $assetPath"
+              }
+              if (-not (Test-Path -LiteralPath $checksumPath)) {
+                  throw "Release checksum was not created: $checksumPath"
+              }
 
-          $checksum = (Get-Content -LiteralPath $checksumPath -Raw).Trim()
-          $expectedHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
-          $expectedChecksum = "$expectedHash  $archiveName"
-          if ($checksum -cne $expectedChecksum) {
-              throw "Release checksum does not match $archiveName."
+              $assetName = Split-Path -Leaf $assetPath
+              $checksum = (Get-Content -LiteralPath $checksumPath -Raw).Trim()
+              $expectedHash = (Get-FileHash -LiteralPath $assetPath -Algorithm SHA256).Hash.ToLowerInvariant()
+              $expectedChecksum = "$expectedHash  $assetName"
+              if ($checksum -cne $expectedChecksum) {
+                  throw "Release checksum does not match $assetName."
+              }
           }
 
           Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -136,6 +141,72 @@ jobs:
           finally {
               $zip.Dispose()
           }
+      - name: Smoke-test installer lifecycle
+        shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $installerPath = Resolve-Path "artifacts\releases\HyperTerm-$env:RELEASE_VERSION-win-x64-setup.exe"
+          $installPath = Join-Path $env:RUNNER_TEMP 'HyperTerm installer smoke test'
+          $applicationDataPath = Join-Path ([Environment]::GetFolderPath(
+              [Environment+SpecialFolder]::LocalApplicationData)) 'HyperTerm'
+          if (Test-Path -LiteralPath $applicationDataPath) {
+              throw "Installer smoke-test data path already exists: $applicationDataPath"
+          }
+
+          $installArguments = @(
+              '/VERYSILENT',
+              '/SUPPRESSMSGBOXES',
+              '/NORESTART',
+              '/NOICONS',
+              "/DIR=`"$installPath`"")
+          foreach ($attempt in 1..2) {
+              $install = Start-Process `
+                  -FilePath $installerPath `
+                  -ArgumentList $installArguments `
+                  -Wait `
+                  -PassThru `
+                  -WindowStyle Hidden
+              if ($install.ExitCode -ne 0) {
+                  throw "Installer attempt $attempt failed with exit code $($install.ExitCode)."
+              }
+          }
+
+          foreach ($relativePath in @(
+              'HyperTerm.exe',
+              'HyperTerm.manifest.json',
+              'tools\psmux\psmux.exe')) {
+              $installedPath = Join-Path $installPath $relativePath
+              if (-not (Test-Path -LiteralPath $installedPath -PathType Leaf)) {
+                  throw "Installed release file is missing: $installedPath"
+              }
+          }
+
+          $uninstaller = @(Get-ChildItem -LiteralPath $installPath -Filter 'unins*.exe' -File)
+          if ($uninstaller.Count -ne 1) {
+              throw "Expected one uninstaller, found $($uninstaller.Count)."
+          }
+
+          New-Item -ItemType Directory -Path $applicationDataPath | Out-Null
+          $dataSentinel = Join-Path $applicationDataPath 'installer-smoke-test.txt'
+          Set-Content -LiteralPath $dataSentinel -Value 'preserve' -Encoding ascii
+          $uninstall = Start-Process `
+              -FilePath $uninstaller[0].FullName `
+              -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART') `
+              -Wait `
+              -PassThru `
+              -WindowStyle Hidden
+          if ($uninstall.ExitCode -ne 0) {
+              throw "Uninstaller failed with exit code $($uninstall.ExitCode)."
+          }
+          if (Test-Path -LiteralPath (Join-Path $installPath 'HyperTerm.exe')) {
+              throw 'Uninstaller left the application executable behind.'
+          }
+          if (-not (Test-Path -LiteralPath $dataSentinel -PathType Leaf)) {
+              throw 'Silent uninstall removed local application data.'
+          }
+
+          Remove-Item -LiteralPath $applicationDataPath -Recurse -Force
       - name: Publish GitHub release
         shell: pwsh
         env:
@@ -144,7 +215,12 @@ jobs:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
         run: |
           $archivePath = "artifacts\releases\HyperTerm-$env:RELEASE_VERSION-win-x64.zip"
-          $assets = @($archivePath, "$archivePath.sha256")
+          $installerPath = "artifacts\releases\HyperTerm-$env:RELEASE_VERSION-win-x64-setup.exe"
+          $assets = @(
+              $archivePath,
+              "$archivePath.sha256",
+              $installerPath,
+              "$installerPath.sha256")
 
           & gh release view $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY *> $null
           if ($LASTEXITCODE -eq 0) {

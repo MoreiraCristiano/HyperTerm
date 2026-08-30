@@ -5,7 +5,8 @@ Run these commands from the repository root:
 ```powershell
 .\scripts\bootstrap.ps1                 # Build and launch a development run
 .\scripts\bootstrap.ps1 -BuildOnly      # Build without launching
-.\scripts\build.ps1                     # Create the release package
+.\scripts\build.ps1                     # Create the x64 ZIP and per-user installer
+.\scripts\build.ps1 -Runtime win-arm64  # Create the ARM64 portable ZIP
 .\scripts\test.ps1                      # Run all .NET tests
 .\scripts\test.ps1 -Filter Category=ConPty
 .\scripts\verify.ps1                    # Run the complete local quality gate

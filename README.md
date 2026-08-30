@@ -79,16 +79,34 @@ starts the generated executable. To build without launching:
 .\scripts\bootstrap.ps1 -BuildOnly
 ```
 
+## Install HyperTerm
+
+Download `HyperTerm-<version>-win-x64-setup.exe` from the GitHub release and run
+it as the current user. The installer does not request administrator access and
+places the application under `%LOCALAPPDATA%\Programs\HyperTerm`. It creates a
+Start Menu shortcut and offers an optional desktop shortcut.
+
+The uninstaller removes the application and shortcuts. Interactive uninstall
+also offers to remove saved sessions, settings, update files, and logs; choosing
+No, or running a silent uninstall, preserves that data.
+
+The installer is currently unsigned, so Windows SmartScreen may identify its
+publisher as unknown. Verify the adjacent `.sha256` file when downloading a
+release. The portable ZIP remains available for users who prefer it.
+
 ## Build a release
 
-Create a self-contained Windows release ZIP:
+Create the self-contained Windows release ZIP and x64 per-user installer:
 
 ```powershell
 .\scripts\build.ps1
 ```
 
-Output is written under `artifacts\releases\`. The package includes the .NET
-runtime, native libraries, web terminal assets, and verified psmux binary.
+Output is written under `artifacts\releases\`. Both packages include the .NET
+runtime, native libraries, web terminal assets, and verified psmux binary. The
+build downloads a pinned, verified Inno Setup compiler into the ignored
+`artifacts\cache\` directory when needed. ARM64 builds continue to produce only
+the portable ZIP.
 
 ## Verify changes
 
