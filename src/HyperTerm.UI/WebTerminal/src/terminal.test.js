@@ -18,6 +18,8 @@ vi.mock('@xterm/xterm', () => ({
       this.rows = 24;
       this.selection = '';
       this.throwOnWrite = false;
+      this.buffer = { active: { viewportY: 0, baseY: 0 } };
+      this.scrollRequests = [];
       this.oscHandlers = new Map();
       this.parser = {
         registerOscHandler: (identifier, handler) => {
@@ -46,6 +48,10 @@ vi.mock('@xterm/xterm', () => ({
     getSelection() { return this.selection; }
     clearSelection() { this.selection = ''; }
     refresh() { this.refreshed = true; this.refreshCount = (this.refreshCount ?? 0) + 1; }
+    scrollToLine(line) {
+      this.scrollRequests.push(line);
+      this.buffer.active.viewportY = Math.max(0, Math.min(line, this.buffer.active.baseY));
+    }
     focus() { this.focused = true; }
     dispose() { this.disposed = true; }
   }
@@ -299,6 +305,56 @@ describe('terminal host bridge', () => {
     expect(terminalInstances[0].disposed).toBeUndefined();
     expect(originalRenderer.disposed).toBeUndefined();
     expect(webglInstances).toHaveLength(1);
+  });
+
+  it('keeps an existing pane at the bottom when it is moved into a split', async () => {
+    const { host } = await loadHost();
+    host.create({ paneId: 'a', tabId: 'tab', options: createOptions() });
+    host.activate('a');
+    terminalInstances[0].buffer.active.baseY = 120;
+    terminalInstances[0].buffer.active.viewportY = 120;
+    terminalInstances[0].scrollRequests.length = 0;
+
+    host.create({ paneId: 'b', tabId: 'tab', options: createOptions() });
+    host.layout({
+      tabId: 'tab',
+      activePaneId: 'b',
+      root: {
+        type: 'split', orientation: 'vertical', ratio: .5,
+        first: { type: 'terminal', paneId: 'a' },
+        second: { type: 'terminal', paneId: 'b' }
+      }
+    });
+    terminalInstances[0].buffer.active.baseY = 140;
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(terminalInstances[0].scrollRequests).toEqual([139, 140]);
+    expect(terminalInstances[0].buffer.active.viewportY).toBe(140);
+    expect(terminalInstances[1].scrollRequests).toEqual([]);
+  });
+
+  it('keeps an existing pane on its viewed scrollback line after a split', async () => {
+    const { host } = await loadHost();
+    host.create({ paneId: 'a', tabId: 'tab', options: createOptions() });
+    host.activate('a');
+    terminalInstances[0].buffer.active.baseY = 120;
+    terminalInstances[0].buffer.active.viewportY = 40;
+    terminalInstances[0].scrollRequests.length = 0;
+
+    host.create({ paneId: 'b', tabId: 'tab', options: createOptions() });
+    host.layout({
+      tabId: 'tab',
+      activePaneId: 'b',
+      root: {
+        type: 'split', orientation: 'horizontal', ratio: .5,
+        first: { type: 'terminal', paneId: 'a' },
+        second: { type: 'terminal', paneId: 'b' }
+      }
+    });
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(terminalInstances[0].scrollRequests).toEqual([39, 40]);
+    expect(terminalInstances[0].buffer.active.viewportY).toBe(40);
   });
 
   it('activates panes and suppresses context menus', async () => {

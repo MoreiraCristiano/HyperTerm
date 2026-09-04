@@ -469,7 +469,8 @@ function createTerminal({ paneId, tabId, options }) {
     selectionCopyKeyDown: false,
     started: false,
     lastColumns: 0,
-    lastRows: 0
+    lastRows: 0,
+    pendingViewportRestore: null
   };
 
   terminal.loadAddon(fitAddon);
@@ -967,6 +968,8 @@ function fitTerminal(state) {
     return;
   }
 
+  restoreTerminalViewport(state);
+
   const changed = columns !== state.lastColumns || rows !== state.lastRows;
   state.lastColumns = columns;
   state.lastRows = rows;
@@ -977,6 +980,29 @@ function fitTerminal(state) {
   } else if (changed) {
     send({ type: 'resize', tabId: state.tabId, paneId: state.paneId, columns, rows });
   }
+}
+
+function restoreTerminalViewport(state) {
+  const snapshot = state.pendingViewportRestore;
+  if (!snapshot) {
+    return;
+  }
+
+  state.pendingViewportRestore = null;
+  const buffer = state.terminal.buffer.active;
+  const targetLine = snapshot.atBottom
+    ? buffer.baseY
+    : Math.min(snapshot.viewportY, buffer.baseY);
+  if (buffer.baseY <= 0) {
+    return;
+  }
+
+  // Reparenting an xterm element can leave its DOM viewport at scrollTop 0 even
+  // though the buffer still points at the correct line. Moving to a nearby line
+  // and back makes xterm synchronize both positions before the next wheel event.
+  const synchronizationLine = targetLine > 0 ? targetLine - 1 : 1;
+  state.terminal.scrollToLine(synchronizationLine);
+  state.terminal.scrollToLine(targetLine);
 }
 
 function fitActiveTerminal() {
@@ -1024,6 +1050,21 @@ function collectPaneIds(node, paneIds = new Set()) {
   return paneIds;
 }
 
+function preserveTerminalViewports(paneIds) {
+  paneIds.forEach(paneId => {
+    const state = terminals.get(paneId);
+    if (!state?.started) {
+      return;
+    }
+
+    const buffer = state.terminal.buffer.active;
+    state.pendingViewportRestore = {
+      viewportY: buffer.viewportY,
+      atBottom: buffer.viewportY === buffer.baseY
+    };
+  });
+}
+
 function mountTerminalLayout(activeNodes) {
   terminalHostElement.replaceChildren(...activeNodes);
   terminals.forEach(state => {
@@ -1068,8 +1109,10 @@ function bindDivider(split, divider, first, second, firstNode, tabId) {
 }
 
 function layoutTerminals({ tabId, activePaneId: nextActivePaneId, root }) {
+  const nextVisiblePaneIds = collectPaneIds(root);
+  preserveTerminalViewports(nextVisiblePaneIds);
   activeTabId = tabId;
-  visiblePaneIds = collectPaneIds(root);
+  visiblePaneIds = nextVisiblePaneIds;
   terminalHostElement.classList.toggle('has-splits', visiblePaneIds.size > 1);
   mountTerminalLayout(root ? [createLayoutNode(root, tabId)] : []);
   applyRendererPolicy();
