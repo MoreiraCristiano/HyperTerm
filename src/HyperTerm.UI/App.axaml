@@ -5,7 +5,7 @@
   <TrayIcon.Icons>
     <TrayIcons>
       <TrayIcon
-          Icon="/Assets/hyperterm_minimal.ico"
+          Icon="/Assets/hyperterm-final-icon.ico"
           IsVisible="False"
           ToolTipText="HyperTerm"
           Clicked="OnTrayIconClicked">

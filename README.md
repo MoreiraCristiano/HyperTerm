@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/hyperterm_minimal.svg" width="128" alt="HyperTerm logo">
+  <img src="assets/hyperterm-final-icon.svg" width="128" alt="HyperTerm logo">
 </p>
 
 <h1 align="center">HyperTerm</h1>

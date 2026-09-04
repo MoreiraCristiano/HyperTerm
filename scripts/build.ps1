@@ -326,7 +326,7 @@ if ($Runtime -eq 'win-x64') {
             "/DSourceDirectory=$releasePublishPath" `
             "/DOutputDirectory=$releaseRoot" `
             "/DOutputBaseFilename=$installerBaseName" `
-            "/DSetupIconPath=$(Join-Path $repositoryRoot 'assets\hyperterm_minimal.ico')" `
+            "/DSetupIconPath=$(Join-Path $repositoryRoot 'assets\hyperterm-final-icon.ico')" `
             $installerScriptPath
     }
 
