@@ -45,9 +45,7 @@ public sealed partial class TerminalTabViewModel : ViewModelBase, IAsyncDisposab
         : this(
             null,
             title,
-            definition.Kind == TerminalSessionKind.Psmux
-                ? "psmux · persistent"
-                : "Local terminal",
+            "Local terminal",
             string.Empty,
             definition,
             ptySessionFactory,
@@ -106,10 +104,6 @@ public sealed partial class TerminalTabViewModel : ViewModelBase, IAsyncDisposab
 
     public bool IsLocal => Definition.Kind != TerminalSessionKind.Ssh;
 
-    public bool IsPsmux => Definition.Kind == TerminalSessionKind.Psmux;
-
-    public string? PsmuxSessionName => Definition.PsmuxSessionName;
-
     public TerminalSessionDefinition Definition { get; }
 
     public ObservableCollection<TerminalPaneViewModel> Panes { get; } = [];
@@ -146,8 +140,6 @@ public sealed partial class TerminalTabViewModel : ViewModelBase, IAsyncDisposab
     public event EventHandler? AppearanceChanged;
 
     public event EventHandler? Terminating;
-
-    public event EventHandler? PtyStarted;
 
     public event EventHandler<string>? ApplicationCommandRequested;
 
@@ -249,12 +241,9 @@ public sealed partial class TerminalTabViewModel : ViewModelBase, IAsyncDisposab
         {
             ConnectionStatus = "Starting ConPTY";
             await pane.StartAsync(columns, rows, cancellationToken);
-            string terminalName = pane.Definition.Kind switch
-            {
-                TerminalSessionKind.Psmux => "psmux",
-                TerminalSessionKind.Ssh => "SSH",
-                _ => pane.Definition.DisplayName ?? "Terminal",
-            };
+            string terminalName = pane.Definition.Kind == TerminalSessionKind.Ssh
+                ? "SSH"
+                : pane.Definition.DisplayName ?? "Terminal";
             ConnectionStatus = $"{terminalName} via xterm.js/WebGL";
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -408,14 +397,6 @@ public sealed partial class TerminalTabViewModel : ViewModelBase, IAsyncDisposab
 
     private void OnPaneExited(object? sender, int exitCode)
     {
-        if (sender is TerminalPaneViewModel { Definition.Kind: TerminalSessionKind.Psmux })
-        {
-            TerminalOutputReceived?.Invoke(
-                this,
-                $"\r\n\u001b[31m[HyperTerm] psmux exited with code {exitCode}. " +
-                "Check the status bar or application logs for details.\u001b[0m\r\n");
-        }
-
         RunOnUiThread(
             () =>
             {
@@ -430,7 +411,6 @@ public sealed partial class TerminalTabViewModel : ViewModelBase, IAsyncDisposab
     {
         pane.OutputReceived += OnPaneOutputReceived;
         pane.Exited += OnPaneExited;
-        pane.Started += OnPaneStarted;
         Panes.Add(pane);
     }
 
@@ -438,11 +418,7 @@ public sealed partial class TerminalTabViewModel : ViewModelBase, IAsyncDisposab
     {
         pane.OutputReceived -= OnPaneOutputReceived;
         pane.Exited -= OnPaneExited;
-        pane.Started -= OnPaneStarted;
     }
-
-    private void OnPaneStarted(object? sender, EventArgs eventArgs) =>
-        PtyStarted?.Invoke(this, EventArgs.Empty);
 
     private TerminalPaneViewModel? FindPane(Guid? paneId) =>
         paneId is Guid value

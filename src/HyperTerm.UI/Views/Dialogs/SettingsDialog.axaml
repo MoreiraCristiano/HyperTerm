@@ -72,17 +72,6 @@
                       </StackPanel>
                     </StackPanel>
                   </Border>
-                  <Border Classes="settingsSection">
-                    <StackPanel>
-                      <TextBlock Classes="settingsSectionTitle" Text="psmux" />
-                      <TextBlock Classes="settingsSectionDescription" Text="Enable persistent terminal sessions managed by psmux." />
-                      <CheckBox IsChecked="{Binding Settings.SettingsPsmuxEnabled, Mode=TwoWay}" Content="Enable psmux integration" />
-                      <StackPanel Margin="0,8,0,0" IsVisible="{Binding Settings.SettingsPsmuxEnabled}">
-                        <CheckBox IsChecked="{Binding Settings.SettingsKeepPsmuxSessionsOnExit, Mode=TwoWay}" Content="Keep psmux sessions running after HyperTerm closes" />
-                        <TextBlock Margin="0,8,0,0" Classes="secondary" Text="Turning this off ends every detached session in HyperTerm’s psmux namespace when the application exits. Sessions attached by another client are preserved." TextWrapping="Wrap" />
-                      </StackPanel>
-                    </StackPanel>
-                  </Border>
                 </StackPanel>
               </StackPanel>
             </ScrollViewer>
@@ -405,7 +394,7 @@
                       <TextBlock Classes="settingsSectionTitle" Text="Install and restart" />
                       <TextBlock
                           Classes="settingsSectionDescription"
-                          Text="Installing closes active terminals. Unsaved settings changes are discarded. psmux shutdown behavior follows your current settings."
+                          Text="Installing closes active terminals. Unsaved settings changes are discarded."
                           TextWrapping="Wrap" />
                       <Button
                           Width="160"

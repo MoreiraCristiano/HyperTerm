@@ -306,356 +306,6 @@ public sealed class ViewModelTests
     }
 
     [Fact]
-    public async Task WorkspaceListsAndAttachesPsmuxSessionOnlyOnce()
-    {
-        var psmux = new FakePsmuxService();
-        psmux.Sessions.Add(new PsmuxSessionInfo("work", 2, false));
-        var workspace = new TerminalWorkspaceViewModel(
-            new FakeSessionService(),
-            new FakeTerminalSessionFactory(),
-            new FakePtySessionFactory(),
-            psmux);
-
-        await workspace.RefreshPsmuxSessionsAsync(TestContext.Current.CancellationToken);
-        PsmuxSessionItemViewModel session = Assert.Single(workspace.PsmuxSessions);
-        await workspace.OpenPsmuxSessionCommand.ExecuteAsync(session);
-        await workspace.OpenPsmuxSessionCommand.ExecuteAsync(session);
-
-        TerminalTabViewModel tab = Assert.Single(workspace.Tabs);
-        Assert.True(tab.IsPsmux);
-        Assert.Equal("work", tab.PsmuxSessionName);
-        Assert.Same(tab, workspace.SelectedTab);
-    }
-
-    [Fact]
-    public async Task DisabledPsmuxDoesNotProbeOrOpenDialogs()
-    {
-        var psmux = new FakePsmuxService();
-        psmux.Sessions.Add(new PsmuxSessionInfo("work", 1, false));
-        var workspace = new TerminalWorkspaceViewModel(
-            new FakeSessionService(),
-            new FakeTerminalSessionFactory(),
-            new FakePtySessionFactory(),
-            psmux);
-        workspace.ApplySettings(new ApplicationSettings());
-
-        await workspace.RefreshPsmuxSessionsAsync(TestContext.Current.CancellationToken);
-        await workspace.OpenPsmuxCreateCommand.ExecuteAsync(null);
-        await workspace.OpenPsmuxSessionsCommand.ExecuteAsync(null);
-
-        Assert.False(workspace.IsPsmuxEnabled);
-        Assert.Equal(0, psmux.ProbeCalls);
-        Assert.Equal(0, psmux.ListSessionsCalls);
-        Assert.False(workspace.IsPsmuxCreateOpen);
-        Assert.False(workspace.IsPsmuxSessionsOpen);
-        Assert.Empty(workspace.PsmuxSessions);
-    }
-
-    [Fact]
-    public async Task DisablingPsmuxClosesTabsAndStopsServer()
-    {
-        var psmux = new FakePsmuxService();
-        psmux.Sessions.Add(new PsmuxSessionInfo("work", 1, false));
-        var workspace = new TerminalWorkspaceViewModel(
-            new FakeSessionService(),
-            new FakeTerminalSessionFactory(),
-            new FakePtySessionFactory(),
-            psmux);
-        await workspace.ApplySettingsAsync(new ApplicationSettings { PsmuxEnabled = true });
-        await workspace.RefreshPsmuxSessionsAsync(TestContext.Current.CancellationToken);
-        await workspace.OpenPsmuxSessionCommand.ExecuteAsync(workspace.PsmuxSessions[0]);
-        await workspace.OpenLocalTerminalCommand.ExecuteAsync(null);
-
-        await workspace.ApplySettingsAsync(new ApplicationSettings());
-
-        Assert.False(workspace.IsPsmuxEnabled);
-        Assert.DoesNotContain(workspace.Tabs, tab => tab.IsPsmux);
-        Assert.Contains(workspace.Tabs, tab => !tab.IsPsmux);
-        Assert.Equal(1, psmux.StopServerCalls);
-    }
-
-    [Fact]
-    public async Task WorkspaceOpensPsmuxSessionsDialogAndSelectsFirstSession()
-    {
-        var psmux = new FakePsmuxService();
-        psmux.Sessions.Add(new PsmuxSessionInfo("alpha", 1, false));
-        psmux.Sessions.Add(new PsmuxSessionInfo("beta", 2, true));
-        var workspace = new TerminalWorkspaceViewModel(
-            new FakeSessionService(),
-            new FakeTerminalSessionFactory(),
-            new FakePtySessionFactory(),
-            psmux);
-
-        await workspace.OpenPsmuxSessionsCommand.ExecuteAsync(null);
-
-        Assert.True(workspace.IsPsmuxSessionsOpen);
-        Assert.Equal(2, workspace.PsmuxSessions.Count);
-        Assert.Equal("alpha", workspace.SelectedPsmuxSession?.Name);
-        Assert.True(workspace.HasSelectedPsmuxSession);
-        Assert.False(workspace.HasPsmuxSessionsMessage);
-    }
-
-    [Fact]
-    public async Task WorkspaceRefreshesPsmuxSessionsAndPreservesSelectionByName()
-    {
-        var psmux = new FakePsmuxService();
-        psmux.Sessions.Add(new PsmuxSessionInfo("alpha", 1, false));
-        psmux.Sessions.Add(new PsmuxSessionInfo("beta", 1, false));
-        var workspace = new TerminalWorkspaceViewModel(
-            new FakeSessionService(),
-            new FakeTerminalSessionFactory(),
-            new FakePtySessionFactory(),
-            psmux);
-        await workspace.OpenPsmuxSessionsCommand.ExecuteAsync(null);
-        workspace.SelectedPsmuxSession = workspace.PsmuxSessions[1];
-        psmux.Sessions.Clear();
-        psmux.Sessions.Add(new PsmuxSessionInfo("beta", 3, true));
-        psmux.Sessions.Add(new PsmuxSessionInfo("gamma", 1, false));
-
-        await workspace.RefreshPsmuxSessionsCommand.ExecuteAsync(null);
-
-        Assert.Equal("beta", workspace.SelectedPsmuxSession?.Name);
-        Assert.Equal(3, workspace.SelectedPsmuxSession?.WindowCount);
-    }
-
-    [Fact]
-    public async Task WorkspaceAttachesSelectedPsmuxSessionAndClosesDialog()
-    {
-        var psmux = new FakePsmuxService();
-        psmux.Sessions.Add(new PsmuxSessionInfo("work", 2, false));
-        var workspace = new TerminalWorkspaceViewModel(
-            new FakeSessionService(),
-            new FakeTerminalSessionFactory(),
-            new FakePtySessionFactory(),
-            psmux);
-        await workspace.OpenPsmuxSessionsCommand.ExecuteAsync(null);
-
-        await workspace.AttachSelectedPsmuxSessionCommand.ExecuteAsync(null);
-
-        Assert.False(workspace.IsPsmuxSessionsOpen);
-        Assert.Equal("work", Assert.Single(workspace.Tabs).PsmuxSessionName);
-    }
-
-    [Fact]
-    public async Task WorkspaceShowsEmptyPsmuxSessionsMessage()
-    {
-        var workspace = new TerminalWorkspaceViewModel(
-            new FakeSessionService(),
-            new FakeTerminalSessionFactory(),
-            new FakePtySessionFactory(),
-            new FakePsmuxService());
-
-        await workspace.OpenPsmuxSessionsCommand.ExecuteAsync(null);
-
-        Assert.False(workspace.HasPsmuxSessions);
-        Assert.False(workspace.HasSelectedPsmuxSession);
-        Assert.Equal("No active psmux sessions.", workspace.PsmuxSessionsMessage);
-    }
-
-    [Fact]
-    public async Task ClosingPsmuxTabDetachesWithoutKillingSession()
-    {
-        var psmux = new FakePsmuxService();
-        psmux.Sessions.Add(new PsmuxSessionInfo("work", 1, true));
-        var workspace = new TerminalWorkspaceViewModel(
-            new FakeSessionService(),
-            new FakeTerminalSessionFactory(),
-            new FakePtySessionFactory(),
-            psmux);
-        await workspace.RefreshPsmuxSessionsAsync(TestContext.Current.CancellationToken);
-        await workspace.OpenPsmuxSessionCommand.ExecuteAsync(workspace.PsmuxSessions[0]);
-
-        await workspace.CloseSelectedTabCommand.ExecuteAsync(null);
-
-        Assert.Empty(workspace.Tabs);
-        Assert.Empty(psmux.KilledSessions);
-        Assert.Single(psmux.Sessions);
-    }
-
-    [Fact]
-    public async Task WorkspaceShutdownKeepsPsmuxServerByDefault()
-    {
-        var psmux = new FakePsmuxService();
-        var workspace = new TerminalWorkspaceViewModel(
-            new FakeSessionService(),
-            new FakeTerminalSessionFactory(),
-            new FakePtySessionFactory(),
-            psmux);
-
-        await workspace.ShutdownAsync();
-
-        Assert.Equal(0, psmux.StopServerCalls);
-    }
-
-    [Fact]
-    public async Task WorkspaceShutdownDetachesTabsBeforeStoppingPsmuxServer()
-    {
-        var psmux = new FakePsmuxService();
-        psmux.Sessions.Add(new PsmuxSessionInfo("work", 1, false));
-        var workspace = new TerminalWorkspaceViewModel(
-            new FakeSessionService(),
-            new FakeTerminalSessionFactory(),
-            new FakePtySessionFactory(),
-            psmux);
-        workspace.ApplySettings(new ApplicationSettings
-        {
-            PsmuxEnabled = true,
-            KeepPsmuxSessionsOnExit = false,
-        });
-        await workspace.RefreshPsmuxSessionsAsync(TestContext.Current.CancellationToken);
-        await workspace.OpenPsmuxSessionCommand.ExecuteAsync(workspace.PsmuxSessions[0]);
-
-        await workspace.ShutdownAsync();
-
-        Assert.Empty(workspace.Tabs);
-        Assert.Equal(1, psmux.StopServerCalls);
-    }
-
-    [Fact]
-    public async Task WorkspaceShutdownContinuesWhenStoppingPsmuxFails()
-    {
-        var psmux = new FakePsmuxService
-        {
-            StopServerError = new InvalidOperationException("stop failed"),
-        };
-        var workspace = new TerminalWorkspaceViewModel(
-            new FakeSessionService(),
-            new FakeTerminalSessionFactory(),
-            new FakePtySessionFactory(),
-            psmux);
-        workspace.ApplySettings(new ApplicationSettings
-        {
-            KeepPsmuxSessionsOnExit = false,
-        });
-
-        await workspace.ShutdownAsync();
-
-        Assert.Equal(1, psmux.StopServerCalls);
-    }
-
-    [Fact]
-    public async Task WorkspaceConfirmsAndEndsPsmuxSessionWithMatchingTab()
-    {
-        var psmux = new FakePsmuxService();
-        psmux.Sessions.Add(new PsmuxSessionInfo("work", 1, true));
-        var workspace = new TerminalWorkspaceViewModel(
-            new FakeSessionService(),
-            new FakeTerminalSessionFactory(),
-            new FakePtySessionFactory(),
-            psmux);
-        await workspace.OpenPsmuxSessionsCommand.ExecuteAsync(null);
-        PsmuxSessionItemViewModel session = Assert.Single(workspace.PsmuxSessions);
-        await workspace.OpenLocalTerminalCommand.ExecuteAsync(null);
-        await workspace.OpenPsmuxSessionCommand.ExecuteAsync(session);
-
-        workspace.RequestKillPsmuxSessionCommand.Execute(session);
-
-        Assert.True(workspace.IsPsmuxKillConfirmationOpen);
-        Assert.Equal("work", workspace.PsmuxSessionPendingKill?.Name);
-        Assert.Equal(2, workspace.Tabs.Count);
-
-        await workspace.ConfirmKillPsmuxSessionCommand.ExecuteAsync(null);
-
-        Assert.Equal(["work"], psmux.KilledSessions);
-        Assert.Empty(psmux.Sessions);
-        TerminalTabViewModel remainingTab = Assert.Single(workspace.Tabs);
-        Assert.True(remainingTab.IsLocal);
-        Assert.Empty(workspace.PsmuxSessions);
-        Assert.False(workspace.IsPsmuxKillConfirmationOpen);
-        Assert.Null(workspace.PsmuxSessionPendingKill);
-    }
-
-    [Fact]
-    public async Task WorkspaceKeepsPsmuxSessionAndTabWhenKillFails()
-    {
-        var psmux = new FakePsmuxService
-        {
-            KillError = new InvalidOperationException("kill failed")
-        };
-        psmux.Sessions.Add(new PsmuxSessionInfo("work", 1, true));
-        var workspace = new TerminalWorkspaceViewModel(
-            new FakeSessionService(),
-            new FakeTerminalSessionFactory(),
-            new FakePtySessionFactory(),
-            psmux);
-        await workspace.OpenPsmuxSessionsCommand.ExecuteAsync(null);
-        PsmuxSessionItemViewModel session = Assert.Single(workspace.PsmuxSessions);
-        await workspace.OpenPsmuxSessionCommand.ExecuteAsync(session);
-        workspace.RequestKillPsmuxSessionCommand.Execute(session);
-
-        await workspace.ConfirmKillPsmuxSessionCommand.ExecuteAsync(null);
-
-        Assert.Empty(psmux.KilledSessions);
-        Assert.Single(psmux.Sessions);
-        Assert.Single(workspace.Tabs);
-        Assert.True(workspace.IsPsmuxKillConfirmationOpen);
-        Assert.Equal("kill failed", workspace.PsmuxKillError);
-    }
-
-    [Fact]
-    public async Task WorkspaceCancelsPsmuxKillConfirmation()
-    {
-        var psmux = new FakePsmuxService();
-        psmux.Sessions.Add(new PsmuxSessionInfo("work", 1, false));
-        var workspace = new TerminalWorkspaceViewModel(
-            new FakeSessionService(),
-            new FakeTerminalSessionFactory(),
-            new FakePtySessionFactory(),
-            psmux);
-        await workspace.OpenPsmuxSessionsCommand.ExecuteAsync(null);
-
-        workspace.RequestKillPsmuxSessionCommand.Execute(workspace.PsmuxSessions[0]);
-        workspace.CancelKillPsmuxSessionCommand.Execute(null);
-
-        Assert.False(workspace.IsPsmuxKillConfirmationOpen);
-        Assert.Null(workspace.PsmuxSessionPendingKill);
-        Assert.Single(psmux.Sessions);
-    }
-
-    [Fact]
-    public async Task WorkspaceConfirmsDuplicateBeforeAttachingPsmuxSession()
-    {
-        var psmux = new FakePsmuxService();
-        psmux.Sessions.Add(new PsmuxSessionInfo("work", 1, false));
-        var workspace = new TerminalWorkspaceViewModel(
-            new FakeSessionService(),
-            new FakeTerminalSessionFactory(),
-            new FakePtySessionFactory(),
-            psmux);
-        await workspace.OpenPsmuxCreateCommand.ExecuteAsync(null);
-        workspace.PsmuxSessionName = "work";
-
-        await workspace.ConfirmPsmuxCreateCommand.ExecuteAsync(null);
-
-        Assert.True(workspace.IsPsmuxDuplicate);
-        Assert.Empty(workspace.Tabs);
-
-        await workspace.ConfirmPsmuxCreateCommand.ExecuteAsync(null);
-
-        Assert.Single(workspace.Tabs);
-        Assert.False(workspace.IsPsmuxCreateOpen);
-    }
-
-    [Fact]
-    public async Task WorkspaceListsNewPsmuxSessionBeforePtyStarts()
-    {
-        var psmux = new FakePsmuxService();
-        var workspace = new TerminalWorkspaceViewModel(
-            new FakeSessionService(),
-            new FakeTerminalSessionFactory(),
-            new FakePtySessionFactory(),
-            psmux);
-        await workspace.OpenPsmuxCreateCommand.ExecuteAsync(null);
-        workspace.PsmuxSessionName = "work";
-
-        await workspace.ConfirmPsmuxCreateCommand.ExecuteAsync(null);
-
-        PsmuxSessionItemViewModel session = Assert.Single(workspace.PsmuxSessions);
-        Assert.Equal("work", session.Name);
-        Assert.Single(workspace.Tabs);
-    }
-
-    [Fact]
     public async Task MainWindowReleasesLoadingStateAfterInitialization()
     {
         var sessions = new FakeSessionService();
@@ -688,7 +338,7 @@ public sealed class ViewModelTests
     }
 
     [Fact]
-    public async Task CommandPaletteCombinesActionsSessionsTabsAndPsmux()
+    public async Task CommandPaletteCombinesActionsSessionsAndTabs()
     {
         var sessions = new FakeSessionService();
         sessions.Sessions.Add(FakeSessionService.CreateSession(
@@ -699,17 +349,12 @@ public sealed class ViewModelTests
         var folders = new FakeFolderService();
         var explorer = new SessionExplorerViewModel(sessions, folders);
         await explorer.InitializeAsync(TestContext.Current.CancellationToken);
-        var psmux = new FakePsmuxService();
-        psmux.Sessions.Add(new PsmuxSessionInfo("persistent-work", 2, false));
         var workspace = new TerminalWorkspaceViewModel(
             sessions,
             new FakeTerminalSessionFactory(),
-            new FakePtySessionFactory(),
-            psmux);
+            new FakePtySessionFactory());
         await workspace.OpenLocalTerminalCommand.ExecuteAsync(null);
         await workspace.OpenSessionAsync(explorer.Sessions[0]);
-        await workspace.RefreshPsmuxSessionsAsync(TestContext.Current.CancellationToken);
-        await workspace.OpenPsmuxSessionCommand.ExecuteAsync(workspace.PsmuxSessions[0]);
         var viewModel = new MainWindowViewModel(
             explorer,
             workspace,
@@ -725,7 +370,6 @@ public sealed class ViewModelTests
         Assert.Contains(viewModel.CommandPaletteResults, item => item.Title == "Search terminal");
         Assert.Contains(viewModel.CommandPaletteResults, item => item.Title == "Production server");
         Assert.Contains(viewModel.CommandPaletteResults, item => item.Category == "Open tab");
-        Assert.Contains(viewModel.CommandPaletteResults, item => item.Title == "persistent-work");
 
         viewModel.CommandPaletteQuery = "prod server";
         Assert.Contains(
@@ -753,8 +397,7 @@ public sealed class ViewModelTests
             item => Assert.Equal(CommandPaletteItemKind.OpenTab, item.Kind));
         Assert.DoesNotContain(
             viewModel.CommandPaletteResults,
-            item => item.Kind is CommandPaletteItemKind.SavedSshSession or
-                CommandPaletteItemKind.PsmuxSession);
+            item => item.Kind == CommandPaletteItemKind.SavedSshSession);
 
         viewModel.CommandPaletteQuery = ": prod";
         CommandPaletteItemViewModel openSession = Assert.Single(
@@ -767,10 +410,6 @@ public sealed class ViewModelTests
         Assert.Null(viewModel.SelectedCommandPaletteItem);
         Assert.Equal("No matching open sessions.", viewModel.CommandPaletteEmptyMessage);
 
-        viewModel.CommandPaletteQuery = "persistent-work";
-        Assert.Contains(
-            viewModel.CommandPaletteResults,
-            item => item.Kind == CommandPaletteItemKind.PsmuxSession);
     }
 
     [Fact]
@@ -893,6 +532,200 @@ public sealed class ViewModelTests
     }
 
     [Fact]
+    public async Task SplitCommandOpensSearchablePickerWithAvailableProfilesAndSshSessions()
+    {
+        var sessions = new FakeSessionService();
+        sessions.Sessions.Add(FakeSessionService.CreateSession(
+            Guid.NewGuid(),
+            new SessionDetails(
+                "Production server", "prod.test", 22, "admin", null,
+                "Production", "Primary host")));
+        var folders = new FakeFolderService();
+        var explorer = new SessionExplorerViewModel(sessions, folders);
+        await explorer.InitializeAsync(TestContext.Current.CancellationToken);
+        var workspace = new TerminalWorkspaceViewModel(
+            sessions,
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory(),
+            terminalProfileResolver: new FakeTerminalProfileResolver(
+                "pwsh.exe",
+                "cmd.exe"));
+        workspace.ApplySettings(new ApplicationSettings
+        {
+            TerminalProfiles =
+            [
+                new TerminalProfile
+                {
+                    Id = "power-shell",
+                    Name = "PowerShell",
+                    ExecutablePath = "pwsh.exe",
+                },
+                new TerminalProfile
+                {
+                    Id = "command-prompt",
+                    Name = "Command Prompt",
+                    ExecutablePath = "cmd.exe",
+                },
+                new TerminalProfile
+                {
+                    Id = "missing-shell",
+                    Name = "Missing Shell",
+                    ExecutablePath = "missing.exe",
+                },
+            ],
+            DefaultTerminalProfileId = "power-shell",
+        });
+        await workspace.OpenLocalTerminalCommand.ExecuteAsync(null);
+        var viewModel = new MainWindowViewModel(
+            explorer,
+            workspace,
+            CreateSettingsViewModel(new FakeSettingsService(exists: true)),
+            new SessionEditorViewModel(sessions),
+            new SessionManagerViewModel(sessions, folders),
+            new FolderEditorViewModel(folders));
+
+        workspace.SplitRightCommand.Execute(null);
+
+        Assert.True(viewModel.IsCommandPaletteOpen);
+        Assert.True(viewModel.IsCommandPaletteSplitSelection);
+        Assert.False(viewModel.CanReturnToCommandPaletteRoot);
+        Assert.Equal(
+            "Split right: choose terminal or SSH session…",
+            viewModel.CommandPalettePlaceholder);
+        Assert.Equal(3, viewModel.CommandPaletteResults.Count);
+        Assert.DoesNotContain(
+            viewModel.CommandPaletteResults,
+            item => item.Title == "Missing Shell");
+        Assert.Single(workspace.SelectedTab!.Panes);
+
+        viewModel.CommandPaletteQuery = "admin@prod.test";
+
+        CommandPaletteItemViewModel sshSession = Assert.Single(viewModel.CommandPaletteResults);
+        Assert.Equal(CommandPaletteItemKind.SavedSshSession, sshSession.Kind);
+
+        viewModel.HandleCommandPaletteEscape();
+
+        Assert.False(viewModel.IsCommandPaletteOpen);
+    }
+
+    [Fact]
+    public async Task SplitPickerCreatesChosenTerminalProfileAndSshSessionPanes()
+    {
+        var sessions = new FakeSessionService();
+        Session savedSession = FakeSessionService.CreateSession(
+            Guid.NewGuid(),
+            new SessionDetails(
+                "Production server", "prod.test", 22, "admin", null,
+                "Production", "Primary host"));
+        sessions.Sessions.Add(savedSession);
+        var folders = new FakeFolderService();
+        var explorer = new SessionExplorerViewModel(sessions, folders);
+        await explorer.InitializeAsync(TestContext.Current.CancellationToken);
+        var terminalSessionFactory = new FakeTerminalSessionFactory();
+        var workspace = new TerminalWorkspaceViewModel(
+            sessions,
+            terminalSessionFactory,
+            new FakePtySessionFactory(),
+            terminalProfileResolver: new FakeTerminalProfileResolver(
+                "pwsh.exe",
+                "cmd.exe"));
+        workspace.ApplySettings(new ApplicationSettings
+        {
+            TerminalProfiles =
+            [
+                new TerminalProfile
+                {
+                    Id = "power-shell",
+                    Name = "PowerShell",
+                    ExecutablePath = "pwsh.exe",
+                },
+                new TerminalProfile
+                {
+                    Id = "command-prompt",
+                    Name = "Command Prompt",
+                    ExecutablePath = "cmd.exe",
+                },
+            ],
+            DefaultTerminalProfileId = "power-shell",
+        });
+        await workspace.OpenLocalTerminalCommand.ExecuteAsync(null);
+        var viewModel = new MainWindowViewModel(
+            explorer,
+            workspace,
+            CreateSettingsViewModel(new FakeSettingsService(exists: true)),
+            new SessionEditorViewModel(sessions),
+            new SessionManagerViewModel(sessions, folders),
+            new FolderEditorViewModel(folders));
+
+        workspace.SplitRightCommand.Execute(null);
+        viewModel.CommandPaletteQuery = "command prompt";
+        await viewModel.ExecuteSelectedCommandPaletteItemCommand.ExecuteAsync(null);
+
+        TerminalTabViewModel tab = workspace.SelectedTab!;
+        Assert.False(viewModel.IsCommandPaletteOpen);
+        Assert.Equal("command-prompt", terminalSessionFactory.LastProfileId);
+        Assert.Equal(2, tab.Panes.Count);
+        Assert.Equal(
+            SplitOrientation.Vertical,
+            Assert.IsType<SplitPaneNode>(tab.PaneRoot).Orientation);
+        Assert.Equal("command-prompt", tab.ActivePane!.Definition.ProfileId);
+
+        workspace.SplitDownCommand.Execute(null);
+        viewModel.CommandPaletteQuery = "production server";
+        await viewModel.ExecuteSelectedCommandPaletteItemCommand.ExecuteAsync(null);
+
+        Assert.Equal(savedSession.Id, terminalSessionFactory.LastSessionId);
+        Assert.Equal(3, tab.Panes.Count);
+        Assert.Equal(TerminalSessionKind.Ssh, tab.ActivePane!.Definition.Kind);
+        SplitPaneNode rootSplit = Assert.IsType<SplitPaneNode>(tab.PaneRoot);
+        Assert.Equal(
+            SplitOrientation.Horizontal,
+            Assert.IsType<SplitPaneNode>(rootSplit.Second).Orientation);
+    }
+
+    [Fact]
+    public async Task SplitActionFromCommandPaletteReturnsToRootOnEscape()
+    {
+        var sessions = new FakeSessionService();
+        var folders = new FakeFolderService();
+        var explorer = new SessionExplorerViewModel(sessions, folders);
+        await explorer.InitializeAsync(TestContext.Current.CancellationToken);
+        var workspace = new TerminalWorkspaceViewModel(
+            sessions,
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory());
+        workspace.ApplySettings(new ApplicationSettings());
+        await workspace.OpenLocalTerminalCommand.ExecuteAsync(null);
+        var viewModel = new MainWindowViewModel(
+            explorer,
+            workspace,
+            CreateSettingsViewModel(new FakeSettingsService(exists: true)),
+            new SessionEditorViewModel(sessions),
+            new SessionManagerViewModel(sessions, folders),
+            new FolderEditorViewModel(folders));
+        viewModel.OpenCommandPaletteCommand.Execute(null);
+        viewModel.CommandPaletteQuery = "split down";
+
+        await viewModel.ExecuteSelectedCommandPaletteItemCommand.ExecuteAsync(null);
+
+        Assert.True(viewModel.IsCommandPaletteOpen);
+        Assert.True(viewModel.IsCommandPaletteSplitSelection);
+        Assert.True(viewModel.CanReturnToCommandPaletteRoot);
+        Assert.Equal(
+            "Split down: choose terminal or SSH session…",
+            viewModel.CommandPalettePlaceholder);
+
+        viewModel.HandleCommandPaletteEscape();
+
+        Assert.True(viewModel.IsCommandPaletteOpen);
+        Assert.False(viewModel.IsCommandPaletteSplitSelection);
+        Assert.Equal(string.Empty, viewModel.CommandPaletteQuery);
+        Assert.Contains(
+            viewModel.CommandPaletteResults,
+            item => item.Title == "Terminal: Split Down");
+    }
+
+    [Fact]
     public async Task CommandPaletteSearchActionOpensSearchWithoutRestoringTerminalFocus()
     {
         var sessions = new FakeSessionService();
@@ -923,37 +756,6 @@ public sealed class ViewModelTests
         Assert.True(searchRequested);
         Assert.Equal(0, terminalFocusRequests);
         Assert.False(viewModel.IsCommandPaletteOpen);
-    }
-
-    [Fact]
-    public async Task CommandPaletteOmitsPsmuxWhenDisabled()
-    {
-        var sessions = new FakeSessionService();
-        var folders = new FakeFolderService();
-        var explorer = new SessionExplorerViewModel(sessions, folders);
-        await explorer.InitializeAsync(TestContext.Current.CancellationToken);
-        var psmux = new FakePsmuxService();
-        psmux.Sessions.Add(new PsmuxSessionInfo("hidden", 1, false));
-        var workspace = new TerminalWorkspaceViewModel(
-            sessions,
-            new FakeTerminalSessionFactory(),
-            new FakePtySessionFactory(),
-            psmux);
-        workspace.ApplySettings(new ApplicationSettings());
-        var viewModel = new MainWindowViewModel(
-            explorer,
-            workspace,
-            CreateSettingsViewModel(new FakeSettingsService(exists: true)),
-            new SessionEditorViewModel(sessions),
-            new SessionManagerViewModel(sessions, folders),
-            new FolderEditorViewModel(folders));
-
-        viewModel.OpenCommandPaletteCommand.Execute(null);
-
-        Assert.DoesNotContain(
-            viewModel.CommandPaletteResults,
-            item => item.Title.Contains("psmux", StringComparison.OrdinalIgnoreCase));
-        Assert.Equal(0, psmux.ProbeCalls);
     }
 
     [Fact]
@@ -1113,12 +915,10 @@ public sealed class ViewModelTests
     {
         var sessions = new FakeSessionService();
         var folders = new FakeFolderService();
-        var psmux = new FakePsmuxService();
         var workspace = new TerminalWorkspaceViewModel(
             sessions,
             new FakeTerminalSessionFactory(),
-            new FakePtySessionFactory(),
-            psmux);
+            new FakePtySessionFactory());
         var settings = CreateSettingsViewModel(new FakeSettingsService(exists: true));
         await settings.InitializeAsync(TestContext.Current.CancellationToken);
         var sessionEditor = new SessionEditorViewModel(sessions);
@@ -1160,46 +960,6 @@ public sealed class ViewModelTests
         Assert.False(sessionEditor.IsEditorOpen);
         Assert.True(folderEditor.IsFolderEditorOpen);
 
-        await workspace.OpenPsmuxSessionsCommand.ExecuteAsync(null);
-        Assert.False(folderEditor.IsFolderEditorOpen);
-        Assert.True(workspace.IsPsmuxSessionsOpen);
-
-        await workspace.OpenPsmuxCreateCommand.ExecuteAsync(null);
-        Assert.False(workspace.IsPsmuxSessionsOpen);
-        Assert.True(workspace.IsPsmuxCreateOpen);
-    }
-
-    [Fact]
-    public async Task Psmux_kill_confirmation_keeps_its_parent_until_another_overlay_opens()
-    {
-        var sessions = new FakeSessionService();
-        var folders = new FakeFolderService();
-        var psmux = new FakePsmuxService();
-        psmux.Sessions.Add(new PsmuxSessionInfo("persistent", 1, false));
-        var workspace = new TerminalWorkspaceViewModel(
-            sessions,
-            new FakeTerminalSessionFactory(),
-            new FakePtySessionFactory(),
-            psmux);
-        var viewModel = new MainWindowViewModel(
-            new SessionExplorerViewModel(sessions, folders),
-            workspace,
-            CreateSettingsViewModel(new FakeSettingsService(exists: true)),
-            new SessionEditorViewModel(sessions),
-            new SessionManagerViewModel(sessions, folders),
-            new FolderEditorViewModel(folders));
-
-        await workspace.OpenPsmuxSessionsCommand.ExecuteAsync(null);
-        workspace.RequestKillPsmuxSessionCommand.Execute(workspace.PsmuxSessions[0]);
-
-        Assert.True(workspace.IsPsmuxSessionsOpen);
-        Assert.True(workspace.IsPsmuxKillConfirmationOpen);
-
-        viewModel.OpenShortcutsCommand.Execute(null);
-
-        Assert.False(workspace.IsPsmuxKillConfirmationOpen);
-        Assert.False(workspace.IsPsmuxSessionsOpen);
-        Assert.True(viewModel.IsShortcutsOpen);
     }
 
     [Fact]
@@ -1540,22 +1300,6 @@ public sealed class ViewModelTests
 
         Assert.Equal(480, settingsService.Value.Window.Width);
         Assert.Equal(360, settingsService.Value.Window.Height);
-    }
-
-    [Fact]
-    public async Task SettingsSavePsmuxShutdownPreference()
-    {
-        var settingsService = new FakeSettingsService(exists: true);
-        var viewModel = CreateSettingsViewModel(settingsService);
-        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
-        viewModel.OpenSettingsCommand.Execute(null);
-        viewModel.SettingsPsmuxEnabled = true;
-        viewModel.SettingsKeepPsmuxSessionsOnExit = false;
-
-        await viewModel.SaveSettingsCommand.ExecuteAsync(null);
-
-        Assert.True(settingsService.Value.PsmuxEnabled);
-        Assert.False(settingsService.Value.KeepPsmuxSessionsOnExit);
     }
 
     [Fact]

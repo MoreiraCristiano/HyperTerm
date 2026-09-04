@@ -8,8 +8,8 @@
   A Windows terminal and SSH session manager built with .NET, Avalonia, and xterm.js.
 </p>
 
-HyperTerm combines local terminal profiles, saved SSH connections, and optional
-persistent psmux sessions in one focused desktop application. PowerShell is the
+HyperTerm combines local terminal profiles and saved SSH connections in one
+focused desktop application. PowerShell is the
 recommended default, while custom profiles can launch other shells and tools.
 
 ## Preview
@@ -42,7 +42,6 @@ directory. Additional profiles can launch other local shells and tools.
 - Saved SSH sessions organized in nested folders
 - Multiple isolated tabs with editable titles
 - Recursive horizontal and vertical split panes with independent terminals
-- Persistent psmux sessions with attach, detach, and shutdown controls
 - Terminal output search and command palette
 - Built-in stable release updates with SHA-256 package verification
 - Configurable font, cursor, and selection appearance
@@ -60,9 +59,6 @@ or other SSH credentials.
 - Microsoft Edge WebView2 Runtime
 - PowerShell for the recommended default profile
 - Windows OpenSSH Client (`ssh.exe`) for SSH sessions
-
-[psmux](https://github.com/psmux/psmux) is bundled in complete release packages.
-Development builds can also resolve `psmux.exe` from `PATH`.
 
 ## Run from source
 
@@ -103,7 +99,7 @@ Create the self-contained Windows release ZIP and x64 per-user installer:
 ```
 
 Output is written under `artifacts\releases\`. Both packages include the .NET
-runtime, native libraries, web terminal assets, and verified psmux binary. The
+runtime, native libraries, and web terminal assets. The
 build downloads a pinned, verified Inno Setup compiler into the ignored
 `artifacts\cache\` directory when needed. ARM64 builds continue to produce only
 the portable ZIP.
@@ -147,4 +143,4 @@ lifecycle details.
 ## Technology
 
 .NET 10, Avalonia UI 12, CommunityToolkit.Mvvm, Entity Framework Core, SQLite,
-Porta.Pty, Windows ConPTY, WebView2, xterm.js, PowerShell, OpenSSH, and psmux.
+Porta.Pty, Windows ConPTY, WebView2, xterm.js, PowerShell, and OpenSSH.

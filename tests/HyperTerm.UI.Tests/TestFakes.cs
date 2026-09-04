@@ -152,21 +152,31 @@ internal sealed class FakeTerminalSessionFactory : ITerminalSessionFactory
     private static readonly TerminalSessionDefinition Definition =
         new("pwsh.exe", [], string.Empty);
 
+    public string? LastProfileId { get; private set; }
+    public Guid? LastSessionId { get; private set; }
+
     public Task<TerminalSessionDefinition> CreateLocalAsync(
         CancellationToken cancellationToken = default) => Task.FromResult(Definition);
 
     public Task<TerminalSessionDefinition> CreateProfileAsync(
         string profileId,
-        CancellationToken cancellationToken = default) =>
-        Task.FromResult(Definition with
+        CancellationToken cancellationToken = default)
+    {
+        LastProfileId = profileId;
+        return Task.FromResult(Definition with
         {
             ProfileId = profileId,
             DisplayName = profileId,
         });
+    }
 
     public Task<TerminalSessionDefinition> CreateAsync(
         Session session,
-        CancellationToken cancellationToken = default) => Task.FromResult(Definition);
+        CancellationToken cancellationToken = default)
+    {
+        LastSessionId = session.Id;
+        return Task.FromResult(Definition with { Kind = TerminalSessionKind.Ssh });
+    }
 }
 
 internal sealed class FakePtySessionFactory : IPtySessionFactory
@@ -235,83 +245,6 @@ internal sealed class FakePtySession : IPtySession
         Writes.Add(data);
         return Task.CompletedTask;
     }
-}
-
-internal sealed class FakePsmuxService : IPsmuxService
-{
-    public List<PsmuxSessionInfo> Sessions { get; } = [];
-    public List<string> KilledSessions { get; } = [];
-    public bool IsAvailable { get; set; } = true;
-    public string? Error { get; set; }
-    public Exception? KillError { get; set; }
-    public bool StopServerResult { get; set; } = true;
-    public Exception? StopServerError { get; set; }
-    public int StopServerCalls { get; private set; }
-    public int ProbeCalls { get; private set; }
-    public int ListSessionsCalls { get; private set; }
-
-    public Task<PsmuxAvailability> ProbeAsync(
-        CancellationToken cancellationToken = default)
-    {
-        ProbeCalls++;
-        return Task.FromResult(new PsmuxAvailability(
-            IsAvailable,
-            IsAvailable ? @"C:\Tools\psmux.exe" : null,
-            IsAvailable ? "psmux 3.3.7" : null,
-            Error));
-    }
-
-    public Task<IReadOnlyList<PsmuxSessionInfo>> ListSessionsAsync(
-        CancellationToken cancellationToken = default)
-    {
-        ListSessionsCalls++;
-        return Task.FromResult<IReadOnlyList<PsmuxSessionInfo>>(Sessions.ToArray());
-    }
-
-    public Task<TerminalSessionDefinition> CreateSessionDefinitionAsync(
-        string name,
-        CancellationToken cancellationToken = default)
-    {
-        Sessions.Add(new PsmuxSessionInfo(name, 2, true));
-        return Task.FromResult(CreateDefinition(name));
-    }
-
-    public Task<TerminalSessionDefinition> CreateAttachDefinitionAsync(
-        string name,
-        CancellationToken cancellationToken = default) =>
-        Task.FromResult(CreateDefinition(name));
-
-    public Task KillSessionAsync(
-        string name,
-        CancellationToken cancellationToken = default)
-    {
-        if (KillError is not null)
-        {
-            return Task.FromException(KillError);
-        }
-
-        KilledSessions.Add(name);
-        Sessions.RemoveAll(session => session.Name == name);
-        return Task.CompletedTask;
-    }
-
-    public Task<bool> TryStopServerAsync(
-        CancellationToken cancellationToken = default)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        StopServerCalls++;
-        return StopServerError is null
-            ? Task.FromResult(StopServerResult)
-            : Task.FromException<bool>(StopServerError);
-    }
-
-    private static TerminalSessionDefinition CreateDefinition(string name) =>
-        new(
-            @"C:\Tools\psmux.exe",
-            ["-L", "hyperterm", "attach-session", "-t", name],
-            string.Empty,
-            TerminalSessionKind.Psmux,
-            name);
 }
 
 internal sealed class FakeSettingsService(bool exists) : ISettingsService

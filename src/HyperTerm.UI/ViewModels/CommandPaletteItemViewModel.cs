@@ -6,7 +6,6 @@ public enum CommandPaletteItemKind
     TerminalProfile,
     SavedSshSession,
     OpenTab,
-    PsmuxSession,
 }
 
 public sealed class CommandPaletteItemViewModel(

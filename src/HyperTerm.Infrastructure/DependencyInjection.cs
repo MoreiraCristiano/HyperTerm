@@ -41,8 +41,6 @@ public static class DependencyInjection
         services.AddSingleton<ISettingsService, JsonSettingsService>();
         services.AddSingleton<ITerminalProfileResolver, TerminalProfileResolver>();
         services.AddSingleton<ITerminalSessionFactory, TerminalSessionFactory>();
-        services.AddSingleton<IPsmuxCommandClient, PsmuxCommandClient>();
-        services.AddSingleton<IPsmuxService, PsmuxService>();
         services.AddSingleton<IPtySessionFactory, PortaPtySessionFactory>();
         services.AddSingleton<IApplicationUpdateService, GitHubApplicationUpdateService>();
 

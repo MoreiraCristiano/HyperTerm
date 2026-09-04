@@ -12,9 +12,6 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 {
     private enum OverlayKind
     {
-        PsmuxCreate,
-        PsmuxSessions,
-        PsmuxKillConfirmation,
         SessionEditor,
         SessionDeleteConfirmation,
         SessionManager,
@@ -86,9 +83,6 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     public WindowSettings WindowSettings => Settings.WindowSettings;
     public bool IsTabAreaEmpty => !Workspace.HasOpenTabs;
     public bool IsOverlayOpen =>
-        Workspace.IsPsmuxCreateOpen ||
-        Workspace.IsPsmuxSessionsOpen ||
-        Workspace.IsPsmuxKillConfirmationOpen ||
         SessionEditor.IsEditorOpen ||
         SessionEditor.IsDeleteConfirmationOpen ||
         SessionManager.IsOpen ||
@@ -102,8 +96,6 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         showSidebarScrollbar ? ScrollBarVisibility.Auto : ScrollBarVisibility.Hidden;
     public bool AreTerminalHostsVisible =>
         Workspace.HasOpenTabs &&
-        !Workspace.IsPsmuxCreateOpen &&
-        !Workspace.IsPsmuxSessionsOpen &&
         !SessionEditor.IsEditorOpen &&
         !SessionEditor.IsDeleteConfirmationOpen &&
         !SessionManager.IsOpen &&
@@ -156,7 +148,6 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     internal async Task InitializeWorkspaceAsync(CancellationToken cancellationToken = default)
     {
         await Explorer.InitializeAsync(cancellationToken);
-        await Workspace.RefreshPsmuxSessionsAsync(cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         await Workspace.OpenLocalTerminalCommand.ExecuteAsync(null);
     }
@@ -297,18 +288,6 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         {
             IsShortcutsOpen = false;
         }
-        else if (Workspace.IsPsmuxCreateOpen)
-        {
-            Workspace.CancelPsmuxCreateCommand.Execute(null);
-        }
-        else if (Workspace.IsPsmuxKillConfirmationOpen)
-        {
-            Workspace.CancelKillPsmuxSessionCommand.Execute(null);
-        }
-        else if (Workspace.IsPsmuxSessionsOpen)
-        {
-            Workspace.ClosePsmuxSessionsCommand.Execute(null);
-        }
     }
 
     private void CoordinateOverlayOpening(OverlayKind openedOverlay)
@@ -363,23 +342,6 @@ public sealed partial class MainWindowViewModel : ViewModelBase
                 CloseCommandPalette(restoreTerminalFocus: false);
             }
 
-            if (openedOverlay != OverlayKind.PsmuxKillConfirmation &&
-                Workspace.IsPsmuxKillConfirmationOpen)
-            {
-                Workspace.CancelKillPsmuxSessionCommand.Execute(null);
-            }
-
-            if (openedOverlay is not OverlayKind.PsmuxSessions and
-                not OverlayKind.PsmuxKillConfirmation &&
-                Workspace.IsPsmuxSessionsOpen)
-            {
-                Workspace.ClosePsmuxSessionsCommand.Execute(null);
-            }
-
-            if (openedOverlay != OverlayKind.PsmuxCreate && Workspace.IsPsmuxCreateOpen)
-            {
-                Workspace.CancelPsmuxCreateCommand.Execute(null);
-            }
         }
         finally
         {
@@ -391,21 +353,6 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         object? sender,
         PropertyChangedEventArgs eventArgs)
     {
-        if (ReferenceEquals(sender, Workspace))
-        {
-            return eventArgs.PropertyName switch
-            {
-                nameof(TerminalWorkspaceViewModel.IsPsmuxCreateOpen)
-                    when Workspace.IsPsmuxCreateOpen => OverlayKind.PsmuxCreate,
-                nameof(TerminalWorkspaceViewModel.IsPsmuxSessionsOpen)
-                    when Workspace.IsPsmuxSessionsOpen => OverlayKind.PsmuxSessions,
-                nameof(TerminalWorkspaceViewModel.IsPsmuxKillConfirmationOpen)
-                    when Workspace.IsPsmuxKillConfirmationOpen =>
-                        OverlayKind.PsmuxKillConfirmation,
-                _ => null,
-            };
-        }
-
         if (ReferenceEquals(sender, Settings) &&
             eventArgs.PropertyName == nameof(SettingsViewModel.IsSettingsOpen) &&
             Settings.IsSettingsOpen)
@@ -480,6 +427,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
         Workspace.SettingsRequested += Settings.OpenWithError;
         Workspace.SessionsRefreshRequested += OnSessionsRefreshRequested;
+        Workspace.SplitSelectionRequested += OpenSplitTargetSelection;
         Workspace.ApplicationCommandRequested += OnApplicationCommandRequested;
 
         Workspace.PropertyChanged += OnChildPropertyChanged;
@@ -603,10 +551,6 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         bool terminalVisibilityChanged =
             ReferenceEquals(sender, Workspace) &&
             eventArgs.PropertyName == nameof(TerminalWorkspaceViewModel.HasOpenTabs) ||
-            ReferenceEquals(sender, Workspace) &&
-            eventArgs.PropertyName is nameof(TerminalWorkspaceViewModel.IsPsmuxCreateOpen) or
-                nameof(TerminalWorkspaceViewModel.IsPsmuxSessionsOpen) or
-                nameof(TerminalWorkspaceViewModel.IsPsmuxKillConfirmationOpen) ||
             ReferenceEquals(sender, Settings) &&
             eventArgs.PropertyName == nameof(SettingsViewModel.IsSettingsOpen) ||
             ReferenceEquals(sender, SessionEditor) &&

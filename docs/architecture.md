@@ -15,7 +15,7 @@ Infrastructure ────┘
 - `HyperTerm.Core` owns entities, models, contracts, validation, and domain
   services. It does not reference Infrastructure or UI.
 - `HyperTerm.Infrastructure` owns Windows, SQLite, filesystem, external process,
-  PTY, SSH, psmux, settings, and logging implementations.
+  PTY, SSH, settings, and logging implementations.
 - `HyperTerm.UI` owns Avalonia composition, view models, view interactions,
   platform UI services, and the WebView/xterm.js bridge.
 
@@ -27,7 +27,6 @@ Features are grouped below their owning layer:
 HyperTerm.Core/Services/Sessions
 HyperTerm.Infrastructure/Terminal
 ├── Launching
-├── Psmux
 └── Pty
 HyperTerm.UI
 ├── Controls/WebTerminal

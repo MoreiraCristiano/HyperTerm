@@ -50,6 +50,10 @@ VersionInfoCompany=HyperTerm
 [Files]
 Source: "{#SourceDirectory}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
+[InstallDelete]
+Type: filesandordirs; Name: "{app}\tools\psmux"
+Type: files; Name: "{app}\licenses\psmux-LICENSE.txt"
+
 [Tasks]
 Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription: "Additional shortcuts:"; Flags: unchecked
 

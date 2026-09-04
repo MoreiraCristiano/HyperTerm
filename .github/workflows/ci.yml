@@ -174,8 +174,7 @@ jobs:
 
           foreach ($relativePath in @(
               'HyperTerm.exe',
-              'HyperTerm.manifest.json',
-              'tools\psmux\psmux.exe')) {
+              'HyperTerm.manifest.json')) {
               $installedPath = Join-Path $installPath $relativePath
               if (-not (Test-Path -LiteralPath $installedPath -PathType Leaf)) {
                   throw "Installed release file is missing: $installedPath"

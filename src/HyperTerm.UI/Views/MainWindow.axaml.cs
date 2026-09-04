@@ -204,31 +204,6 @@ public sealed partial class MainWindow : Window
                 FocusEditor(FolderEditorDialogHost.PathEditor);
             }
         };
-        viewModel.Workspace.PropertyChanged += (_, eventArgs) =>
-        {
-            if (eventArgs.PropertyName == nameof(TerminalWorkspaceViewModel.IsPsmuxCreateOpen) &&
-                viewModel.Workspace.IsPsmuxCreateOpen)
-            {
-                FocusEditor(PsmuxCreateDialogHost.NameEditor);
-            }
-            else if (eventArgs.PropertyName == nameof(TerminalWorkspaceViewModel.IsPsmuxSessionsOpen) &&
-                     viewModel.Workspace.IsPsmuxSessionsOpen)
-            {
-                PsmuxSessionsDialogHost.FocusContent(viewModel);
-            }
-            else if (eventArgs.PropertyName == nameof(TerminalWorkspaceViewModel.IsPsmuxKillConfirmationOpen) &&
-                     viewModel.Workspace.IsPsmuxKillConfirmationOpen)
-            {
-                PsmuxKillDialogHost.FocusCancel();
-            }
-        };
-        viewModel.Workspace.PsmuxSessions.CollectionChanged += (_, _) =>
-        {
-            if (viewModel.Workspace.IsPsmuxSessionsOpen)
-            {
-                PsmuxSessionsDialogHost.FocusContent(viewModel);
-            }
-        };
         viewModel.PropertyChanged += (_, eventArgs) =>
         {
             if (eventArgs.PropertyName == nameof(MainWindowViewModel.IsSidebarVisible))

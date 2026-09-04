@@ -53,19 +53,23 @@ public sealed class ApplicationPathProviderTests
 public sealed class JsonSettingsIntegrationTests
 {
     [Fact]
-    public async Task ExistingSettingsDefaultToKeepingPsmuxSessionsOnExit()
+    public async Task LegacySettingsIgnoreAndRemoveObsoleteProperties()
     {
         using var paths = new TemporaryPaths();
         await File.WriteAllTextAsync(
             paths.SettingsPath,
-            """{"PowerShellPath":"pwsh.exe"}""");
+            """{"PowerShellPath":"pwsh.exe","PsmuxEnabled":true,"KeepPsmuxSessionsOnExit":false}""");
         using var service = new JsonSettingsService(paths);
 
         ApplicationSettings settings = await service.LoadAsync();
+        await service.SaveAsync(settings);
 
-        Assert.True(settings.KeepPsmuxSessionsOnExit);
-        Assert.False(settings.PsmuxEnabled);
+        Assert.Equal("pwsh.exe", settings.PowerShellPath);
         Assert.False(settings.CloseToSystemTray);
+        using JsonDocument saved = JsonDocument.Parse(
+            await File.ReadAllTextAsync(paths.SettingsPath));
+        Assert.False(saved.RootElement.TryGetProperty("PsmuxEnabled", out _));
+        Assert.False(saved.RootElement.TryGetProperty("KeepPsmuxSessionsOnExit", out _));
     }
 
     [Fact]
@@ -81,8 +85,6 @@ public sealed class JsonSettingsIntegrationTests
             Theme = "Light",
             TerminalFontSize = 17,
             CloseToSystemTray = true,
-            PsmuxEnabled = true,
-            KeepPsmuxSessionsOnExit = false,
             Window = new WindowSettings { Width = 900, Height = 600, X = 10, Y = 20 },
         };
         await service.SaveAsync(expected);

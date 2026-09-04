@@ -134,22 +134,13 @@
                   Grid.Column="2"
                   AutomationProperties.AutomationId="OpenTerminalMenuButton"
                 Classes="titleBarButton newTerminalMenuButton"
-                ToolTip.Tip="Terminal profiles and psmux"
+                ToolTip.Tip="Terminal actions"
                 WindowDecorationProperties.ElementRole="None">
               <Button.Flyout>
                 <MenuFlyout Opening="OnTerminalMenuOpening" Placement="BottomEdgeAlignedLeft">
                   <MenuItem Header="Split Right" Command="{Binding Workspace.SplitRightCommand}" />
                   <MenuItem Header="Split Down" Command="{Binding Workspace.SplitDownCommand}" />
                   <MenuItem Header="Close Pane" Command="{Binding Workspace.ClosePaneCommand}" />
-                  <Separator IsVisible="{Binding Workspace.IsPsmuxEnabled}" />
-                  <MenuItem Header="psmux" IsVisible="{Binding Workspace.IsPsmuxEnabled}">
-                    <MenuItem
-                        Header="Create session"
-                        Command="{Binding Workspace.OpenPsmuxCreateCommand}" />
-                    <MenuItem
-                        Header="Manage sessions"
-                        Command="{Binding Workspace.OpenPsmuxSessionsCommand}" />
-                  </MenuItem>
                 </MenuFlyout>
               </Button.Flyout>
                 <TextBlock Classes="icon buttonIcon" Text="&#xE70D;" />
@@ -469,12 +460,6 @@
     <dialogs:FolderEditorDialog x:Name="FolderEditorDialogHost" Grid.Row="1" Grid.RowSpan="2" Grid.ColumnSpan="3" />
 
     <dialogs:FolderDeleteDialog Grid.Row="1" Grid.RowSpan="2" Grid.ColumnSpan="3" />
-
-    <dialogs:PsmuxSessionsDialog x:Name="PsmuxSessionsDialogHost" Grid.Row="1" Grid.RowSpan="2" Grid.ColumnSpan="3" />
-
-    <dialogs:PsmuxKillDialog x:Name="PsmuxKillDialogHost" Grid.Row="1" Grid.RowSpan="2" Grid.ColumnSpan="3" />
-
-    <dialogs:PsmuxCreateDialog x:Name="PsmuxCreateDialogHost" Grid.Row="1" Grid.RowSpan="2" Grid.ColumnSpan="3" />
 
     <Border
         Grid.Row="1"

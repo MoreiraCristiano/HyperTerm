@@ -13,8 +13,6 @@ namespace HyperTerm.UI.ViewModels;
 
 public sealed partial class TerminalWorkspaceViewModel
 {
-    private static readonly TimeSpan PsmuxShutdownTimeout = TimeSpan.FromSeconds(3);
-
     public async Task OpenSessionAsync(SessionListItemViewModel session)
     {
         ArgumentNullException.ThrowIfNull(session);
@@ -108,10 +106,10 @@ public sealed partial class TerminalWorkspaceViewModel
     private Task CloseSelectedTabAsync() => CloseTabAsync(SelectedTab!);
 
     [RelayCommand(CanExecute = nameof(HasSelectedTab))]
-    private Task SplitRightAsync() => SplitSelectedPaneAsync(SplitOrientation.Vertical);
+    private void SplitRight() => SplitSelectionRequested?.Invoke(SplitOrientation.Vertical);
 
     [RelayCommand(CanExecute = nameof(HasSelectedTab))]
-    private Task SplitDownAsync() => SplitSelectedPaneAsync(SplitOrientation.Horizontal);
+    private void SplitDown() => SplitSelectionRequested?.Invoke(SplitOrientation.Horizontal);
 
     [RelayCommand(CanExecute = nameof(HasSelectedTab))]
     private async Task ClosePaneAsync() =>
@@ -135,33 +133,90 @@ public sealed partial class TerminalWorkspaceViewModel
     [RelayCommand(CanExecute = nameof(HasSelectedTab))]
     private void FocusDownPane() => SelectedTab!.FocusDownPane();
 
-    private async Task SplitSelectedPaneAsync(SplitOrientation orientation)
+    public Task SplitWithTerminalProfileAsync(
+        SplitOrientation orientation,
+        TerminalLaunchProfileViewModel? profile)
+    {
+        if (profile is null || !profile.IsAvailable)
+        {
+            return Task.CompletedTask;
+        }
+
+        return SplitSelectedPaneAsync(
+            orientation,
+            () => terminalSessionFactory.CreateProfileAsync(profile.Id),
+            profile.Name,
+            refreshSessionsOnNotFound: false);
+    }
+
+    public Task SplitWithSessionAsync(
+        SplitOrientation orientation,
+        SessionListItemViewModel? session)
+    {
+        if (session is null)
+        {
+            return Task.CompletedTask;
+        }
+
+        return SplitSelectedPaneAsync(
+            orientation,
+            async () =>
+            {
+                Session entity = await sessionService.GetByIdAsync(session.Id)
+                    ?? throw new KeyNotFoundException(
+                        $"Session ‘{session.Name}’ was not found.");
+                return await terminalSessionFactory.CreateAsync(entity);
+            },
+            session.Name,
+            refreshSessionsOnNotFound: true);
+    }
+
+    private async Task SplitSelectedPaneAsync(
+        SplitOrientation orientation,
+        Func<Task<TerminalSessionDefinition>> createDefinition,
+        string targetName,
+        bool refreshSessionsOnNotFound)
     {
         TerminalTabViewModel? tab = SelectedTab;
-        if (tab?.ActivePane is not { } activePane)
+        if (tab?.ActivePane is null)
         {
             return;
         }
 
         try
         {
-            TerminalSessionDefinition definition =
-                activePane.Definition.Kind == TerminalSessionKind.Local
-                    ? activePane.Definition
-                    : await terminalSessionFactory.CreateLocalAsync();
+            TerminalSessionDefinition definition = await createDefinition();
+            if (!Tabs.Contains(tab))
+            {
+                return;
+            }
+
             if (tab.SplitActivePane(orientation, definition) is not null)
             {
                 tab.RequestFocus();
                 StatusText = orientation == SplitOrientation.Vertical
-                    ? "Terminal split right"
-                    : "Terminal split down";
+                    ? $"‘{targetName}’ split right"
+                    : $"‘{targetName}’ split down";
             }
         }
-        catch (Exception exception) when (
-            exception is TerminalLaunchException or KeyNotFoundException)
+        catch (TerminalLaunchException exception)
         {
             diagnostics.LogError(exception, "Failed to prepare a split terminal.");
             StatusText = exception.Message;
+            SettingsRequested?.Invoke(exception.Message);
+        }
+        catch (KeyNotFoundException exception)
+        {
+            diagnostics.LogWarning(exception, "A split target was not found.");
+            StatusText = exception.Message;
+            if (refreshSessionsOnNotFound)
+            {
+                SessionsRefreshRequested?.Invoke();
+            }
+            else
+            {
+                SettingsRequested?.Invoke(exception.Message);
+            }
         }
     }
 
@@ -200,35 +255,6 @@ public sealed partial class TerminalWorkspaceViewModel
         {
             await CloseTabAsync(tab);
         }
-
-        if (settings.KeepPsmuxSessionsOnExit ||
-            psmuxService is null ||
-            Tabs.Any(tab => tab.IsPsmux))
-        {
-            return;
-        }
-
-        using var cancellation = new CancellationTokenSource(PsmuxShutdownTimeout);
-        try
-        {
-            bool stopped = await psmuxService.TryStopServerAsync(cancellation.Token);
-            if (!stopped)
-            {
-                diagnostics.LogInformation(
-                    "Preserved the HyperTerm psmux server because another client is attached.");
-            }
-        }
-        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
-        {
-            diagnostics.LogWarning(
-                "Timed out while stopping the HyperTerm psmux server during shutdown.");
-        }
-        catch (Exception exception)
-        {
-            diagnostics.LogWarning(
-                exception,
-                "Failed to stop the HyperTerm psmux server during shutdown.");
-        }
     }
 
     private bool HasSelectedTab() => SelectedTab is not null;
@@ -236,32 +262,9 @@ public sealed partial class TerminalWorkspaceViewModel
     private void AttachTab(TerminalTabViewModel tab)
     {
         tab.ApplicationCommandRequested += OnApplicationCommandRequested;
-        tab.PtyStarted += OnTabPtyStarted;
         Tabs.Add(tab);
         SelectedTab = tab;
         OnPropertyChanged(nameof(HasOpenTabs));
-    }
-
-    private void AttachPsmuxTab(string name, TerminalSessionDefinition definition)
-    {
-        var tab = new TerminalTabViewModel(
-            name,
-            definition,
-            ptySessionFactory,
-            settings.TerminalFontFamily,
-            settings.TerminalFontSize,
-            settings.TerminalSelectionColor,
-            settings.TerminalCursorStyle,
-            settings.TerminalCursorBlink,
-            settings.Theme,
-            CloseTabAsync);
-        AttachTab(tab);
-    }
-
-    private void NotifyPsmuxSessionsChanged()
-    {
-        OnPropertyChanged(nameof(HasPsmuxSessions));
-        OnPropertyChanged(nameof(HasPsmuxSessionsMessage));
     }
 
     public void MoveTab(
@@ -343,7 +346,6 @@ public sealed partial class TerminalWorkspaceViewModel
         }
 
         tab.ApplicationCommandRequested -= OnApplicationCommandRequested;
-        tab.PtyStarted -= OnTabPtyStarted;
         bool wasSelected = ReferenceEquals(SelectedTab, tab);
         Tabs.RemoveAt(closedTabIndex);
         if (wasSelected)
@@ -372,10 +374,10 @@ public sealed partial class TerminalWorkspaceViewModel
                 await ClosePaneAsync();
                 break;
             case "splitRight":
-                await SplitRightAsync();
+                SplitRight();
                 break;
             case "splitDown":
-                await SplitDownAsync();
+                SplitDown();
                 break;
             case "focusNextPane":
                 FocusNextPane();
@@ -404,42 +406,6 @@ public sealed partial class TerminalWorkspaceViewModel
             default:
                 ApplicationCommandRequested?.Invoke(command);
                 break;
-        }
-    }
-
-    private void OnTabPtyStarted(object? sender, EventArgs eventArgs) =>
-        Observe(RefreshStartedPsmuxTabAsync(sender), "refresh psmux sessions");
-
-    private async Task RefreshStartedPsmuxTabAsync(object? sender)
-    {
-        if (sender is not TerminalTabViewModel { IsPsmux: true } tab ||
-            tab.PsmuxSessionName is null)
-        {
-            return;
-        }
-
-        int[] delays = [100, 250, 500, 1000];
-        foreach (int delay in delays)
-        {
-            if (!IsPsmuxEnabled)
-            {
-                return;
-            }
-
-            await Task.Delay(delay);
-            await RefreshPsmuxSessionsAsync();
-            if (PsmuxSessions.Any(session => session.Name.Equals(
-                    tab.PsmuxSessionName,
-                    StringComparison.OrdinalIgnoreCase)))
-            {
-                return;
-            }
-
-            if (IsPsmuxEnabled && Tabs.Contains(tab))
-            {
-                PsmuxSessions.Add(new PsmuxSessionItemViewModel(
-                    new PsmuxSessionInfo(tab.PsmuxSessionName, 1, true)));
-            }
         }
     }
 

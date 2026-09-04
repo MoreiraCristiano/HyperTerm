@@ -29,19 +29,6 @@ $innoSetupCompilerHash = '0a8757031b33777e4c9cbffee40f11a5062b36d25cbe144c1db73b
 $innoSetupCachePath = Join-Path $repositoryRoot "artifacts\cache\inno-setup\$innoSetupVersion"
 $innoSetupInstallerPath = Join-Path $innoSetupCachePath "innosetup-$innoSetupVersion.exe"
 $innoSetupCompilerPath = Join-Path $innoSetupCachePath 'ISCC.exe'
-$psmuxVersion = '3.3.7'
-$psmuxLicensePath = Join-Path $repositoryRoot 'licenses\psmux-LICENSE.txt'
-$psmuxPackages = @{
-    'win-x64' = @{
-        FileName = 'psmux-v3.3.7-windows-x64.zip'
-        Sha256 = '60ff7b236f64184921cef3c1ff2611aa5a36fcc7ed8e2a58e968b8ded57f6028'
-    }
-    'win-arm64' = @{
-        FileName = 'psmux-v3.3.7-windows-arm64.zip'
-        Sha256 = '9404969b06f41acd1e7cbb56bbee074dc62389a650d8a7dbab71c8181e9b5efc'
-    }
-}
-
 function Invoke-CheckedCommand {
     param(
         [Parameter(Mandatory)]
@@ -226,9 +213,6 @@ if (-not (Test-Path -LiteralPath $dotnetPath)) {
     $dotnetPath = $dotnetCommand.Source
 }
 
-if (-not (Test-Path -LiteralPath $psmuxLicensePath)) {
-    throw "psmux license was not found: $psmuxLicensePath"
-}
 if (-not (Test-Path -LiteralPath $installerScriptPath)) {
     throw "Installer definition was not found: $installerScriptPath"
 }
@@ -287,56 +271,6 @@ if (-not (Test-Path -LiteralPath $releaseExecutablePath)) {
     throw "Standard executable was not found: $releaseExecutablePath"
 }
 
-$psmuxPackage = $psmuxPackages[$Runtime]
-$psmuxCachePath = Join-Path $repositoryRoot "artifacts\cache\psmux\$psmuxVersion\$Runtime"
-$psmuxArchivePath = Join-Path $psmuxCachePath $psmuxPackage.FileName
-$psmuxDownloadUri = "https://github.com/psmux/psmux/releases/download/v$psmuxVersion/$($psmuxPackage.FileName)"
-New-Item -ItemType Directory -Path $psmuxCachePath -Force | Out-Null
-
-if (-not (Test-Path -LiteralPath $psmuxArchivePath)) {
-    $partialArchivePath = "$psmuxArchivePath.download"
-    if (Test-Path -LiteralPath $partialArchivePath) {
-        Remove-Item -LiteralPath $partialArchivePath -Force
-    }
-
-    Write-Host "Downloading psmux $psmuxVersion for $Runtime..."
-    Invoke-WebRequest -Uri $psmuxDownloadUri -OutFile $partialArchivePath
-    try {
-        Assert-FileHash `
-            -Path $partialArchivePath `
-            -ExpectedHash $psmuxPackage.Sha256
-        Move-Item -LiteralPath $partialArchivePath -Destination $psmuxArchivePath
-    }
-    catch {
-        Remove-Item -LiteralPath $partialArchivePath -Force -ErrorAction SilentlyContinue
-        throw
-    }
-}
-else {
-    Write-Host "Using cached psmux $psmuxVersion for $Runtime..."
-    Assert-FileHash `
-        -Path $psmuxArchivePath `
-        -ExpectedHash $psmuxPackage.Sha256
-}
-
-$psmuxExtractPath = Join-Path $releaseStagingRoot 'psmux'
-Expand-Archive -LiteralPath $psmuxArchivePath -DestinationPath $psmuxExtractPath -Force
-$psmuxExecutableCandidates = @(
-    Get-ChildItem -LiteralPath $psmuxExtractPath -Filter 'psmux.exe' -File -Recurse
-)
-if ($psmuxExecutableCandidates.Count -ne 1) {
-    throw "Expected one psmux.exe in $($psmuxPackage.FileName), found $($psmuxExecutableCandidates.Count)."
-}
-
-$bundledPsmuxDirectory = Join-Path $releasePublishPath 'tools\psmux'
-$bundledLicenseDirectory = Join-Path $releasePublishPath 'licenses'
-New-Item -ItemType Directory -Path $bundledPsmuxDirectory -Force | Out-Null
-New-Item -ItemType Directory -Path $bundledLicenseDirectory -Force | Out-Null
-$bundledPsmuxPath = Join-Path $bundledPsmuxDirectory 'psmux.exe'
-Copy-Item -LiteralPath $psmuxExecutableCandidates[0].FullName -Destination $bundledPsmuxPath
-Copy-Item -LiteralPath $psmuxLicensePath `
-    -Destination (Join-Path $bundledLicenseDirectory 'psmux-LICENSE.txt')
-
 [xml]$centralPackages = Get-Content -LiteralPath (
     Join-Path $repositoryRoot 'Directory.Packages.props')
 $packageVersions = [ordered]@{}
@@ -362,7 +296,6 @@ $manifest = [ordered]@{
     version = $Version
     runtime = $Runtime
     targetFramework = 'net10.0'
-    psmuxVersion = $psmuxVersion
     nugetPackages = $packageVersions
     npmDependencies = [ordered]@{
         '@xterm/addon-fit' = $webPackage.dependencies.'@xterm/addon-fit'
@@ -375,22 +308,6 @@ $manifest = [ordered]@{
 $manifest | ConvertTo-Json -Depth 5 |
     Set-Content -LiteralPath (Join-Path $releasePublishPath 'HyperTerm.manifest.json') `
         -Encoding utf8NoBOM
-
-$currentArchitecture = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
-$canRunBundledPsmux =
-    ($Runtime -eq 'win-x64' -and $currentArchitecture -eq [System.Runtime.InteropServices.Architecture]::X64) -or
-    ($Runtime -eq 'win-arm64' -and $currentArchitecture -eq [System.Runtime.InteropServices.Architecture]::Arm64)
-if ($canRunBundledPsmux) {
-    $bundledPsmuxVersion = (& $bundledPsmuxPath --version 2>&1 | Out-String).Trim()
-    if ($LASTEXITCODE -ne 0 -or $bundledPsmuxVersion -notmatch [regex]::Escape($psmuxVersion)) {
-        throw "Bundled psmux version check failed: $bundledPsmuxVersion"
-    }
-
-    Write-Host "Bundled psmux verified: $bundledPsmuxVersion"
-}
-else {
-    Write-Host "Skipping psmux execution check while cross-building $Runtime on $currentArchitecture."
-}
 
 Write-Host 'Creating complete ZIP package...'
 New-DeterministicZipArchive `

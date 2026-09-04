@@ -3,13 +3,12 @@
 ## Project overview
 
 HyperTerm is a Windows-only terminal and SSH session manager built with .NET,
-Avalonia, WebView2, xterm.js, ConPTY, PowerShell, OpenSSH, SQLite, and optional
-psmux sessions.
+Avalonia, WebView2, xterm.js, ConPTY, PowerShell, OpenSSH, and SQLite.
 
 The solution follows a simplified Clean Architecture:
 
 - `HyperTerm.Core`: entities, models, validation, service contracts, and domain services.
-- `HyperTerm.Infrastructure`: SQLite, settings, logging, process resolution, PTY, SSH, and psmux implementations.
+- `HyperTerm.Infrastructure`: SQLite, settings, logging, process resolution, PTY, and SSH implementations.
 - `HyperTerm.UI`: Avalonia views, view models, platform services, WebView bridge, and terminal frontend.
 - `tests/HyperTerm.Tests`: unit and integration tests.
 
@@ -19,7 +18,6 @@ The solution follows a simplified Clean Architecture:
 - Preserve compatibility with existing SQLite databases, `settings.json`, session archives, keyboard shortcuts, and release layout unless the task explicitly requires a migration.
 - Never store passwords or other SSH credentials.
 - SSH must continue to use the installed Windows OpenSSH client.
-- psmux sessions must remain isolated in the `hyperterm` namespace.
 - Keep all telemetry local. Do not add remote analytics or crash reporting without explicit approval.
 
 ## Required workflow
@@ -105,7 +103,7 @@ Avalonia UI -> WebView2 -> xterm.js -> C# bridge -> Porta.Pty/ConPTY -> PowerShe
 Add regression coverage near the affected layer:
 
 - Core: validation, folder rules, archive compatibility, and service behavior.
-- Infrastructure: repositories, settings, process resolution, psmux, PTY lifecycle, and failure handling.
+- Infrastructure: repositories, settings, process resolution, PTY lifecycle, and failure handling.
 - UI/view models: commands, selection, tab lifecycle, cancellation, and state transitions.
 - Web terminal: message validation, input forwarding, resize, output completion, shortcuts, and renderer fallback.
 

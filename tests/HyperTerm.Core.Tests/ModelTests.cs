@@ -25,18 +25,6 @@ public sealed class ModelTests
         Assert.Same(inner, wrapped.InnerException);
     }
 
-    [Fact]
-    public void Psmux_availability_records_all_outcomes()
-    {
-        var available = new PsmuxAvailability(true, "psmux.exe", "1.0", null);
-        var unavailable = new PsmuxAvailability(false, null, null, "missing");
-
-        Assert.True(available.IsAvailable);
-        Assert.Equal("psmux.exe", available.ExecutablePath);
-        Assert.Equal("1.0", available.Version);
-        Assert.Equal("missing", unavailable.Error);
-    }
-
     [Theory]
     [InlineData(50L, 100L, 50)]
     [InlineData(150L, 100L, 100)]
