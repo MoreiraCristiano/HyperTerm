@@ -1116,6 +1116,180 @@ describe('terminal host bridge', () => {
     expect(searchInstances[0].next.options.decorations.activeMatchBackground).toBe('#d7b66f');
   });
 
+  it('applies Catppuccin Mocha initially and when switching themes', async () => {
+    const { host } = await loadHost();
+    const options = {
+      ...createOptions(),
+      theme: 'Catppuccin Mocha',
+      selectionBackground: 'Theme'
+    };
+    host.create({ tabId: 'a', options });
+
+    expect(terminalInstances[0].options.theme).toMatchObject({
+      background: '#1e1e2e', foreground: '#cdd6f4',
+      cursor: '#f5e0dc', cursorAccent: '#1e1e2e',
+      black: '#45475a', brightBlack: '#585b70',
+      red: '#f38ba8', brightRed: '#f38ba8',
+      green: '#a6e3a1', brightGreen: '#a6e3a1',
+      yellow: '#f9e2af', brightYellow: '#f9e2af',
+      blue: '#89b4fa', brightBlue: '#89b4fa',
+      magenta: '#f5c2e7', brightMagenta: '#f5c2e7',
+      cyan: '#94e2d5', brightCyan: '#94e2d5',
+      white: '#bac2de', brightWhite: '#a6adc8',
+      selectionBackground: '#585b70', selectionInactiveBackground: '#585b70',
+      selectionForeground: '#cdd6f4'
+    });
+    expect(document.documentElement.dataset.theme).toBe('catppuccin-mocha');
+    host.activate('a');
+    document.getElementById('terminal-search-input').value = 'mocha';
+    host.openSearch('a');
+    expect(searchInstances[0].next.options.decorations).toMatchObject({
+      matchBackground: '#585b70', matchOverviewRuler: '#7f849c',
+      activeMatchBackground: '#45405a', activeMatchBorder: '#f9e2af', activeMatchColorOverviewRuler: '#f9e2af'
+    });
+
+    host.configure({ tabId: 'a', options: createOptions() });
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    host.configure({ tabId: 'a', options: { ...options, theme: 'CATPPUCCIN MOCHA' } });
+    expect(document.documentElement.dataset.theme).toBe('catppuccin-mocha');
+    expect(terminalInstances[0].options.theme.background).toBe('#1e1e2e');
+    expect(terminalInstances[0].options.theme.selectionBackground).toBe('#585b70');
+    host.configure({ tabId: 'a', options: { ...options, selectionBackground: '#007ACC' } });
+    expect(terminalInstances[0].options.theme.selectionBackground).toBe('#007ACC');
+    expect(terminalInstances[0].options.theme.selectionInactiveBackground).toBe('#007ACC');
+  });
+
+  it('applies Campbell initially and when switching themes', async () => {
+    const { host } = await loadHost();
+    const options = {
+      ...createOptions(),
+      theme: 'Campbell',
+      selectionBackground: 'Theme'
+    };
+    host.create({ tabId: 'a', options });
+
+    expect(terminalInstances[0].options.theme).toMatchObject({
+      background: '#0c0c0c', foreground: '#cccccc',
+      cursor: '#ffffff', cursorAccent: '#0c0c0c',
+      black: '#0c0c0c', brightBlack: '#767676',
+      red: '#c50f1f', brightRed: '#e74856',
+      green: '#13a10e', brightGreen: '#16c60c',
+      yellow: '#c19c00', brightYellow: '#f9f1a5',
+      blue: '#0037da', brightBlue: '#3b78ff',
+      magenta: '#881798', brightMagenta: '#b4009e',
+      cyan: '#3a96dd', brightCyan: '#61d6d6',
+      white: '#cccccc', brightWhite: '#f2f2f2',
+      selectionBackground: '#3b3b3b', selectionInactiveBackground: '#3b3b3b',
+      selectionForeground: '#f2f2f2'
+    });
+    expect(document.documentElement.dataset.theme).toBe('campbell');
+    host.activate('a');
+    document.getElementById('terminal-search-input').value = 'campbell';
+    host.openSearch('a');
+    expect(searchInstances[0].next.options.decorations).toMatchObject({
+      matchBackground: '#3b3b3b', matchOverviewRuler: '#767676',
+      activeMatchBackground: '#163c75', activeMatchBorder: '#f9f1a5', activeMatchColorOverviewRuler: '#f9f1a5'
+    });
+
+    host.configure({ tabId: 'a', options: createOptions() });
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    host.configure({ tabId: 'a', options: { ...options, theme: 'CAMPBELL' } });
+    expect(document.documentElement.dataset.theme).toBe('campbell');
+    expect(terminalInstances[0].options.theme.background).toBe('#0c0c0c');
+    expect(terminalInstances[0].options.theme.selectionBackground).toBe('#3b3b3b');
+    host.configure({ tabId: 'a', options: { ...options, selectionBackground: '#007ACC' } });
+    expect(terminalInstances[0].options.theme.selectionBackground).toBe('#007ACC');
+    expect(terminalInstances[0].options.theme.selectionInactiveBackground).toBe('#007ACC');
+  });
+
+  it('applies Atom initially and when switching themes', async () => {
+    const { host } = await loadHost();
+    const options = {
+      ...createOptions(),
+      theme: 'Atom',
+      selectionBackground: 'Theme'
+    };
+    host.create({ tabId: 'a', options });
+
+    expect(terminalInstances[0].options.theme).toMatchObject({
+      background: '#161719', foreground: '#c5c8c6',
+      cursor: '#d0d0d0', cursorAccent: '#161719',
+      black: '#000000', brightBlack: '#4c4c4c',
+      red: '#fd5ff1', brightRed: '#fd5ff1',
+      green: '#87c38a', brightGreen: '#94fa36',
+      yellow: '#ffd7b1', brightYellow: '#f5ffa8',
+      blue: '#2c507a', brightBlue: '#96cbfe',
+      magenta: '#b9b6fc', brightMagenta: '#b9b6fc',
+      cyan: '#85befd', brightCyan: '#85befd',
+      white: '#e0e0e0', brightWhite: '#e0e0e0',
+      selectionBackground: '#444444', selectionInactiveBackground: '#444444',
+      selectionForeground: '#e0e0e0'
+    });
+    expect(document.documentElement.dataset.theme).toBe('atom');
+    host.activate('a');
+    document.getElementById('terminal-search-input').value = 'atom';
+    host.openSearch('a');
+    expect(searchInstances[0].next.options.decorations).toMatchObject({
+      matchBackground: '#444444', matchOverviewRuler: '#777d82',
+      activeMatchBackground: '#30465f', activeMatchBorder: '#ffd7b1', activeMatchColorOverviewRuler: '#ffd7b1'
+    });
+
+    host.configure({ tabId: 'a', options: createOptions() });
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    host.configure({ tabId: 'a', options: { ...options, theme: 'ATOM' } });
+    expect(document.documentElement.dataset.theme).toBe('atom');
+    expect(terminalInstances[0].options.theme.background).toBe('#161719');
+    expect(terminalInstances[0].options.theme.blue).toBe('#2c507a');
+    expect(terminalInstances[0].options.theme.brightBlue).toBe('#96cbfe');
+    expect(terminalInstances[0].options.theme.selectionBackground).toBe('#444444');
+    host.configure({ tabId: 'a', options: { ...options, selectionBackground: '#007ACC' } });
+    expect(terminalInstances[0].options.theme.selectionBackground).toBe('#007ACC');
+    expect(terminalInstances[0].options.theme.selectionInactiveBackground).toBe('#007ACC');
+  });
+
+  it('applies Dracula initially and when switching themes', async () => {
+    const { host } = await loadHost();
+    const options = {
+      ...createOptions(),
+      theme: 'Dracula',
+      selectionBackground: 'Theme'
+    };
+    host.create({ tabId: 'a', options });
+
+    expect(terminalInstances[0].options.theme).toMatchObject({
+      background: '#282a36', foreground: '#f8f8f2',
+      cursor: '#f8f8f2', cursorAccent: '#282a36',
+      black: '#21222c', brightBlack: '#6272a4',
+      red: '#ff5555', brightRed: '#ff6e6e',
+      green: '#50fa7b', brightGreen: '#69ff94',
+      yellow: '#f1fa8c', brightYellow: '#ffffa5',
+      blue: '#bd93f9', brightBlue: '#d6acff',
+      magenta: '#ff79c6', brightMagenta: '#ff92df',
+      cyan: '#8be9fd', brightCyan: '#a4ffff',
+      white: '#f8f8f2', brightWhite: '#ffffff',
+      selectionBackground: '#44475a', selectionInactiveBackground: '#44475a',
+      selectionForeground: '#f8f8f2'
+    });
+    expect(document.documentElement.dataset.theme).toBe('dracula');
+    host.activate('a');
+    document.getElementById('terminal-search-input').value = 'dracula';
+    host.openSearch('a');
+    expect(searchInstances[0].next.options.decorations).toMatchObject({
+      matchBackground: '#44475a', matchOverviewRuler: '#6272a4',
+      activeMatchBackground: '#514366', activeMatchBorder: '#f1fa8c', activeMatchColorOverviewRuler: '#f1fa8c'
+    });
+
+    host.configure({ tabId: 'a', options: createOptions() });
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    host.configure({ tabId: 'a', options: { ...options, theme: 'DRACULA' } });
+    expect(document.documentElement.dataset.theme).toBe('dracula');
+    expect(terminalInstances[0].options.theme.background).toBe('#282a36');
+    expect(terminalInstances[0].options.theme.selectionBackground).toBe('#44475a');
+    host.configure({ tabId: 'a', options: { ...options, selectionBackground: '#007ACC' } });
+    expect(terminalInstances[0].options.theme.selectionBackground).toBe('#007ACC');
+    expect(terminalInstances[0].options.theme.selectionInactiveBackground).toBe('#007ACC');
+  });
+
   it('follows each theme selection color when reconfigured', async () => {
     const { host } = await loadHost();
     host.create({

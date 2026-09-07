@@ -1580,11 +1580,18 @@ public sealed class ViewModelTests
         var viewModel = CreateSettingsViewModel(new FakeSettingsService(exists: true));
 
         Assert.Equal(
-            ["Default Dark", "Darcula", "Mintara", "Vesper", "Abyss"],
+            ["Abyss", "Atom", "Campbell", "Catppuccin Mocha", "Darcula", "Default Dark", "Dracula", "Mintara", "Vesper"],
             viewModel.DarkThemeOptions.Select(option => option.Value).ToArray());
         Assert.Equal(
-            ["Default Light", "Aurora", "Mintara Light", "Vesper Light", "Abyss Light"],
+            ["Abyss Light", "Aurora", "Default Light", "Mintara Light", "Vesper Light"],
             viewModel.LightThemeOptions.Select(option => option.Value).ToArray());
+        ThemeOption[] groupedThemes = viewModel.DarkThemeOptions.Concat(viewModel.LightThemeOptions).ToArray();
+        Assert.Equal(groupedThemes.Length, viewModel.ThemeOptions.Count);
+        Assert.Equal(groupedThemes.Length, groupedThemes.Select(option => option.Value).Distinct().Count());
+        for (int index = 0; index < groupedThemes.Length; index++)
+        {
+            Assert.Same(groupedThemes[index], viewModel.ThemeOptions[index]);
+        }
         ThemeOption lightTheme = viewModel.LightThemeOptions[0];
         Assert.Equal("Default Dark", viewModel.SelectedDarkTheme?.Value);
         Assert.Null(viewModel.SelectedLightTheme);
@@ -1789,6 +1796,122 @@ public sealed class ViewModelTests
 
         Assert.Equal("Vesper", restoredViewModel.SettingsTheme.Value);
         Assert.Equal("Vesper", restoredViewModel.Current.Theme);
+    }
+
+    [Fact]
+    public async Task Settings_persists_and_restores_catppuccin_mocha()
+    {
+        var settingsService = new FakeSettingsService(exists: true);
+        var themeService = new FakeThemeService();
+        var viewModel = new SettingsViewModel(
+            settingsService,
+            themeService,
+            new FakeExecutablePicker(),
+            new FakeArchiveService(),
+            new FakeArchiveFilePicker(),
+            new FakeSystemFontService());
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+        viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.SettingsTheme = viewModel.ThemeOptions.Single(option =>
+            option.Value == "Catppuccin Mocha");
+
+        await viewModel.SaveSettingsCommand.ExecuteAsync(null);
+
+        Assert.Equal("Catppuccin Mocha", settingsService.Value.Theme);
+        Assert.Equal("Catppuccin Mocha", themeService.AppliedThemes.Last());
+
+        var restoredViewModel = CreateSettingsViewModel(settingsService);
+        await restoredViewModel.InitializeAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal("Catppuccin Mocha", restoredViewModel.SettingsTheme.Value);
+        Assert.Equal("Catppuccin Mocha", restoredViewModel.Current.Theme);
+    }
+
+    [Fact]
+    public async Task Settings_persists_and_restores_campbell()
+    {
+        var settingsService = new FakeSettingsService(exists: true);
+        var themeService = new FakeThemeService();
+        var viewModel = new SettingsViewModel(
+            settingsService,
+            themeService,
+            new FakeExecutablePicker(),
+            new FakeArchiveService(),
+            new FakeArchiveFilePicker(),
+            new FakeSystemFontService());
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+        viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.SettingsTheme = viewModel.ThemeOptions.Single(option =>
+            option.Value == "Campbell");
+
+        await viewModel.SaveSettingsCommand.ExecuteAsync(null);
+
+        Assert.Equal("Campbell", settingsService.Value.Theme);
+        Assert.Equal("Campbell", themeService.AppliedThemes.Last());
+
+        var restoredViewModel = CreateSettingsViewModel(settingsService);
+        await restoredViewModel.InitializeAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal("Campbell", restoredViewModel.SettingsTheme.Value);
+        Assert.Equal("Campbell", restoredViewModel.Current.Theme);
+    }
+
+    [Fact]
+    public async Task Settings_persists_and_restores_atom()
+    {
+        var settingsService = new FakeSettingsService(exists: true);
+        var themeService = new FakeThemeService();
+        var viewModel = new SettingsViewModel(
+            settingsService,
+            themeService,
+            new FakeExecutablePicker(),
+            new FakeArchiveService(),
+            new FakeArchiveFilePicker(),
+            new FakeSystemFontService());
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+        viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.SettingsTheme = viewModel.ThemeOptions.Single(option =>
+            option.Value == "Atom");
+
+        await viewModel.SaveSettingsCommand.ExecuteAsync(null);
+
+        Assert.Equal("Atom", settingsService.Value.Theme);
+        Assert.Equal("Atom", themeService.AppliedThemes.Last());
+
+        var restoredViewModel = CreateSettingsViewModel(settingsService);
+        await restoredViewModel.InitializeAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal("Atom", restoredViewModel.SettingsTheme.Value);
+        Assert.Equal("Atom", restoredViewModel.Current.Theme);
+    }
+
+    [Fact]
+    public async Task Settings_persists_and_restores_dracula()
+    {
+        var settingsService = new FakeSettingsService(exists: true);
+        var themeService = new FakeThemeService();
+        var viewModel = new SettingsViewModel(
+            settingsService,
+            themeService,
+            new FakeExecutablePicker(),
+            new FakeArchiveService(),
+            new FakeArchiveFilePicker(),
+            new FakeSystemFontService());
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+        viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.SettingsTheme = viewModel.ThemeOptions.Single(option =>
+            option.Value == "Dracula");
+
+        await viewModel.SaveSettingsCommand.ExecuteAsync(null);
+
+        Assert.Equal("Dracula", settingsService.Value.Theme);
+        Assert.Equal("Dracula", themeService.AppliedThemes.Last());
+
+        var restoredViewModel = CreateSettingsViewModel(settingsService);
+        await restoredViewModel.InitializeAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal("Dracula", restoredViewModel.SettingsTheme.Value);
+        Assert.Equal("Dracula", restoredViewModel.Current.Theme);
     }
 
     [Fact]

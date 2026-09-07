@@ -67,6 +67,34 @@ public sealed partial class SettingsViewModel(
         "#17151C",
         "#1D1A24",
         "#221E2A");
+    private static readonly ThemeOption DraculaTheme = new(
+        "Dracula",
+        "Dracula",
+        "A dark appearance inspired by Dracula, with a purple accent and vibrant colors.",
+        "#282A36",
+        "#21222C",
+        "#30323F");
+    private static readonly ThemeOption AtomTheme = new(
+        "Atom",
+        "Atom",
+        "A soft dark appearance inspired by the Atom color scheme for Windows Terminal.",
+        "#161719",
+        "#1D1F21",
+        "#25282C");
+    private static readonly ThemeOption CampbellTheme = new(
+        "Campbell",
+        "Campbell",
+        "A classic dark appearance inspired by Windows Terminal's Campbell palette.",
+        "#0C0C0C",
+        "#202020",
+        "#282828");
+    private static readonly ThemeOption CatppuccinMochaTheme = new(
+        "Catppuccin Mocha",
+        "Catppuccin Mocha",
+        "A warm pastel dark appearance with Catppuccin Mocha's mauve accent.",
+        "#1E1E2E",
+        "#181825",
+        "#313244");
     private static readonly ThemeOption AbyssTheme = new(
         "Abyss",
         "Abyss",
@@ -107,23 +135,18 @@ public sealed partial class SettingsViewModel(
 
     public ApplicationSettings Current => applicationSettings;
     public WindowSettings WindowSettings => applicationSettings.Window;
-    public IReadOnlyList<ThemeOption> ThemeOptions { get; } =
-    [
-        DefaultTheme,
-        DarculaTheme,
-        MintaraTheme,
-        VesperTheme,
-        AbyssTheme,
-        DefaultLightTheme,
-        AuroraTheme,
-        MintaraLightTheme,
-        VesperLightTheme,
-        AbyssLightTheme,
-    ];
-    public IReadOnlyList<ThemeOption> DarkThemeOptions { get; } =
-        [DefaultTheme, DarculaTheme, MintaraTheme, VesperTheme, AbyssTheme];
-    public IReadOnlyList<ThemeOption> LightThemeOptions { get; } =
-        [DefaultLightTheme, AuroraTheme, MintaraLightTheme, VesperLightTheme, AbyssLightTheme];
+    private static readonly IReadOnlyList<ThemeOption> DarkThemes = Array.AsReadOnly(
+        new[] { DefaultTheme, DarculaTheme, MintaraTheme, VesperTheme, AbyssTheme, CatppuccinMochaTheme, CampbellTheme, AtomTheme, DraculaTheme }
+            .OrderBy(option => option.Name, StringComparer.OrdinalIgnoreCase).ToArray());
+    private static readonly IReadOnlyList<ThemeOption> LightThemes = Array.AsReadOnly(
+        new[] { DefaultLightTheme, AuroraTheme, MintaraLightTheme, VesperLightTheme, AbyssLightTheme }
+            .OrderBy(option => option.Name, StringComparer.OrdinalIgnoreCase).ToArray());
+    private static readonly IReadOnlyList<ThemeOption> AllThemes = Array.AsReadOnly(
+        DarkThemes.Concat(LightThemes).ToArray());
+
+    public IReadOnlyList<ThemeOption> ThemeOptions => AllThemes;
+    public IReadOnlyList<ThemeOption> DarkThemeOptions => DarkThemes;
+    public IReadOnlyList<ThemeOption> LightThemeOptions => LightThemes;
     public IReadOnlyList<string> TerminalCursorStyles { get; } =
         ["Bar", "Block", "Underline"];
     public IReadOnlyList<TerminalSelectionColorOption> TerminalSelectionColors { get; } =

@@ -32,6 +32,14 @@ internal sealed class AvaloniaThemeService : IThemeService
                 ApplicationThemeVariants.Vesper,
             string value when value.Equals("Abyss", StringComparison.OrdinalIgnoreCase) =>
                 ApplicationThemeVariants.Abyss,
+            string value when value.Equals("Catppuccin Mocha", StringComparison.OrdinalIgnoreCase) =>
+                ApplicationThemeVariants.CatppuccinMocha,
+            string value when value.Equals("Campbell", StringComparison.OrdinalIgnoreCase) =>
+                ApplicationThemeVariants.Campbell,
+            string value when value.Equals("Atom", StringComparison.OrdinalIgnoreCase) =>
+                ApplicationThemeVariants.Atom,
+            string value when value.Equals("Dracula", StringComparison.OrdinalIgnoreCase) =>
+                ApplicationThemeVariants.Dracula,
             _ => ThemeVariant.Dark,
         };
     }

@@ -4,6 +4,14 @@ namespace HyperTerm.UI.Services;
 
 public static class ApplicationThemeVariants
 {
+    public static ThemeVariant Dracula { get; } = new("Dracula", ThemeVariant.Dark);
+
+    public static ThemeVariant Atom { get; } = new("Atom", ThemeVariant.Dark);
+
+    public static ThemeVariant Campbell { get; } = new("Campbell", ThemeVariant.Dark);
+
+    public static ThemeVariant CatppuccinMocha { get; } = new("Catppuccin Mocha", ThemeVariant.Dark);
+
     public static ThemeVariant Darcula { get; } = new("Darcula", ThemeVariant.Dark);
 
     public static ThemeVariant Mintara { get; } = new("Mintara", ThemeVariant.Dark);
