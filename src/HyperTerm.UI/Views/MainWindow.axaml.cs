@@ -9,13 +9,18 @@ using HyperTerm.Core.Models;
 using HyperTerm.UI.Controls;
 using HyperTerm.UI.Services;
 using HyperTerm.UI.ViewModels;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace HyperTerm.UI.Views;
 
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1001:Types that own disposable fields should be disposable",
+    Justification = "The terminal presentation is disposed by the window Closed event before removing the native host.")]
 public sealed partial class MainWindow : Window
 {
     private WebTerminalHostControl? ActiveTerminalHost =>
-        TerminalHost.IsVisible ? TerminalHost : null;
+        TerminalHost.IsVisible && !TerminalHost.IsInteractionBlocked ? TerminalHost : null;
+    private TerminalOverlayPresentation? terminalPresentation;
     private static readonly DataFormat<string> SessionDragFormat =
         DataFormat.CreateInProcessFormat<string>("HyperTerm.SessionId");
     private static readonly DataFormat<string> FolderDragFormat =
@@ -182,12 +187,36 @@ public sealed partial class MainWindow : Window
     }
 
     public MainWindow(MainWindowViewModel viewModel)
+        : this(viewModel, new WindowsWebViewPreviewService(), NullLogger<MainWindow>.Instance)
+    {
+    }
+
+    internal MainWindow(
+        MainWindowViewModel viewModel,
+        IWebViewPreviewService previewService,
+        ILogger<MainWindow> logger)
         : this()
     {
         DataContext = viewModel;
+        terminalPresentation = new TerminalOverlayPresentation(
+            cancellationToken => TerminalHost.CanCapturePreview
+                ? previewService.CaptureAsync(TerminalHost, cancellationToken)
+                : Task.FromResult<Avalonia.Media.Imaging.Bitmap?>(null),
+            (visible, preview) =>
+            {
+                TerminalPreview.Source = preview;
+                TerminalHost.IsVisible = visible;
+                if (!visible && viewModel.IsCommandPaletteOpen)
+                {
+                    CommandPaletteDialogHost.FocusQueryAfterNativeFocusRelease();
+                }
+            },
+            logger);
+        viewModel.PropertyChanged += OnTerminalPresentationChanged;
+        viewModel.Workspace.PropertyChanged += OnTerminalPresentationChanged;
+        OnTerminalPresentationChanged(this, new(nameof(MainWindowViewModel.IsOverlayOpen)));
         viewModel.CloseWindowRequested += (_, _) => Close();
-        viewModel.TerminalSearchRequested += (_, _) =>
-            _ = ActiveTerminalHost?.OpenSearchAsync();
+        viewModel.TerminalSearchRequested += OnTerminalSearchRequested;
         viewModel.SessionEditor.PropertyChanged += (_, eventArgs) =>
         {
             if (eventArgs.PropertyName == nameof(SessionEditorViewModel.IsEditorOpen) &&
@@ -252,8 +281,49 @@ public sealed partial class MainWindow : Window
         };
         Closed += (_, _) =>
         {
+            viewModel.PropertyChanged -= OnTerminalPresentationChanged;
+            viewModel.Workspace.PropertyChanged -= OnTerminalPresentationChanged;
+            viewModel.TerminalSearchRequested -= OnTerminalSearchRequested;
+            terminalPresentation.Dispose();
             RemoveTerminalHost(TerminalHost);
         };
+    }
+
+    private async void OnTerminalSearchRequested(object? sender, EventArgs eventArgs)
+    {
+        // Search can be requested by a palette command before the deferred close renders.
+        await UpdateTerminalPresentationAsync();
+        if (ActiveTerminalHost is { } terminalHost)
+        {
+            await terminalHost.OpenSearchAsync();
+        }
+    }
+
+    private async void OnTerminalPresentationChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs eventArgs)
+    {
+        if (eventArgs.PropertyName is nameof(MainWindowViewModel.IsOverlayOpen) or
+            nameof(TerminalWorkspaceViewModel.SelectedTab))
+        {
+            if (DataContext is MainWindowViewModel { IsOverlayOpen: false })
+            {
+                // Palette commands can close one overlay and open another in the same turn.
+                await Dispatcher.UIThread.InvokeAsync(
+                    UpdateTerminalPresentationAsync, DispatcherPriority.Background);
+            }
+            else
+            {
+                await UpdateTerminalPresentationAsync();
+            }
+        }
+    }
+
+    private async Task UpdateTerminalPresentationAsync()
+    {
+        if (DataContext is MainWindowViewModel viewModel && terminalPresentation is not null)
+        {
+            TerminalHost.IsInteractionBlocked = viewModel.IsOverlayOpen;
+            await terminalPresentation.UpdateAsync(viewModel.Workspace.SelectedTab?.Id, viewModel.IsOverlayOpen);
+        }
     }
 
     internal static void RemoveTerminalHost(WebTerminalHostControl terminalHost)

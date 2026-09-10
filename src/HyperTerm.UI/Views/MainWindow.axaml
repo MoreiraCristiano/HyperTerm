@@ -380,6 +380,13 @@
           ResizeBehavior="PreviousAndNext"
           ResizeDirection="Columns" />
 
+    <Image
+          x:Name="TerminalPreview"
+          Grid.Row="1"
+          Grid.Column="2"
+          Stretch="Uniform"
+          IsHitTestVisible="False" />
+
     <controls:WebTerminalHostControl
           x:Name="TerminalHost"
           AutomationProperties.AutomationId="TerminalHost"
@@ -387,7 +394,7 @@
           Grid.Column="2"
           ActiveTab="{Binding Workspace.SelectedTab}"
           Background="{DynamicResource AppBackgroundBrush}"
-          IsVisible="{Binding AreTerminalHostsVisible}"
+          IsVisible="False"
           Tabs="{Binding Workspace.Tabs}" />
 
     <Border

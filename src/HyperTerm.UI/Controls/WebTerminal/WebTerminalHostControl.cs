@@ -10,6 +10,17 @@ namespace HyperTerm.UI.Controls;
 
 public sealed class WebTerminalHostControl : NativeWebView
 {
+    public static readonly StyledProperty<bool> IsInteractionBlockedProperty =
+        AvaloniaProperty.Register<WebTerminalHostControl, bool>(nameof(IsInteractionBlocked));
+
+    public bool IsInteractionBlocked
+    {
+        get => GetValue(IsInteractionBlockedProperty);
+        set => SetValue(IsInteractionBlockedProperty, value);
+    }
+
+    internal bool CanCapturePreview => hostReady && IsVisible && !preparedForRemoval;
+
     public static readonly StyledProperty<IEnumerable<TerminalTabViewModel>?> TabsProperty =
         AvaloniaProperty.Register<WebTerminalHostControl, IEnumerable<TerminalTabViewModel>?>(
             nameof(Tabs));
@@ -125,7 +136,19 @@ public sealed class WebTerminalHostControl : NativeWebView
 
         base.OnPropertyChanged(change);
 
-        if (change.Property == TabsProperty)
+        if (change.Property == IsInteractionBlockedProperty)
+        {
+            IsHitTestVisible = !IsInteractionBlocked;
+            if (IsInteractionBlocked)
+            {
+                CancelWindowActivationFocus();
+                if (TopLevel.GetTopLevel(this) is { } topLevel)
+                {
+                    WindowsWebViewFocus.TryReleaseFocus(topLevel);
+                }
+            }
+        }
+        else if (change.Property == TabsProperty)
         {
             terminalRegistry.Observe(ObservedTabs);
         }
@@ -191,6 +214,11 @@ public sealed class WebTerminalHostControl : NativeWebView
                 return;
             }
 
+            if (IsInteractionBlocked && IsInteractiveMessage(message.Type))
+            {
+                return;
+            }
+
             switch (message.Type)
             {
                 case "ready":
@@ -238,6 +266,9 @@ public sealed class WebTerminalHostControl : NativeWebView
         }
     }
 
+    internal static bool IsInteractiveMessage(string type) =>
+        type is "input" or "copy" or "paste" or "applicationCommand" or "paneActivated" or "paneRatio";
+
     private void ScheduleOutputFlush()
     {
         if (preparedForRemoval ||
@@ -282,7 +313,7 @@ public sealed class WebTerminalHostControl : NativeWebView
 
     private async Task FocusTerminalAsync(TerminalTabViewModel tab)
     {
-        if (!hostReady || !IsVisible || !ReferenceEquals(tab, CurrentTab))
+        if (!hostReady || !IsVisible || IsInteractionBlocked || !ReferenceEquals(tab, CurrentTab))
         {
             return;
         }
@@ -296,6 +327,11 @@ public sealed class WebTerminalHostControl : NativeWebView
 
     public void FocusAfterWindowActivation()
     {
+        if (IsInteractionBlocked || preparedForRemoval)
+        {
+            return;
+        }
+
         focusAfterActivationPending = true;
         _ = FocusAfterWindowActivationIfReadyAsync();
     }
@@ -306,7 +342,7 @@ public sealed class WebTerminalHostControl : NativeWebView
     public async Task OpenSearchAsync()
     {
         TerminalTabViewModel? tab = CurrentTab;
-        if (!hostReady || !IsVisible || tab is null)
+        if (!hostReady || !IsVisible || IsInteractionBlocked || tab is null)
         {
             return;
         }
@@ -319,7 +355,7 @@ public sealed class WebTerminalHostControl : NativeWebView
     private async Task FocusAfterWindowActivationIfReadyAsync()
     {
         TerminalTabViewModel? tab = CurrentTab;
-        if (!focusAfterActivationPending || !hostReady || !IsVisible || tab is null)
+        if (!focusAfterActivationPending || !hostReady || !IsVisible || IsInteractionBlocked || tab is null)
         {
             return;
         }

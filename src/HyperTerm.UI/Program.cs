@@ -127,7 +127,11 @@ internal static class Program
                 services.AddSingleton<FolderEditorViewModel>();
                 services.AddSingleton<ApplicationUpdateViewModel>();
                 services.AddSingleton<MainWindowViewModel>();
-                services.AddSingleton<MainWindow>();
+                services.AddSingleton<IWebViewPreviewService, WindowsWebViewPreviewService>();
+                services.AddSingleton(services => new MainWindow(
+                    services.GetRequiredService<MainWindowViewModel>(),
+                    services.GetRequiredService<IWebViewPreviewService>(),
+                    services.GetRequiredService<ILogger<MainWindow>>()));
             })
             .Build();
 }
