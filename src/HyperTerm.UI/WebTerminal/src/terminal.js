@@ -683,6 +683,7 @@ function handleKeyEvent(state, event) {
       KeyN: 'newSession',
       KeyO: 'openSession',
       KeyW: 'closePane',
+      KeyD: 'splitActiveTerminal',
       KeyB: 'toggleSidebar',
       KeyF: 'searchTerminal',
       KeyK: 'commandPalette',

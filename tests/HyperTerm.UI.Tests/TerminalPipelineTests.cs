@@ -94,6 +94,7 @@ public sealed class TerminalPipelineTests
     [InlineData("newTerminal")]
     [InlineData("searchTerminal")]
     [InlineData("commandPalette")]
+    [InlineData("splitActiveTerminal")]
     public void ParsesSupportedDiscoveryCommands(string command)
     {
         string body = JsonSerializer.Serialize(new

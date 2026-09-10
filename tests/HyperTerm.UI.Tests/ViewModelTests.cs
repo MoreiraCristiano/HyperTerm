@@ -684,6 +684,74 @@ public sealed class ViewModelTests
     }
 
     [Fact]
+    public async Task SplitActiveTerminalDuplicatesActiveDefinitionInIndependentPane()
+    {
+        var sessions = new FakeSessionService();
+        Session savedSession = FakeSessionService.CreateSession(
+            Guid.NewGuid(),
+            new SessionDetails(
+                "Production server", "prod.test", 22, "admin", null,
+                "Production", "Primary host"));
+        sessions.Sessions.Add(savedSession);
+        var explorer = new SessionExplorerViewModel(sessions, new FakeFolderService());
+        await explorer.InitializeAsync(TestContext.Current.CancellationToken);
+        var ptySessionFactory = new FakePtySessionFactory();
+        var workspace = new TerminalWorkspaceViewModel(
+            sessions,
+            new FakeTerminalSessionFactory(),
+            ptySessionFactory);
+        await workspace.OpenSessionAsync(explorer.Sessions[0]);
+        TerminalTabViewModel tab = workspace.SelectedTab!;
+        TerminalPaneViewModel originalPane = tab.ActivePane!;
+        int focusRequests = 0;
+        tab.FocusRequested += (_, _) => focusRequests++;
+
+        workspace.SplitActiveTerminalCommand.Execute(null);
+
+        TerminalPaneViewModel duplicatePane = tab.ActivePane!;
+        await tab.StartPaneAsync(
+            originalPane.PaneId,
+            80,
+            24,
+            TestContext.Current.CancellationToken);
+        await tab.StartPaneAsync(
+            duplicatePane.PaneId,
+            80,
+            24,
+            TestContext.Current.CancellationToken);
+
+        Assert.Single(workspace.Tabs);
+        Assert.Equal(2, tab.Panes.Count);
+        Assert.Equal(2, ptySessionFactory.Sessions.Count);
+        Assert.NotSame(ptySessionFactory.Sessions[0], ptySessionFactory.Sessions[1]);
+        Assert.NotEqual(originalPane.PaneId, duplicatePane.PaneId);
+        Assert.Equal(originalPane.Definition.Process, duplicatePane.Definition.Process);
+        Assert.Equal(originalPane.Definition.Arguments, duplicatePane.Definition.Arguments);
+        Assert.Equal(originalPane.Definition.StartingDirectory, duplicatePane.Definition.StartingDirectory);
+        Assert.Equal(originalPane.Definition.Kind, duplicatePane.Definition.Kind);
+        Assert.Equal(originalPane.Definition.ProfileId, duplicatePane.Definition.ProfileId);
+        Assert.Equal(originalPane.Definition.DisplayName, duplicatePane.Definition.DisplayName);
+        Assert.Equal(
+            SplitOrientation.Vertical,
+            Assert.IsType<SplitPaneNode>(tab.PaneRoot).Orientation);
+        Assert.Equal(duplicatePane.PaneId, tab.ActivePaneId);
+        Assert.Equal(1, focusRequests);
+        Assert.Empty(originalPane.Definition.Arguments);
+        Assert.Contains("duplicated to the right", workspace.StatusText);
+    }
+
+    [Fact]
+    public void SplitActiveTerminalIsUnavailableWithoutOpenTab()
+    {
+        var workspace = new TerminalWorkspaceViewModel(
+            new FakeSessionService(),
+            new FakeTerminalSessionFactory(),
+            new FakePtySessionFactory());
+
+        Assert.False(workspace.SplitActiveTerminalCommand.CanExecute(null));
+    }
+
+    [Fact]
     public async Task SplitActionFromCommandPaletteReturnsToRootOnEscape()
     {
         var sessions = new FakeSessionService();

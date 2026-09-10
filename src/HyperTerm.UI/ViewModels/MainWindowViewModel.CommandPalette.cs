@@ -352,11 +352,16 @@ public sealed partial class MainWindowViewModel
             28,
             () => Workspace.SplitDownCommand.Execute(null),
             closesPaletteOnExecute: false);
-        yield return AsyncAction("Terminal: Close Pane", "Close the active terminal pane", 29,
+        yield return Action(
+            "Terminal: Split Active Terminal",
+            "Duplicate the active terminal in a split to the right",
+            29,
+            () => Workspace.SplitActiveTerminalCommand.Execute(null));
+        yield return AsyncAction("Terminal: Close Pane", "Close the active terminal pane", 30,
             () => Workspace.ClosePaneCommand.ExecuteAsync(null));
-        yield return Action("Terminal: Focus Next Pane", "Focus the next terminal pane", 30,
+        yield return Action("Terminal: Focus Next Pane", "Focus the next terminal pane", 31,
             () => Workspace.FocusNextPaneCommand.Execute(null));
-        yield return Action("Terminal: Focus Previous Pane", "Focus the previous terminal pane", 31,
+        yield return Action("Terminal: Focus Previous Pane", "Focus the previous terminal pane", 32,
             () => Workspace.FocusPreviousPaneCommand.Execute(null));
     }
 

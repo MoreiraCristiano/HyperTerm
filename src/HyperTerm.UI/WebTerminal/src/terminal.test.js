@@ -651,10 +651,12 @@ describe('terminal host bridge', () => {
     expect(key({ ...base, ctrlKey: true, code: 'Tab' })).toBe(false);
     expect(key({ ...base, ctrlKey: true, shiftKey: true, code: 'Tab' })).toBe(false);
     expect(key({ ...base, ctrlKey: true, shiftKey: true, code: 'KeyK' })).toBe(false);
+    expect(key({ ...base, ctrlKey: true, shiftKey: true, code: 'KeyD' })).toBe(false);
+    expect(key({ ...base, ctrlKey: true, shiftKey: true, code: 'KeyD', repeat: true })).toBe(false);
     expect(key({ ...base, code: 'KeyA' })).toBe(true);
 
     expect(sent.map(message => message.command).filter(Boolean)).toEqual([
-      'closeWindow', 'nextTab', 'previousTab', 'commandPalette'
+      'closeWindow', 'nextTab', 'previousTab', 'commandPalette', 'splitActiveTerminal'
     ]);
   });
 

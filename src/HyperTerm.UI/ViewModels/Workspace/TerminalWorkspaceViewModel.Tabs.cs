@@ -112,6 +112,29 @@ public sealed partial class TerminalWorkspaceViewModel
     private void SplitDown() => SplitSelectionRequested?.Invoke(SplitOrientation.Horizontal);
 
     [RelayCommand(CanExecute = nameof(HasSelectedTab))]
+    private void SplitActiveTerminal()
+    {
+        TerminalTabViewModel? tab = SelectedTab;
+        TerminalPaneViewModel? activePane = tab?.ActivePane;
+        if (tab is null || activePane is null)
+        {
+            return;
+        }
+
+        TerminalSessionDefinition definition = activePane.Definition with
+        {
+            Arguments = activePane.Definition.Arguments.ToArray(),
+        };
+        if (tab.SplitActivePane(SplitOrientation.Vertical, definition) is null)
+        {
+            return;
+        }
+
+        tab.RequestFocus();
+        StatusText = $"‘{activePane.Definition.DisplayName ?? tab.Title}’ duplicated to the right";
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSelectedTab))]
     private async Task ClosePaneAsync() =>
         _ = await SelectedTab!.CloseActivePaneAsync();
 
@@ -378,6 +401,9 @@ public sealed partial class TerminalWorkspaceViewModel
                 break;
             case "splitDown":
                 SplitDown();
+                break;
+            case "splitActiveTerminal":
+                SplitActiveTerminal();
                 break;
             case "focusNextPane":
                 FocusNextPane();

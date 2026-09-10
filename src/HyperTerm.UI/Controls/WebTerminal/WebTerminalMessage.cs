@@ -33,6 +33,7 @@ internal sealed record WebTerminalMessage(
         "commandPalette",
         "splitRight",
         "splitDown",
+        "splitActiveTerminal",
         "closePane",
         "focusNextPane",
         "focusPreviousPane",

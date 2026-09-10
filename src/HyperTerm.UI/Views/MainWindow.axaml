@@ -25,6 +25,7 @@
     <KeyBinding Gesture="Ctrl+Shift+N" Command="{Binding Explorer.NewSessionCommand}" />
     <KeyBinding Gesture="Ctrl+Shift+O" Command="{Binding Explorer.OpenSelectedSessionCommand}" />
     <KeyBinding Gesture="Ctrl+Shift+W" Command="{Binding Workspace.ClosePaneCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+D" Command="{Binding Workspace.SplitActiveTerminalCommand}" />
     <KeyBinding Gesture="Alt+Shift+Right" Command="{Binding Workspace.SplitRightCommand}" />
     <KeyBinding Gesture="Alt+Shift+Down" Command="{Binding Workspace.SplitDownCommand}" />
     <KeyBinding Gesture="Alt+Right" Command="{Binding Workspace.FocusRightPaneCommand}" />
@@ -138,6 +139,7 @@
                 WindowDecorationProperties.ElementRole="None">
               <Button.Flyout>
                 <MenuFlyout Opening="OnTerminalMenuOpening" Placement="BottomEdgeAlignedLeft">
+                  <MenuItem Header="Split Active Terminal" Command="{Binding Workspace.SplitActiveTerminalCommand}" />
                   <MenuItem Header="Split Right" Command="{Binding Workspace.SplitRightCommand}" />
                   <MenuItem Header="Split Down" Command="{Binding Workspace.SplitDownCommand}" />
                   <MenuItem Header="Close Pane" Command="{Binding Workspace.ClosePaneCommand}" />

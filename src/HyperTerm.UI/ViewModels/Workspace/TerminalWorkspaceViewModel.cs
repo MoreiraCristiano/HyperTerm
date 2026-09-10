@@ -65,6 +65,7 @@ public sealed partial class TerminalWorkspaceViewModel(
         }
 
         CloseSelectedTabCommand.NotifyCanExecuteChanged();
+        SplitActiveTerminalCommand.NotifyCanExecuteChanged();
         NextTabCommand.NotifyCanExecuteChanged();
         PreviousTabCommand.NotifyCanExecuteChanged();
     }
