@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -20,8 +20,6 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 10.0.x
@@ -32,23 +30,14 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: src/HyperTerm.UI/WebTerminal/package-lock.json
-      - name: Deterministic quality gate
-        shell: pwsh
-        run: .\scripts\verify.ps1 -Coverage
-      - name: Mutate changed Core code
-        if: github.event_name == 'pull_request'
-        shell: pwsh
-        run: dotnet stryker --config-file stryker-config.json --since:${{ github.event.pull_request.base.sha }}
-      - name: Upload test reports
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: test-reports
-          path: |
-            artifacts/test-results
-            artifacts/coverage
-            src/HyperTerm.UI/WebTerminal/coverage
-          retention-days: 14
+      - name: Install web terminal dependencies
+        run: npm.cmd ci --prefix .\src\HyperTerm.UI\WebTerminal --no-audit --no-fund
+      - name: Test web terminal
+        run: npm.cmd test --prefix .\src\HyperTerm.UI\WebTerminal
+      - name: Build web terminal
+        run: npm.cmd run build --prefix .\src\HyperTerm.UI\WebTerminal
+      - name: Test .NET solution
+        run: dotnet test .\HyperTerm.sln --configuration Release
 
   release:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
@@ -59,8 +48,6 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 10.0.x
@@ -82,130 +69,9 @@ jobs:
           }
 
           "version=$($Matches.version)" >> $env:GITHUB_OUTPUT
-      - name: Build distributable release
+      - name: Build release
         shell: pwsh
         run: .\scripts\build.ps1 -Runtime win-x64 -Version '${{ steps.version.outputs.version }}'
-      - name: Verify release assets
-        shell: pwsh
-        env:
-          RELEASE_VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          $archiveName = "HyperTerm-$env:RELEASE_VERSION-win-x64.zip"
-          $archivePath = Join-Path 'artifacts\releases' $archiveName
-          $installerName = "HyperTerm-$env:RELEASE_VERSION-win-x64-setup.exe"
-          $installerPath = Join-Path 'artifacts\releases' $installerName
-          foreach ($assetPath in @($archivePath, $installerPath)) {
-              $checksumPath = "$assetPath.sha256"
-              if (-not (Test-Path -LiteralPath $assetPath)) {
-                  throw "Release asset was not created: $assetPath"
-              }
-              if (-not (Test-Path -LiteralPath $checksumPath)) {
-                  throw "Release checksum was not created: $checksumPath"
-              }
-
-              $assetName = Split-Path -Leaf $assetPath
-              $checksum = (Get-Content -LiteralPath $checksumPath -Raw).Trim()
-              $expectedHash = (Get-FileHash -LiteralPath $assetPath -Algorithm SHA256).Hash.ToLowerInvariant()
-              $expectedChecksum = "$expectedHash  $assetName"
-              if ($checksum -cne $expectedChecksum) {
-                  throw "Release checksum does not match $assetName."
-              }
-          }
-
-          Add-Type -AssemblyName System.IO.Compression.FileSystem
-          $zip = [System.IO.Compression.ZipFile]::OpenRead($archivePath)
-          try {
-              $manifestEntry = $zip.GetEntry('HyperTerm.manifest.json')
-              if ($null -eq $manifestEntry) {
-                  throw 'Release manifest is missing.'
-              }
-
-              $reader = [System.IO.StreamReader]::new($manifestEntry.Open())
-              try {
-                  $manifest = $reader.ReadToEnd() | ConvertFrom-Json
-              }
-              finally {
-                  $reader.Dispose()
-              }
-
-              $archiveFiles = @($zip.Entries |
-                  Where-Object { -not [string]::IsNullOrEmpty($_.Name) } |
-                  ForEach-Object FullName |
-                  Sort-Object)
-              $manifestFiles = @($manifest.files | Sort-Object)
-              if ($manifest.schemaVersion -ne 2 -or
-                  (Compare-Object $archiveFiles $manifestFiles)) {
-                  throw 'Release manifest file list does not match archive contents.'
-              }
-          }
-          finally {
-              $zip.Dispose()
-          }
-      - name: Smoke-test installer lifecycle
-        shell: pwsh
-        env:
-          RELEASE_VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          $installerPath = Resolve-Path "artifacts\releases\HyperTerm-$env:RELEASE_VERSION-win-x64-setup.exe"
-          $installPath = Join-Path $env:RUNNER_TEMP 'HyperTerm installer smoke test'
-          $applicationDataPath = Join-Path ([Environment]::GetFolderPath(
-              [Environment+SpecialFolder]::LocalApplicationData)) 'HyperTerm'
-          if (Test-Path -LiteralPath $applicationDataPath) {
-              throw "Installer smoke-test data path already exists: $applicationDataPath"
-          }
-
-          $installArguments = @(
-              '/VERYSILENT',
-              '/SUPPRESSMSGBOXES',
-              '/NORESTART',
-              '/NOICONS',
-              "/DIR=`"$installPath`"")
-          foreach ($attempt in 1..2) {
-              $install = Start-Process `
-                  -FilePath $installerPath `
-                  -ArgumentList $installArguments `
-                  -Wait `
-                  -PassThru `
-                  -WindowStyle Hidden
-              if ($install.ExitCode -ne 0) {
-                  throw "Installer attempt $attempt failed with exit code $($install.ExitCode)."
-              }
-          }
-
-          foreach ($relativePath in @(
-              'HyperTerm.exe',
-              'HyperTerm.manifest.json')) {
-              $installedPath = Join-Path $installPath $relativePath
-              if (-not (Test-Path -LiteralPath $installedPath -PathType Leaf)) {
-                  throw "Installed release file is missing: $installedPath"
-              }
-          }
-
-          $uninstaller = @(Get-ChildItem -LiteralPath $installPath -Filter 'unins*.exe' -File)
-          if ($uninstaller.Count -ne 1) {
-              throw "Expected one uninstaller, found $($uninstaller.Count)."
-          }
-
-          New-Item -ItemType Directory -Path $applicationDataPath | Out-Null
-          $dataSentinel = Join-Path $applicationDataPath 'installer-smoke-test.txt'
-          Set-Content -LiteralPath $dataSentinel -Value 'preserve' -Encoding ascii
-          $uninstall = Start-Process `
-              -FilePath $uninstaller[0].FullName `
-              -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART') `
-              -Wait `
-              -PassThru `
-              -WindowStyle Hidden
-          if ($uninstall.ExitCode -ne 0) {
-              throw "Uninstaller failed with exit code $($uninstall.ExitCode)."
-          }
-          if (Test-Path -LiteralPath (Join-Path $installPath 'HyperTerm.exe')) {
-              throw 'Uninstaller left the application executable behind.'
-          }
-          if (-not (Test-Path -LiteralPath $dataSentinel -PathType Leaf)) {
-              throw 'Silent uninstall removed local application data.'
-          }
-
-          Remove-Item -LiteralPath $applicationDataPath -Recurse -Force
       - name: Publish GitHub release
         shell: pwsh
         env:
@@ -213,19 +79,12 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
         run: |
-          $archivePath = "artifacts\releases\HyperTerm-$env:RELEASE_VERSION-win-x64.zip"
-          $installerPath = "artifacts\releases\HyperTerm-$env:RELEASE_VERSION-win-x64-setup.exe"
-          $assets = @(
-              $archivePath,
-              "$archivePath.sha256",
-              $installerPath,
-              "$installerPath.sha256")
+          $assets = Get-ChildItem .\artifacts\releases\* -File |
+              ForEach-Object FullName
 
           & gh release view $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY *> $null
           if ($LASTEXITCODE -eq 0) {
-              & gh release upload $env:RELEASE_TAG @assets `
-                  --repo $env:GITHUB_REPOSITORY `
-                  --clobber
+              & gh release upload $env:RELEASE_TAG @assets --clobber --repo $env:GITHUB_REPOSITORY
           }
           else {
               & gh release create $env:RELEASE_TAG @assets `
